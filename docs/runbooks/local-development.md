@@ -1,6 +1,6 @@
 # Local development
 
-Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 3000, 5173, 5432, 6379 and 9000 must be free.
+Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 1025, 3000, 5173, 5432, 6379, 8025 and 9000 must be free.
 
 ```bash
 cp .env.example .env

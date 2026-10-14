@@ -106,6 +106,8 @@ export function createAuth({ prisma, config, captureMail }: AuthOptions) {
       transaction: true,
     }),
     advanced: {
+      disableOriginCheck: false,
+      disableCSRFCheck: false,
       database: { generateId: 'uuid' },
       ipAddress: { ipAddressHeaders: ['x-reconcile-client-ip'] },
       useSecureCookies: config.NODE_ENV === 'production',

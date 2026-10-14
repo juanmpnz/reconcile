@@ -1,0 +1,11 @@
+# Phase 1 coordination, product and platform review
+
+Reviewer: /root. Sequential review by the coordinator/implementer, not independent. Roles: principal-engineer, product-manager, platform-engineer. 2026-10-14.
+
+The product brief and ADR narrow phase 1 to real account/organization access, with personal workspaces represented by organizations. No invoice metrics, business processing, corporate SSO or ownership-transfer claims. Obra Community is accepted, with attribution and precise Figma inspection/fidelity limitations documented. The initial browser fixture checks account screens only, not a complete authenticated browser journey.
+
+Platform scope: isolated additive UUID identity migration, exact dependency lock, local loopback Mailpit, separated auth/worker environment validation, PostgreSQL-backed limiter, existing private S3/Redis smoke retained. pnpm's minimum-age exceptions are restricted to eight exact Better Auth 1.7.8 packages matching the installed SDK/adapters; they do not disable the age policy globally. Both app and integration TypeScript configs are checked. Vitest excludes integration tests from unit checks while preserving default dependency exclusions.
+
+Observed CI run 38619915838 at 23acfbe374caa43b6a955780854cad77acc338ba: frozen install, complete pnpm check, infrastructure startup and both migrations passed. Real identity acceptance returned 9/11 passed and blocked subsequent smoke/evidence gate. Hostile-origin acceptance in test environment and missing standard Retry-After were sent to backend/security/QA for correction; this record does not approve those issues. The evidence gate remains mandatory after runtime tests, allowing acceptance collection without claiming the task verified prematurely.
+
+Local pnpm check passed (8 harness regressions, 10 unit/config tests, formatting, lint, strict types, builds). PostgreSQL runtime is delegated to actual GitHub Actions because the local executor cannot run it as a nonroot user. Production container builds, SMTP delivery, complete logged-in browser journey, MFA, trusted production proxies and deployment recovery are unverified or outside scope.

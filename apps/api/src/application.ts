@@ -50,6 +50,25 @@ export async function createApplication({
       );
       if (url.origin !== configuredBase.origin)
         return reply.status(400).send({ code: 'INVALID_AUTH_URL' });
+      const origin = headers.get('origin');
+      const trustedOrigins = new Set([
+        configuredBase.origin,
+        ...(Array.isArray(auth.options.trustedOrigins)
+          ? auth.options.trustedOrigins.filter(
+              (value): value is string => typeof value === 'string',
+            )
+          : []),
+      ]);
+      // Browser auth writes require an explicit exact origin. Referer is not a fallback.
+      // Email verification/reset GET links intentionally work without an Origin header.
+      if (
+        (request.method === 'POST' && !origin) ||
+        (origin !== null && !trustedOrigins.has(origin)) ||
+        (request.method === 'POST' &&
+          headers.get('sec-fetch-site') === 'cross-site')
+      ) {
+        return reply.status(403).send({ code: 'UNTRUSTED_ORIGIN' });
+      }
       headers.set('host', configuredBase.host);
       const body =
         request.method === 'GET'
@@ -66,6 +85,15 @@ export async function createApplication({
       response.headers.forEach((value, key) => {
         if (key !== 'set-cookie') reply.header(key, value);
       });
+      const retryAfter = response.headers.get('x-retry-after');
+      if (
+        response.status === 429 &&
+        !response.headers.has('retry-after') &&
+        retryAfter !== null &&
+        /^\d+$/.test(retryAfter)
+      ) {
+        reply.header('retry-after', retryAfter);
+      }
       const cookies = response.headers.getSetCookie();
       if (cookies.length) reply.header('set-cookie', cookies);
       return reply.send(

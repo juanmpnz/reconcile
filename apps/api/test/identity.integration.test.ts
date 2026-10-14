@@ -84,7 +84,7 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
     url: string,
     browser?: Browser,
     payload?: Record<string, unknown>,
-    requestOrigin = origin,
+    requestOrigin: string | null = origin,
     extraHeaders: Record<string, string> = {},
   ) {
     const response = await app.inject({
@@ -93,7 +93,7 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
       remoteAddress: browser?.address ?? '203.0.113.250',
       headers: {
         ...extraHeaders,
-        origin: requestOrigin,
+        ...(requestOrigin === null ? {} : { origin: requestOrigin }),
         cookie: browser
           ? [...browser.cookies]
               .map(([key, value]) => `${key}=${value}`)
@@ -214,10 +214,22 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
       }),
     );
     rejected(await context(randomUUID()));
-    const response = await request(
-      localUrl(captured(browser.email, 'verification').url),
-      browser,
+    const verificationUrl = localUrl(
+      captured(browser.email, 'verification').url,
     );
+    rejected(
+      await request(
+        verificationUrl,
+        browser,
+        undefined,
+        'https://evil.example.invalid',
+      ),
+    );
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { email: browser.email } }))
+        .emailVerified,
+    ).toBe(false);
+    const response = await request(verificationUrl, browser, undefined, null);
     expect(response.statusCode, response.body).toBeLessThan(400);
     expect((await login(browser)).statusCode).toBe(200);
   });
@@ -471,16 +483,66 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
     );
   });
 
-  it('rejects hostile origins and preserves every authentication Set-Cookie header', async () => {
-    const browser = await verifiedUser();
-    rejected(
-      await request(
+  it.each([
+    'https://evil.example.invalid',
+    'null',
+    'http://localhost:3001',
+    'http://localhost.evil.example.invalid:3000',
+  ])(
+    'rejects hostile Origin %s without creating an organization',
+    async (hostileOrigin) => {
+      const browser = await verifiedUser();
+      const slug = `hostile-${randomUUID()}`;
+      const response = await request(
         '/api/auth/organization/create',
         browser,
-        { name: 'Hostile', slug: `hostile-${randomUUID()}` },
-        'https://evil.example.invalid',
-      ),
+        { name: 'Hostile', slug },
+        hostileOrigin,
+      );
+      const created = await prisma.organization.findUnique({ where: { slug } });
+      if (created) organizationIds.add(created.id);
+      rejected(response);
+      expect(created).toBeNull();
+    },
+  );
+
+  it.each(['', 'https://evil.example.invalid/form'])(
+    'rejects missing Origin with Referer %s',
+    async (referer) => {
+      const browser = await verifiedUser();
+      const slug = `referer-${randomUUID()}`;
+      const response = await request(
+        '/api/auth/organization/create',
+        browser,
+        { name: 'Hostile Referer', slug },
+        null,
+        referer ? { referer } : {},
+      );
+      const created = await prisma.organization.findUnique({ where: { slug } });
+      if (created) organizationIds.add(created.id);
+      rejected(response);
+      expect(created).toBeNull();
+    },
+  );
+
+  it('rejects cross-site Fetch Metadata even when the Origin header claims the trusted origin', async () => {
+    const browser = await verifiedUser();
+    const slug = `cross-site-${randomUUID()}`;
+    const response = await request(
+      '/api/auth/organization/create',
+      browser,
+      { name: 'Cross-site', slug },
+      origin,
+      { 'sec-fetch-site': 'cross-site' },
     );
+    const created = await prisma.organization.findUnique({ where: { slug } });
+    if (created) organizationIds.add(created.id);
+    rejected(response);
+    expect(created).toBeNull();
+  });
+
+  it('preserves every authentication Set-Cookie header', async () => {
+    const browser = await verifiedUser();
     const response = await login(browser);
     const cookies = response.headers['set-cookie'];
     expect(
@@ -516,7 +578,10 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
       },
     );
     expect(limited.statusCode, limited.body).toBe(429);
-    expect(limited.headers['retry-after']).toBeDefined();
+    const nativeRetryAfter = text(limited.headers['x-retry-after']);
+    expect(limited.headers['retry-after']).toBe(nativeRetryAfter);
+    expect(Number(nativeRetryAfter)).toBeGreaterThan(0);
+    expect(Number(nativeRetryAfter)).toBeLessThanOrEqual(10);
   });
 
   it('makes reset tokens single-use and revokes pre-reset sessions', async () => {
