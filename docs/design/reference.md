@@ -1,4 +1,4 @@
-# Referencia de diseño propuesta
+# Referencia de diseño aceptada
 
 Estado: base de diseño aceptada por el usuario el 2026-10-14; pendiente de inspección de componentes/nodos concretos. No se ha duplicado ni creado un archivo Figma.
 

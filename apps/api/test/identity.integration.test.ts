@@ -541,9 +541,15 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
     expect(created).toBeNull();
   });
 
-  it('preserves every authentication Set-Cookie header', async () => {
+  it('preserves separate session and do-not-remember Set-Cookie headers', async () => {
     const browser = await verifiedUser();
-    const response = await login(browser);
+    // Native Better Auth emits both cookies for rememberMe:false even with cookieCache disabled.
+    const response = await request('/api/auth/sign-in/email', browser, {
+      email: browser.email,
+      password,
+      rememberMe: false,
+    });
+    expect(response.statusCode, response.body).toBe(200);
     const cookies = response.headers['set-cookie'];
     expect(
       Array.isArray(cookies),
@@ -556,6 +562,16 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
         (cookie) => /session_token=/.test(cookie) && /httponly/i.test(cookie),
       ),
     ).toBe(true);
+    expect(
+      values.some(
+        (cookie) => /dont_remember=/.test(cookie) && /httponly/i.test(cookie),
+      ),
+    ).toBe(true);
+    expect(new Set(values.map((cookie) => cookie.split('=', 1)[0])).size).toBe(
+      values.length,
+    );
+    const orgId = await organization(browser);
+    expect((await context(orgId, browser)).statusCode).toBe(200);
   });
 
   it('limits repeated login attempts by socket address despite forged forwarding headers', async () => {

@@ -21,7 +21,8 @@
     "vitest.integration.config.ts",
     "vitest.config.ts",
     "pnpm-workspace.yaml",
-    ".agents/reviews/identity/"
+    ".agents/reviews/identity/",
+    "README.md"
   ],
   "acceptance": [
     "Real registration, email verification, login, recovery and signout.",
@@ -56,5 +57,10 @@
     "Real PostgreSQL runtime acceptance pending CI; local executor cannot run PostgreSQL as a nonroot user.",
     "MFA, known reverse proxy configuration and ownership transfer are rollout gates, not claimed delivered."
   ],
-  "evidence": []
+  "evidence": [
+    ".agents/reviews/identity/coordination-platform.md",
+    ".agents/reviews/identity/architecture-security.md",
+    ".agents/reviews/identity/frontend-accessibility.md",
+    ".agents/reviews/identity/qa.md"
+  ]
 }
