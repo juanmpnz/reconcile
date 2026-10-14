@@ -1,0 +1,130 @@
+{
+  "id": "2026-10-14-startup-diagnostics",
+  "summary": "Diagnose API development startup failures without exposing secrets",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root",
+  "changeClass": "security",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Logging startup errors must not leak database/mail credentials; independent security and QA review required.",
+  "scope": [
+    "apps/api/src/main.ts",
+    "apps/api/src/application.ts",
+    "apps/api/src/startup-diagnostics.ts",
+    "apps/api/test/startup-diagnostics.test.ts",
+    "docs/runbooks/local-development.md",
+    "docs/status.md",
+    ".agents/tasks/2026-10-14-startup-diagnostics.json",
+    ".agents/reviews/startup-diagnostics.md",
+    ".agents/reviews/startup-diagnostics-qa.md",
+    ".agents/reviews/startup-diagnostics-main.md"
+  ],
+  "acceptance": [
+    "Startup failures identify stage and known binding error without raw error/environment values.",
+    "Config diagnostics show only known invalid field names.",
+    "A listen failure exits nonzero and closes created application resources.",
+    "Authentication and tenant behavior remain unchanged."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "backend-engineer",
+    "solution-architect",
+    "security-engineer",
+    "qa-engineer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Startup diagnostics and resource cleanup only; no new product, domain or UI flow. Product/UX/design routes are not triggered.",
+  "excludedRoles": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Stage-aware startup diagnostics, bounded failure cleanup, runbook and full local check; original Mac failure not reproduced",
+      "evidence": [".agents/reviews/startup-diagnostics-main.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Stage-aware startup diagnostics, bounded failure cleanup, runbook and full local check; original Mac failure not reproduced",
+      "evidence": [".agents/reviews/startup-diagnostics-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Stage-aware startup diagnostics, bounded failure cleanup, runbook and full local check; original Mac failure not reproduced",
+      "evidence": [".agents/reviews/startup-diagnostics-main.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final helper/main/application/test fingerprints and real built-entrypoint failure probes after getter/cleanup corrections",
+      "evidence": [".agents/reviews/startup-diagnostics.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final helper/main/application/test fingerprints and real built-entrypoint failure probes after getter/cleanup corrections",
+      "evidence": [".agents/reviews/startup-diagnostics.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/harness_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "10 helper tests, strict test types and real Node tsx-loader child failures/free-port liveness/shutdown; exact fingerprints in evidence",
+      "evidence": [".agents/reviews/startup-diagnostics-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local formatting, lint, strict types, 20 unit tests (10 new), 8 harness regressions and production builds passed."
+    },
+    {
+      "command": "Independent real child-process startup probes",
+      "status": "passed",
+      "result": "QA exercised TypeScript entrypoint via Node tsx loader: occupied port exits1 with EADDRINUSE; invalid service/auth config names fields without credentials; free-port liveness200 and SIGTERM shutdown. Architecture independently repeated built-entrypoint failure probes."
+    },
+    {
+      "command": "pnpm test:integration / service readiness",
+      "status": "not-run",
+      "result": "Local live PostgreSQL/Redis/S3 unavailable. No fresh local identity/readiness claim; PR CI retains real services and all existing tests. This scoped change does not alter authentication logic."
+    }
+  ],
+  "findings": [
+    {
+      "id": "START-SEC01",
+      "severity": "medium",
+      "summary": "Diagnostic getter could throw during error handling and escape raw logging boundary.",
+      "status": "resolved",
+      "resolution": "Formatter catches property-inspection failures; message/code getters cannot escape; independent review and regressions pass."
+    },
+    {
+      "id": "START-ARCH01",
+      "severity": "medium",
+      "summary": "Failure cleanup could wait forever and suppress nonzero exit.",
+      "status": "resolved",
+      "resolution": "Cleanup operations have a3s deadline each; timers released and hanging/failed cleanup tests pass. Nested paths can consume successive deadlines."
+    }
+  ],
+  "limitations": [
+    "The user's Mac is not accessible; the original local failure is not yet identified. Docker port conflicts were observed in user-supplied logs; demo tsx startup succeeds in the executor."
+  ],
+  "evidence": [
+    ".agents/reviews/startup-diagnostics-main.md",
+    ".agents/reviews/startup-diagnostics.md",
+    ".agents/reviews/startup-diagnostics-qa.md"
+  ]
+}

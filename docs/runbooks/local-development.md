@@ -32,3 +32,11 @@ After `pnpm infra:up`, open http://localhost:8025 for local verification/reset/i
 `pnpm test:integration` requires migrated isolated PostgreSQL and service environment variables. Use the CI environment as reference. Tests call real Better Auth through Fastify inject and capture only test mail in memory. NODE_ENV=test is set by vitest.integration.config.ts. The suite creates unique synthetic users/orgs and removes them afterward; never run it against a client database.
 
 Production remains gated on privileged MFA, trusted proxy/rate-limit deployment configuration, transactional email delivery validation, backups/recovery and security review of real infrastructure. Current code does not enable corporate SSO or social login. Native controls/CSS provide functional auth screens; Obra is accepted as the design reference, but precise Figma nodes and visual fidelity still require verification.
+
+## API startup diagnostics
+
+A successful API boot prints `API listening on http://HOST:PORT`. A failure prints a bounded stage (`service-config`, `auth-config`, `identity`, `http-init` or `listen`), allowlisted network error code, and validated listener address when applicable. Configuration failures list invalid field names only. Raw error objects, stacks and environment values are not logged. Startup cleanup has a deadline and failure exits nonzero.
+
+For `EADDRINUSE`, inspect the reported port with `lsof -nP -iTCP:3000 -sTCP:LISTEN` (substitute the reported port). Docker Desktop running is not proof that every Compose service started: run `pnpm infra:up` and `docker compose -f infra/docker/compose.yaml ps`.
+
+If another project uses PostgreSQL port 5432, change only the host side of its Compose mapping (for example `127.0.0.1:5433:5432`) and the DATABASE_URL port to 5433. If API port 3000 is occupied, change PORT in .env and the API proxy target in apps/web/vite.config.ts together. AUTH_BASE_URL and WEB_ORIGIN remain the frontend origin (normally http://localhost:5173). Restart dev processes after editing .env. No existing external service needs to be stopped.

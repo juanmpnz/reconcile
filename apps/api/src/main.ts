@@ -1,24 +1,39 @@
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PrismaClient } from '@reconcile/database';
 import { createAuth } from '@reconcile/auth';
 import { parseAuthConfig, parseServiceConfig } from '@reconcile/config';
 import { createApplication } from './application.js';
+import {
+  closeAfterStartupFailure,
+  formatStartupFailure,
+  type StartupStage,
+} from './startup-diagnostics.js';
 async function bootstrap(): Promise<void> {
-  const service = parseServiceConfig(process.env);
-  const config = parseAuthConfig(process.env);
-  const prisma = new PrismaClient();
+  let stage: StartupStage = 'service-config';
+  let prisma: PrismaClient | undefined;
+  let app: NestFastifyApplication | undefined;
+  let listener: { host: string; port: number } | undefined;
   try {
+    const service = parseServiceConfig(process.env);
+    listener = { host: service.HOST, port: service.PORT };
+    stage = 'auth-config';
+    const config = parseAuthConfig(process.env);
+    stage = 'identity';
+    prisma = new PrismaClient();
     const auth = createAuth({ prisma, config });
-    const app = await createApplication({ auth, prisma });
+    stage = 'http-init';
+    app = await createApplication({ auth, prisma });
     app.enableShutdownHooks();
+    stage = 'listen';
     await app.listen(service.PORT, service.HOST);
+    console.info(`API listening on http://${service.HOST}:${service.PORT}`);
   } catch (error) {
-    await prisma.$disconnect();
-    throw error;
+    console.error(formatStartupFailure(error, stage, listener));
+    await closeAfterStartupFailure(() =>
+      Promise.allSettled([app?.close(), prisma?.$disconnect()]),
+    );
+    // Bootstrap cannot serve requests; terminate even if partial initialization left handles.
+    process.exit(1);
   }
 }
-bootstrap().catch(() => {
-  console.error(
-    'API failed to start. Check authentication, mail and service configuration.',
-  );
-  process.exitCode = 1;
-});
+void bootstrap();

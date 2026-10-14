@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { closeAfterStartupFailure } from './startup-diagnostics.js';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -28,7 +29,7 @@ export async function createApplication({
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
-    { logger: false },
+    { logger: false, abortOnError: false },
   );
   app.setGlobalPrefix('api/v1');
   const server: FastifyInstance = adapter.getInstance();
@@ -161,7 +162,12 @@ export async function createApplication({
   server.addHook('onClose', async () => {
     await prisma.$disconnect();
   });
-  await app.init();
-  await server.ready();
-  return app;
+  try {
+    await app.init();
+    await server.ready();
+    return app;
+  } catch (error) {
+    await closeAfterStartupFailure(() => app.close());
+    throw error;
+  }
 }
