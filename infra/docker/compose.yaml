@@ -1,0 +1,60 @@
+name: reconcile-dev
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: reconcile
+      POSTGRES_PASSWORD: local-demo-password
+      POSTGRES_DB: reconcile
+    ports: ['127.0.0.1:5432:5432']
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U reconcile -d reconcile']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    ports: ['127.0.0.1:6379:6379']
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  storage:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: reconcile-local
+      MINIO_ROOT_PASSWORD: local-demo-storage-password
+    ports: ['127.0.0.1:9000:9000', '127.0.0.1:9001:9001']
+    volumes: ['storage-data:/data']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  storage-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      storage:
+        condition: service_healthy
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      [
+        'mc alias set local http://storage:9000 reconcile-local local-demo-storage-password && mc mb --ignore-existing local/reconcile-demo && mc anonymous set none local/reconcile-demo',
+      ]
+    restart: 'no'
+volumes:
+  postgres-data:
+  redis-data:
+  storage-data:

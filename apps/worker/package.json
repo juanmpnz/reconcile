@@ -1,0 +1,23 @@
+{
+  "name": "@reconcile/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@reconcile/config": "workspace:*",
+    "@reconcile/contracts": "workspace:*",
+    "@reconcile/database": "workspace:*",
+    "ioredis": "^5.8.1",
+    "bullmq": "^5.61.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6"
+  }
+}

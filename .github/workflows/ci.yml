@@ -1,0 +1,48 @@
+name: Quality
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm infra:up
+      - run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5432/reconcile
+      - name: Smoke API and worker
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          node --env-file=.env apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          API_PID=$!
+          node --env-file=.env apps/worker/dist/main.js > /tmp/worker.log 2>&1 &
+          WORKER_PID=$!
+          trap 'kill "$API_PID" "$WORKER_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/api/v1/health/ready; then break; fi
+            sleep 1
+          done
+          pnpm --filter @reconcile/worker smoke
+      - name: Diagnostics
+        if: failure()
+        run: |
+          cat /tmp/api.log /tmp/worker.log 2>/dev/null || true
+          docker compose -f infra/docker/compose.yaml logs --no-color
+      - name: Cleanup
+        if: always()
+        run: docker compose -f infra/docker/compose.yaml down -v
