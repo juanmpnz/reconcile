@@ -6,6 +6,14 @@ const live = await fetch(`${base}/api/v1/health/live`);
 assert.equal(live.status, 200);
 const ready = await fetch(`${base}/api/v1/health/ready`);
 assert.equal(ready.status, 200, await ready.text());
+const anonymous = await fetch(
+  `${process.env.S3_ENDPOINT ?? 'http://localhost:9000'}/reconcile-demo`,
+  { method: 'HEAD' },
+);
+assert.ok(
+  [401, 403].includes(anonymous.status),
+  'S3 bucket must reject anonymous access',
+);
 const connection = new Redis(
   process.env.REDIS_URL ?? 'redis://localhost:6379',
   { maxRetriesPerRequest: null },

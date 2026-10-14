@@ -6,6 +6,6 @@ Use pnpm, React/Vite, NestJS/Fastify, PostgreSQL/Prisma, Redis/BullMQ and privat
 
 Use Node 24 across local development, CI and containers. Nest 11 and Prisma 6 are explicit baseline lines, pinned in package manifests and lockfile; choosing them does not claim they are the latest major releases.
 
-MinIO is a local development S3-compatible test service, not a production vendor decision. Compose credentials and loopback bindings are exclusively for local synthetic data. Production requires rotated secrets, external backups and a storage provider decision.
+SeaweedFS mini is a local development S3-compatible test service, not a production vendor decision. MinIO images failed to pull in CI; use maintained SeaweedFS with an explicit version and verify bucket access through the AWS SDK. Reference: https://github.com/seaweedfs/seaweedfs/blob/4.48/weed/command/mini.go. Compose credentials and loopback bindings are exclusively for local synthetic data. Production requires rotated secrets, external backups and a storage provider decision.
 
 Trade-offs: Redis is an additional service, selected for worker orchestration. A single Hetzner server does not provide high availability. Real CargoWise integration requires customer-provided technical access and capability validation.
