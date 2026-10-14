@@ -1,0 +1,21 @@
+{
+  "id": "YYYY-MM-DD-short-task",
+  "summary": "Concrete outcome",
+  "state": "planned",
+  "owner": "principal-engineer",
+  "implementer": "runtime-main-agent",
+  "scope": [],
+  "acceptance": [],
+  "requiredRoles": ["principal-engineer"],
+  "semanticRouting": "State whether business rules, user flows, identity, data, integrations, AI or deployment change; add relevant roles.",
+  "excludedRoles": [],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [],
+  "evidence": [],
+  "changeClass": "documentation",
+  "risk": "low",
+  "independentReviewRequired": false,
+  "independenceRationale": "Classify the actual change; medium/high risk and security work require an independent specialist review."
+}

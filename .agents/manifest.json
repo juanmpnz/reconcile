@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "roles": [
+    {
+      "id": "principal-engineer",
+      "title": "Principal Engineer",
+      "description": "Dirige cada tarea, selecciona expertos y resuelve dependencias sin sustituir sus revisiones.",
+      "mode": "routing",
+      "profile": ".agents/roles/principal-engineer.md"
+    },
+    {
+      "id": "product-manager",
+      "title": "Product Manager",
+      "description": "Convierte el problema del operador en comportamiento comprobable y alcance vendible.",
+      "mode": "planning",
+      "profile": ".agents/roles/product-manager.md"
+    },
+    {
+      "id": "logistics-domain",
+      "title": "Especialista de dominio logístico",
+      "description": "Revisa semántica de tarifas, servicios, operaciones y discrepancias del piloto.",
+      "mode": "review",
+      "profile": ".agents/roles/logistics-domain.md"
+    },
+    {
+      "id": "solution-architect",
+      "title": "Arquitecto de solución",
+      "description": "Protege límites de módulos, datos, contratos y decisiones de escalado.",
+      "mode": "review",
+      "profile": ".agents/roles/solution-architect.md"
+    },
+    {
+      "id": "ux-designer",
+      "title": "Diseñador UX",
+      "description": "Diseña el flujo de revisión financiera y su comprensión por el operador.",
+      "mode": "planning",
+      "profile": ".agents/roles/ux-designer.md"
+    },
+    {
+      "id": "visual-designer",
+      "title": "Diseñador visual y sistema de diseño",
+      "description": "Define una interfaz sobria y consistente para las microapps Kershell.",
+      "mode": "planning",
+      "profile": ".agents/roles/visual-designer.md"
+    },
+    {
+      "id": "ui-engineer",
+      "title": "Maquetador / UI Engineer",
+      "description": "Traduce el diseño a HTML semántico y componentes responsive fieles y accesibles.",
+      "mode": "implementation",
+      "profile": ".agents/roles/ui-engineer.md"
+    },
+    {
+      "id": "frontend-engineer",
+      "title": "Frontend Engineer",
+      "description": "Implementa React/TypeScript, estado remoto y formularios conforme a contratos.",
+      "mode": "implementation",
+      "profile": ".agents/roles/frontend-engineer.md"
+    },
+    {
+      "id": "backend-engineer",
+      "title": "Backend Engineer",
+      "description": "Implementa casos de uso, API y workers con controles de negocio verificables.",
+      "mode": "implementation",
+      "profile": ".agents/roles/backend-engineer.md"
+    },
+    {
+      "id": "data-engineer",
+      "title": "Data Engineer",
+      "description": "Protege esquema, migraciones, consistencia financiera e historial.",
+      "mode": "review",
+      "profile": ".agents/roles/data-engineer.md"
+    },
+    {
+      "id": "integration-engineer",
+      "title": "Integration Engineer",
+      "description": "Diseña adaptadores de ERP, correo y archivos con capacidades explícitas.",
+      "mode": "implementation",
+      "profile": ".agents/roles/integration-engineer.md"
+    },
+    {
+      "id": "document-ai-engineer",
+      "title": "Document AI Engineer",
+      "description": "Implementa extracción documental evaluable y redacción basada en evidencia.",
+      "mode": "implementation",
+      "profile": ".agents/roles/document-ai-engineer.md"
+    },
+    {
+      "id": "security-engineer",
+      "title": "Security Engineer",
+      "description": "Revisa identidad, tenant, documentos, credenciales y límites de confianza.",
+      "mode": "review",
+      "profile": ".agents/roles/security-engineer.md"
+    },
+    {
+      "id": "qa-engineer",
+      "title": "QA Engineer",
+      "description": "Diseña y ejecuta verificación independiente de los criterios de aceptación.",
+      "mode": "review",
+      "profile": ".agents/roles/qa-engineer.md"
+    },
+    {
+      "id": "accessibility-reviewer",
+      "title": "Especialista en accesibilidad",
+      "description": "Verifica que formularios, tablas y evidencia sean operables y comprensibles.",
+      "mode": "review",
+      "profile": ".agents/roles/accessibility-reviewer.md"
+    },
+    {
+      "id": "platform-engineer",
+      "title": "Platform / DevOps Engineer",
+      "description": "Mantiene ejecución, CI, despliegue y recuperación reproducibles.",
+      "mode": "implementation",
+      "profile": ".agents/roles/platform-engineer.md"
+    }
+  ],
+  "routes": [
+    {
+      "id": "all",
+      "patterns": [".*"],
+      "roles": ["principal-engineer"]
+    },
+    {
+      "id": "harness",
+      "patterns": [
+        "^\\.agents/",
+        "^\\.codex/",
+        "^\\.claude/",
+        "^AGENTS\\.md$",
+        "^CLAUDE\\.md$",
+        "^scripts/(check-harness|sync-agents)\\.mjs$"
+      ],
+      "roles": ["solution-architect", "qa-engineer"]
+    },
+    {
+      "id": "frontend",
+      "patterns": ["^apps/web/", "^packages/ui/"],
+      "roles": ["frontend-engineer", "qa-engineer"]
+    },
+    {
+      "id": "ui",
+      "patterns": ["\\.(css|tsx)$"],
+      "roles": ["ui-engineer", "accessibility-reviewer"]
+    },
+    {
+      "id": "backend",
+      "patterns": ["^apps/api/", "^apps/worker/", "^packages/application/"],
+      "roles": ["backend-engineer", "qa-engineer"]
+    },
+    {
+      "id": "data",
+      "patterns": ["^packages/database/"],
+      "roles": [
+        "data-engineer",
+        "backend-engineer",
+        "security-engineer",
+        "qa-engineer"
+      ]
+    },
+    {
+      "id": "business",
+      "patterns": ["^packages/domain/", "^packages/sector-rules/"],
+      "roles": ["product-manager", "backend-engineer", "qa-engineer"]
+    },
+    {
+      "id": "logistics",
+      "patterns": [
+        "^packages/sector-rules/.*/?logistics",
+        "^fixtures/logistics/"
+      ],
+      "roles": ["logistics-domain", "qa-engineer"]
+    },
+    {
+      "id": "documents",
+      "patterns": ["^packages/document-processing/"],
+      "roles": ["document-ai-engineer", "security-engineer", "qa-engineer"]
+    },
+    {
+      "id": "connectors",
+      "patterns": ["^packages/integrations/"],
+      "roles": ["integration-engineer", "security-engineer", "qa-engineer"]
+    },
+    {
+      "id": "identity",
+      "patterns": [
+        "^packages/auth/",
+        "^apps/api/src/modules/(auth|identity|organizations)/"
+      ],
+      "roles": ["security-engineer", "backend-engineer", "qa-engineer"]
+    },
+    {
+      "id": "platform",
+      "patterns": [
+        "^infra/",
+        "^\\.github/workflows/",
+        "^package\\.json$",
+        "^pnpm-",
+        "^scripts/"
+      ],
+      "roles": ["platform-engineer", "qa-engineer"]
+    },
+    {
+      "id": "product",
+      "patterns": ["^docs/product/"],
+      "roles": ["product-manager"]
+    },
+    {
+      "id": "design",
+      "patterns": ["^docs/design/"],
+      "roles": [
+        "ux-designer",
+        "visual-designer",
+        "ui-engineer",
+        "accessibility-reviewer"
+      ]
+    }
+  ]
+}

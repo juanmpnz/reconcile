@@ -1,0 +1,156 @@
+{
+  "id": "2026-10-14-expert-harness",
+  "summary": "Expert harness and free Figma design reference research",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root",
+  "changeClass": "harness",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Executable CI gating and review policy require independent architecture and QA review.",
+  "scope": [
+    ".agents/",
+    ".codex/",
+    ".claude/",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "package.json",
+    ".prettierignore",
+    ".github/",
+    "scripts/",
+    "docs/engineering/",
+    "docs/design/",
+    "docs/status.md"
+  ],
+  "acceptance": [
+    "Sixteen canonical specialist profiles with generated Codex and Claude adapters.",
+    "Mandatory proportional routing with task evidence and additive CI checks.",
+    "Invalid/missing independent specialist review rejected; native runtime discovery limitations explicit.",
+    "Free Figma candidate documented with current license and unverified node coverage."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "solution-architect",
+    "qa-engineer",
+    "platform-engineer",
+    "ux-designer",
+    "visual-designer"
+  ],
+  "semanticRouting": "Harness configuration and CI only; no auth, financial rules or product behavior implemented. Design research proposes a free kit; no screen or component is implemented.",
+  "excludedRoles": [
+    {
+      "role": "ui-engineer",
+      "reason": "Design reference research only; no UI or pixel implementation changed."
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reason": "No UI changed; actual keyboard/contrast review is required when screens are implemented."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Harness scope, agent routing, results and truthful limitations",
+      "evidence": [".agents/reviews/2026-10-14-main.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Harness architecture and explicit independence/latest review correction; excludes later path-test delta",
+      "evidence": [".agents/reviews/2026-10-14-architecture.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/harness_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Checker SHA256 b094d1be08767a53eecf8c9e7dfa18f3382a9102bd64871ce467ee55ca95dd63 and real gate regression tests",
+      "evidence": [".agents/reviews/2026-10-14-qa.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Additive workflow/CLI changes and native format structural checks",
+      "evidence": [".agents/reviews/2026-10-14-main.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Free kit recommendation only; no screens or Figma nodes",
+      "evidence": [".agents/reviews/2026-10-14-main.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Candidate suitability and current attribution requirement; pixel fidelity unverified",
+      "evidence": [".agents/reviews/2026-10-14-main.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "node --test scripts/check-harness.test.mjs",
+      "status": "passed",
+      "result": "8 passed, 0 failed; independently repeated by QA."
+    },
+    {
+      "command": "node scripts/check-harness.mjs",
+      "status": "passed",
+      "result": "16 roles and 1 task parsed; generated adapters match."
+    },
+    {
+      "command": "python3 tomllib parse .codex/config.toml and .codex/agents/*.toml",
+      "status": "passed",
+      "result": "Project config and all 16 TOML profiles parsed."
+    },
+    {
+      "command": "pnpm lint",
+      "status": "passed",
+      "result": "ESLint returned exit 0 on new executable harness scripts."
+    },
+    {
+      "command": "Codex/Claude native discovery",
+      "status": "not-run",
+      "result": "Native clients are unavailable in this cloud runtime; no discovery/execution claim."
+    },
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Harness, 8 harness regressions, formatting, lint, strict types, 5 domain/config tests and production builds passed locally."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 63dcd20a0d2eee7501dc3137b31d334bb740982c",
+      "status": "passed",
+      "result": "70 paths covered by the updated task record."
+    }
+  ],
+  "findings": [
+    {
+      "id": "HARNESS-01",
+      "severity": "medium",
+      "summary": "Independence decision omitted or coordinator-only review could pass substantive work.",
+      "status": "resolved",
+      "resolution": "Explicit typed classification and rationale, latest specialist review semantics, sensitive-path requirement and negative regressions; independent QA confirmed."
+    }
+  ],
+  "limitations": [
+    "Codex/Claude native discovery not executed in this cloud runtime.",
+    "Figma community nodes unavailable through web; free availability and license verified in author documentation."
+  ],
+  "evidence": [
+    ".agents/reviews/2026-10-14-architecture.md",
+    ".agents/reviews/2026-10-14-qa.md",
+    ".agents/reviews/2026-10-14-main.md"
+  ]
+}

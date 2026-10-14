@@ -4,3 +4,6 @@ dist
 coverage
 docs/product/
 docs/plans/
+
+# Generated adapters have a deterministic format checked by harness:check.
+.claude/agents/

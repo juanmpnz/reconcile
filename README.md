@@ -4,6 +4,10 @@ Kershell product foundation for comparing supplier invoices with agreed costs an
 
 This repository currently implements phase 0 infrastructure. It does not process or approve invoices yet.
 
+## Expert harness
+
+Every task follows [AGENTS.md](AGENTS.md) and the [expert workflow](.agents/WORKFLOW.md). Sixteen specialist profiles cover product, logistics, architecture, UX, visual design, UI, frontend, backend, data, integrations, document AI, security, QA, accessibility and platform. Codex/Claude adapters are generated from one catalog. [Usage and limits](docs/engineering/harness.md).
+
 ## Start
 
 Use Node 24, pnpm 11.25 and Docker Compose v2. See [local development](docs/runbooks/local-development.md) for environment setup, migrations and startup.

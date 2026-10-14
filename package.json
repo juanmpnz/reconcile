@@ -19,7 +19,11 @@
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "infra:up": "docker compose -f infra/docker/compose.yaml up -d --wait",
     "infra:down": "docker compose -f infra/docker/compose.yaml down",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm harness:check && pnpm harness:test && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "agents:sync": "node scripts/sync-agents.mjs",
+    "harness:check": "node scripts/check-harness.mjs",
+    "harness:gate": "node scripts/check-harness.mjs --gate",
+    "harness:test": "node --test scripts/check-harness.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
