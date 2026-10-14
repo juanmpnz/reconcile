@@ -23,7 +23,8 @@
     "agents:sync": "node scripts/sync-agents.mjs",
     "harness:check": "node scripts/check-harness.mjs",
     "harness:gate": "node scripts/check-harness.mjs --gate",
-    "harness:test": "node --test scripts/check-harness.test.mjs"
+    "harness:test": "node --test scripts/check-harness.test.mjs",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

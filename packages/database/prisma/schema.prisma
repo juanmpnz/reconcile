@@ -5,12 +5,119 @@ datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
 }
-// Business-owned tenant record. Better Auth mappings will be added in phase 1.
+model User {
+ id String @id @default(uuid()) @db.Uuid
+ name String
+ email String @unique
+ emailVerified Boolean @default(false)
+ image String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ sessions Session[]
+ accounts Account[]
+ members Member[]
+ invitations Invitation[]
+ @@map("auth_users")
+}
+model Session {
+ id String @id @default(uuid()) @db.Uuid
+ expiresAt DateTime
+ token String @unique
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ ipAddress String?
+ userAgent String?
+ userId String @db.Uuid
+ activeOrganizationId String? @db.Uuid
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@index([userId])
+ @@map("auth_sessions")
+}
+model Account {
+ id String @id @default(uuid()) @db.Uuid
+ accountId String
+ providerId String
+ userId String @db.Uuid
+ accessToken String?
+ refreshToken String?
+ idToken String?
+ accessTokenExpiresAt DateTime?
+ refreshTokenExpiresAt DateTime?
+ scope String?
+ password String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@unique([providerId,accountId])
+ @@index([userId])
+ @@map("auth_accounts")
+}
+model Verification {
+ id String @id @default(uuid()) @db.Uuid
+ identifier String
+ value String
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([identifier])
+ @@map("auth_verifications")
+}
 model Organization {
+ id String @id @default(uuid()) @db.Uuid
+ slug String @unique
+ name String
+ logo String?
+ metadata String?
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+ members Member[]
+ invitations Invitation[]
+ @@map("organizations")
+}
+model Member {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ userId String @db.Uuid
+ role String @default("viewer")
+ createdAt DateTime @default(now())
+ organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@unique([organizationId,userId])
+ @@index([userId])
+ @@map("auth_members")
+}
+model Invitation {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ email String
+ role String
+ status String @default("pending")
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ inviterId String @db.Uuid
+ organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ inviter User @relation(fields:[inviterId],references:[id],onDelete:Cascade)
+ @@index([organizationId,email])
+ @@map("auth_invitations")
+}
+model RateLimit {
+ id String @id @default(uuid()) @db.Uuid
+ key String @unique
+ count Int
+ lastRequest BigInt
+ @@map("auth_rate_limits")
+}
+
+// Immutable minimal identity evidence. No FK cascades: retain identifiers after deletion.
+model IdentityAuditEvent {
   id String @id @default(uuid()) @db.Uuid
-  slug String @unique
-  name String
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  @@map("organizations")
+  actorId String? @db.Uuid
+  organizationId String? @db.Uuid
+  action String @db.VarChar(64)
+  outcome String @db.VarChar(16)
+  requestId String? @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([organizationId,createdAt])
+  @@index([actorId,createdAt])
+  @@map("identity_audit_events")
 }

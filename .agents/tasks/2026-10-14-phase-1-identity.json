@@ -1,0 +1,60 @@
+{
+  "id": "2026-10-14-phase-1-identity",
+  "summary": "Verified email/password authentication, organizations, invitations and tenant isolation; confirm Obra design reference",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root and assigned implementation agents",
+  "changeClass": "security",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Identity and tenant boundaries require independent security/architecture and QA review.",
+  "scope": [
+    "apps/",
+    "packages/",
+    "infra/",
+    ".github/workflows/ci.yml",
+    ".env.example",
+    "pnpm-lock.yaml",
+    "package.json",
+    "docs/",
+    ".agents/tasks/2026-10-14-phase-1-identity.json",
+    "vitest.integration.config.ts",
+    "vitest.config.ts",
+    "pnpm-workspace.yaml",
+    ".agents/reviews/identity/"
+  ],
+  "acceptance": [
+    "Real registration, email verification, login, recovery and signout.",
+    "One organization/membership source with owner/admin/analyst/viewer roles.",
+    "Protected context endpoint rejects unauthenticated and cross-company access.",
+    "Invitation ownership/expiry and role escalation protections are tested.",
+    "Auth UI is accessible, functional and truthful about pending business features."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "solution-architect",
+    "security-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "frontend-engineer",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "accessibility-reviewer",
+    "qa-engineer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Product acceptance and security architecture before auth code; UX/design before UI. No logistics financial behavior, invoice extraction or external business connectors change. Local transactional email is auth infrastructure, not business mailbox integration.",
+  "excludedRoles": [],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [
+    "Exact Obra Figma node inspection is unavailable; no pixel fidelity claim.",
+    "Corporate SSO, social providers and real customer data processing remain outside this phase.",
+    "Real PostgreSQL runtime acceptance pending CI; local executor cannot run PostgreSQL as a nonroot user.",
+    "MFA, known reverse proxy configuration and ownership transfer are rollout gates, not claimed delivered."
+  ],
+  "evidence": []
+}

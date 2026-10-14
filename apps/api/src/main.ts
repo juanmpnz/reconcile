@@ -1,32 +1,24 @@
-import 'reflect-metadata';
-import { Module } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  type NestFastifyApplication,
-} from '@nestjs/platform-fastify';
-import { parseServiceConfig } from '@reconcile/config';
-import { HealthController } from './health.controller.js';
-import { HealthService } from './health.service.js';
-@Module({ controllers: [HealthController], providers: [HealthService] })
-class AppModule {}
+import { PrismaClient } from '@reconcile/database';
+import { createAuth } from '@reconcile/auth';
+import { parseAuthConfig, parseServiceConfig } from '@reconcile/config';
+import { createApplication } from './application.js';
 async function bootstrap(): Promise<void> {
-  const config = parseServiceConfig(process.env);
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({
-      bodyLimit: 1024 * 1024,
-      requestTimeout: 30000,
-      genReqId: () => crypto.randomUUID(),
-    }),
-  );
-  app.setGlobalPrefix('api/v1');
-  app.enableShutdownHooks();
-  await app.listen(config.PORT, config.HOST);
+  const service = parseServiceConfig(process.env);
+  const config = parseAuthConfig(process.env);
+  const prisma = new PrismaClient();
+  try {
+    const auth = createAuth({ prisma, config });
+    const app = await createApplication({ auth, prisma });
+    app.enableShutdownHooks();
+    await app.listen(service.PORT, service.HOST);
+  } catch (error) {
+    await prisma.$disconnect();
+    throw error;
+  }
 }
 bootstrap().catch(() => {
   console.error(
-    'API failed to start. Check service configuration and connectivity.',
+    'API failed to start. Check authentication, mail and service configuration.',
   );
   process.exitCode = 1;
 });

@@ -27,3 +27,6 @@ export function parseServiceConfig(
   }
   return result.data;
 }
+
+export { parseAuthConfig } from './auth.js';
+export type { AuthConfig } from './auth.js';

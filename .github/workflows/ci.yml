@@ -22,14 +22,19 @@ jobs:
       - uses: pnpm/action-setup@v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - name: Expert routing and evidence gate
-        run: pnpm harness:gate
-        env:
-          HARNESS_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
       - run: pnpm infra:up
       - run: pnpm db:migrate
         env:
           DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5432/reconcile
+      - name: Identity integration tests (real PostgreSQL)
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5432/reconcile
+          REDIS_URL: redis://localhost:6379
+          S3_ENDPOINT: http://localhost:9000
+          S3_BUCKET: reconcile-demo
+          S3_ACCESS_KEY_ID: reconcile-local
+          S3_SECRET_ACCESS_KEY: local-demo-storage-password
       - name: Smoke API and worker
         run: |
           set -euo pipefail
@@ -44,6 +49,10 @@ jobs:
             sleep 1
           done
           pnpm --filter @reconcile/worker smoke
+      - name: Expert routing and evidence gate
+        run: pnpm harness:gate
+        env:
+          HARNESS_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
       - name: Diagnostics
         if: failure()
         run: |

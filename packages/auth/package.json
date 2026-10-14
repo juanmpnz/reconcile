@@ -1,0 +1,28 @@
+{
+  "name": "@reconcile/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "import": "./dist/permissions.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@reconcile/database": "workspace:*",
+    "better-auth": "1.7.8",
+    "nodemailer": "^7.0.12"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^7.0.11"
+  }
+}

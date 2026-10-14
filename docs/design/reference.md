@@ -1,6 +1,6 @@
 # Referencia de diseño propuesta
 
-Estado: candidata recomendada; pendiente de aceptación y de inspección de componentes/nodos concretos. No se ha duplicado ni creado un archivo Figma.
+Estado: base de diseño aceptada por el usuario el 2026-10-14; pendiente de inspección de componentes/nodos concretos. No se ha duplicado ni creado un archivo Figma.
 
 Obra shadcn/ui Community Edition: https://www.figma.com/community/file/1514746685758799870/shadcn-ui-kit-community-edition
 
