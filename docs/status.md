@@ -8,16 +8,16 @@ Only the platform ping job exists. Invoice extraction, financial analysis, claim
 
 ## Next
 
-1. Implement Better Auth integration spike, organization membership, authorization and isolation tests (phase 1).
-2. Research public shipping document structures and generate clearly marked synthetic fixtures.
+1. Research public shipping document structures and generate clearly marked synthetic fixtures (phase 2).
+2. Add authorized private document upload, processing states and actual PDF extraction.
 3. Implement the 62 USD end-to-end flow with actual extraction and evidence.
 
 ## Expert harness
 
 Implemented sixteen canonical roles, shared workflow, generated Codex/Claude adapters, task/review records and additive CI validation. Independent architecture and QA reviews completed; eight negative/positive harness regressions passed. See .agents/tasks/2026-10-14-expert-harness.json for evidence and scope. Native client discovery is not verified in this cloud runtime. The harness does not implement future business phases.
 
-## Phase 1 — identity (under review)
+## Phase 1 — identity
 
-Implemented sources for verified email/password access, recovery, organizations/invitations, owner/admin/analyst/viewer ACL, fresh membership-scoped context and bounded session/context audit. Added local Mailpit and real PostgreSQL/Fastify integration tests. Code/type/unit checks pass; complete runtime acceptance awaits CI. Do not describe this stage as production ready.
+Implemented verified email/password access, recovery, organizations/invitations, owner/admin/analyst/viewer ACL, fresh membership-scoped context and bounded session/context audit. Added local Mailpit and real PostgreSQL/Fastify integration tests. At d43d78571a36e709b487e969d6d81485f401c294, frozen install, pnpm check (8 harness regressions and 10 unit/config tests), migrations, all 18 identity integration cases and complete API/worker/private-bucket smoke passed in https://github.com/juanmpnz/reconcile/actions/runs/38621534018. That evidence-collection run intentionally remained blocked at the final harness gate until the task record was verified. The final metadata change closes that review; it does not change auth code. This stage is not production ready.
 
-Obra Community is accepted as design reference. Initial responsive native-control auth screens are functional source implementations; exact Figma node/fidelity verification remains pending. Corporate SSO, MFA, ownership transfer and trusted proxy topology are not implemented. Real-data rollout stays gated on these security/deployment requirements as applicable.
+Obra Community is accepted as design reference. Initial responsive native-control auth screens are functional source implementations; exact Figma node/fidelity verification remains pending. Corporate SSO, MFA, ownership transfer and trusted proxy topology are not implemented. Real-data rollout stays gated on these security/deployment requirements as applicable. Document, invoice and business-job authorization will be implemented and tested with those endpoints; current isolation evidence covers identity, native organizations and workspace context.

@@ -2,7 +2,7 @@
 
 Independent reviewer: /root/harness_architecture. Implementation: /root/identity_backend and coordinator. Roles: solution-architect, security-engineer, data-engineer. 2026-10-14.
 
-Reviewed source, installed Better Auth 1.7.8 hook semantics, Prisma schema/additive migration, actor-vs-target middleware, origin/cookie/IP bridge, fresh sessions/memberships and audit delta. The earlier source-only verdict did not establish runtime correctness. It is superseded by this follow-up after CI exposed two failed assertions. Status: source corrections independently reviewed; complete real PostgreSQL HTTP acceptance remains pending the corrected CI run.
+Reviewed source, installed Better Auth 1.7.8 hook semantics, Prisma schema/additive migration, actor-vs-target middleware, origin/cookie/IP bridge, fresh sessions/memberships and audit delta. The earlier source-only verdict did not establish runtime correctness. Final bounded verdict: **passed**, with SEC-01 and SEC-02 resolved by the reviewed corrections and independently retrieved runtime evidence below. Historical pending statements describe earlier snapshots, not the final acceptance result.
 
 Actor hook correction was required: native role/remove hook user is target. Final global middleware obtains session actor, checks management and owner/admin constraints; hooks preserve target invariants. Audit scalar UUID identifiers survive deletion; denied access has no unverified tenant attribution and records no tokens/emails/documents. Session after-hooks run after transactions per installed with-hooks source; no atomic audit guarantee is claimed.
 
@@ -22,3 +22,17 @@ The coordinator reports CI https://github.com/juanmpnz/reconcile/actions/runs/38
 Independently inspected the current QA correction in `apps/api/test/identity.integration.test.ts` and the installed Better Auth `cookies/index.mjs` implementation: `setSessionCookie` emits a signed `dont_remember` cookie in addition to the session cookie when `rememberMe: false`, independently of cookie caching. The revised real-auth test requests that documented behavior, checks separate HttpOnly session and dont_remember cookies with distinct names, then exercises an authenticated context. Cookie bridge source remains unchanged. The correction preserves a meaningful multi-cookie transport assertion rather than reducing it to a one-cookie check. Source review passed; its successful real PostgreSQL execution remains pending the next CI run.
 
 Rollout limitations: privileged MFA, explicit trusted proxy topology, real SMTP delivery and ownership transfer are not delivered. Audit covers session lifecycle and authenticated context access, not full security event history. No native-client or actual customer-data test.
+
+## Final independent runtime closure
+
+Independently fetched GitHub run metadata, job step summaries and decoded job logs for https://github.com/juanmpnz/reconcile/actions/runs/38621534018, job `116050008456`, attempt 1. Run metadata associates the execution with head `d43d78571a36e709b487e969d6d81485f401c294`; GitHub tested PR 3's merge checkout `115a2346b39974b0da94a24f7478cc207cdcc9dc`. Confirmed the current reviewed auth/API/schema/config/integration source has no diff from that head.
+
+- `pnpm check`: successful, including formatting, lint, types, unit tests and builds; logs report ten unit tests passed.
+- Infrastructure startup and additive migrations: successful with real PostgreSQL.
+- `Identity integration tests (real PostgreSQL)`: successful; logs at 19:13:16 UTC report **18 passed (18)** in `apps/api/test/identity.integration.test.ts`. This closes native-auth acceptance for corrected Origin/no-Origin email flows, separate cookies, rate limiting, role/tenant boundaries, invitation lifecycle and reset/session revocation within the tested cases. Minimal audit assertions are part of that examined test source.
+- API/worker smoke: successful; logs report database, Redis and private storage ready and `Smoke passed: API, PostgreSQL, Redis, private bucket and worker.`
+- Final evidence gate: failed only with `Task is not verified: 2026-10-14-phase-1-identity`, as expected before recording completed reviews. The overall workflow therefore remains failed at this run; this review does not label the entire run green. No gate was removed or bypassed.
+
+**SEC-01 resolved:** explicit native Origin/CSRF enforcement and bridge policy passed the real-auth regression suite, correcting the test-environment security-default gap. No production exploit is inferred. **SEC-02 resolved:** numeric native retry information is preserved and normalized, and the real socket-based rate-limit regression passed. The cookie test correction also passed in this run.
+
+No critical/high findings remain open within this review's bounded Phase 1 architecture/security scope. This is not a production readiness claim: the rollout limits above remain pending, and this result does not validate unimplemented billing/documents/jobs, corporate SSO, MFA, delivery through a real mail provider or customer-data processing. Later evidence-only edits may cite this execution; later behavior changes require their own validation.

@@ -1,7 +1,7 @@
 {
   "id": "2026-10-14-phase-1-identity",
   "summary": "Verified email/password authentication, organizations, invitations and tenant isolation; confirm Obra design reference",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root and assigned implementation agents",
   "changeClass": "security",
@@ -48,19 +48,184 @@
   ],
   "semanticRouting": "Product acceptance and security architecture before auth code; UX/design before UI. No logistics financial behavior, invoice extraction or external business connectors change. Local transactional email is auth infrastructure, not business mailbox integration.",
   "excludedRoles": [],
-  "reviews": [],
-  "checks": [],
-  "findings": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Phase-1 scope, final source and CI d43d78571a36e709b487e969d6d81485f401c294: check, migrations, 18 integration tests and smoke passed; closure documentation reviewed sequentially.",
+      "evidence": [".agents/reviews/identity/coordination-platform.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Phase-1 scope, final source and CI d43d78571a36e709b487e969d6d81485f401c294: check, migrations, 18 integration tests and smoke passed; closure documentation reviewed sequentially.",
+      "evidence": [".agents/reviews/identity/coordination-platform.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Phase-1 scope, final source and CI d43d78571a36e709b487e969d6d81485f401c294: check, migrations, 18 integration tests and smoke passed; closure documentation reviewed sequentially.",
+      "evidence": [".agents/reviews/identity/coordination-platform.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/identity_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Auth/ACL/Prisma/Fastify implementation self-check, explicit Origin/CSRF flags and native retry normalization; not independent",
+      "evidence": [".agents/reviews/identity/coordination-platform.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final auth/API/schema correction and native multi-cookie test source; actual runtime closure recorded in final specialist evidence",
+      "evidence": [".agents/reviews/identity/architecture-security.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final auth/API/schema correction and native multi-cookie test source; actual runtime closure recorded in final specialist evidence",
+      "evidence": [".agents/reviews/identity/architecture-security.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final auth/API/schema correction and native multi-cookie test source; actual runtime closure recorded in final specialist evidence",
+      "evidence": [".agents/reviews/identity/architecture-security.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Account/workspace source after five fixes; frontend unchanged by later security/test delta; no pixel or screen-reader certification",
+      "evidence": [".agents/reviews/identity/frontend-accessibility.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Account/workspace source after five fixes; frontend unchanged by later security/test delta; no pixel or screen-reader certification",
+      "evidence": [".agents/reviews/identity/frontend-accessibility.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Account/workspace source after five fixes; frontend unchanged by later security/test delta; no pixel or screen-reader certification",
+      "evidence": [".agents/reviews/identity/frontend-accessibility.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Account/workspace source after five fixes; frontend unchanged by later security/test delta; no pixel or screen-reader certification",
+      "evidence": [".agents/reviews/identity/frontend-accessibility.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Account/workspace source after five fixes; frontend unchanged by later security/test delta; no pixel or screen-reader certification",
+      "evidence": [".agents/reviews/identity/frontend-accessibility.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/harness_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Actual-auth 18-case test design and bounded backend behavior/source review; actual runtime closure recorded in final specialist evidence",
+      "evidence": [".agents/reviews/identity/qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Local full check and CI at d43d78571a36e709b487e969d6d81485f401c294: 8 harness regressions, 10 unit/config tests, formatting, ESLint, strict app/test types and builds passed. https://github.com/juanmpnz/reconcile/actions/runs/38621534018"
+    },
+    {
+      "command": "pnpm infra:up && pnpm db:migrate",
+      "status": "passed",
+      "result": "CI fresh PostgreSQL, Redis, private S3-compatible storage and Mailpit started; original and additive identity migrations passed. https://github.com/juanmpnz/reconcile/actions/runs/38621534018"
+    },
+    {
+      "command": "pnpm test:integration",
+      "status": "passed",
+      "result": "18/18 actual Better Auth/Fastify/Prisma/PostgreSQL HTTP cases passed at d43d78571a36e709b487e969d6d81485f401c294. No mocked identity/database. https://github.com/juanmpnz/reconcile/actions/runs/38621534018"
+    },
+    {
+      "command": "CI Smoke API and worker",
+      "status": "passed",
+      "result": "API readiness, queued worker job, PostgreSQL, Redis and private-bucket/anonymous-denial checks passed. https://github.com/juanmpnz/reconcile/actions/runs/38621534018"
+    },
+    {
+      "command": "Chromium isolated account UI fixture",
+      "status": "passed",
+      "result": "Coordinator inspected desktop/mobile account screens, labels, first Tab skip link and horizontal overflow. Absent-session API fixture only; not an authenticated browser E2E."
+    },
+    {
+      "command": "Production deployment, privileged MFA and corporate SSO",
+      "status": "not-run",
+      "result": "Outside delivered scope. No production readiness, customer-data, complete logged-in browser journey or exact Figma fidelity claim."
+    },
+    {
+      "command": "pnpm harness:check && pnpm harness:gate -- --base f8a3fc3c49258bdbef9f11b11f2cf36c00de4f1b",
+      "status": "passed",
+      "result": "Local closure validated 16 roles, 2 task records and 41 changed paths covered by the verified identity task. Formatting and git diff --check also passed."
+    }
+  ],
+  "findings": [
+    {
+      "id": "SEC-01",
+      "severity": "high",
+      "summary": "Better Auth test defaults skipped Origin checks, leaving a verification gap. No production bypass established.",
+      "status": "resolved",
+      "resolution": "Explicit native CSRF/Origin flags plus exact browser-write Origin/Fetch Metadata bridge gate; independent review and all negative HTTP cases passed at d43d78571a36e709b487e969d6d81485f401c294."
+    },
+    {
+      "id": "SEC-02",
+      "severity": "medium",
+      "summary": "Test expected standard Retry-After while native limiter emits X-Retry-After.",
+      "status": "resolved",
+      "resolution": "Preserve native header and normalize numeric delay to standard header. Actual socket-IP rate-limit HTTP test passed despite forged forwarding headers."
+    },
+    {
+      "id": "QA-COOKIE-01",
+      "severity": "medium",
+      "summary": "Original cookie test assumed ordinary uncached login generated multiple cookies.",
+      "status": "resolved",
+      "resolution": "Exercise actual rememberMe:false HTTP flow; verify distinct session/dont_remember HttpOnly cookies and authenticated access. Independent source review and real PostgreSQL CI passed."
+    }
+  ],
   "limitations": [
     "Exact Obra Figma node inspection is unavailable; no pixel fidelity claim.",
     "Corporate SSO, social providers and real customer data processing remain outside this phase.",
-    "Real PostgreSQL runtime acceptance pending CI; local executor cannot run PostgreSQL as a nonroot user.",
-    "MFA, known reverse proxy configuration and ownership transfer are rollout gates, not claimed delivered."
+    "MFA, known reverse proxy configuration and ownership transfer are rollout gates, not claimed delivered.",
+    "No full logged-in browser E2E, screen-reader certification, real SMTP delivery or production container/deployment recovery validation.",
+    "Current tenant-isolation evidence covers implemented identity and organization/context endpoints; document and job isolation tests belong to their future implementation."
   ],
   "evidence": [
     ".agents/reviews/identity/coordination-platform.md",
     ".agents/reviews/identity/architecture-security.md",
     ".agents/reviews/identity/frontend-accessibility.md",
-    ".agents/reviews/identity/qa.md"
+    ".agents/reviews/identity/qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38621534018"
   ]
 }

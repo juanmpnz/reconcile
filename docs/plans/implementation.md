@@ -1,8 +1,8 @@
 # Reconcile — Plan de implementación
 
-Fecha: 14 de octubre de 2026. Versión 0.1. Estado: plan para iniciar el repositorio; implementación pendiente.
+Fecha: 14 de octubre de 2026. Versión 0.1. Estado: plan original; consultar docs/status.md para la implementación y evidencia vigentes.
 
-Nombre propuesto: **Reconcile**. Repositorio sugerido: `reconcile`. Nombre de trabajo pendiente de aceptación y comprobación comercial, de marcas y dominios; no se afirma disponibilidad.
+Nombre aceptado: **Reconcile**. Repositorio: `juanmpnz/reconcile`. La comprobación comercial, de marcas y dominios permanece pendiente; no se afirma disponibilidad.
 
 Documento complementario a `Kershell_Control_Facturas_Logisticas_Piloto.md`. Conserva sus requisitos de negocio y actualiza la dirección técnica: núcleo común, reglas por sector y primer piloto logístico con datos sintéticos. No modifica el documento de entrevista ni convierte las hipótesis en hechos verificados.
 
