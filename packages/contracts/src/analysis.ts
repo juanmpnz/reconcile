@@ -168,6 +168,7 @@ export const analysisRunSchema = z.object({
       extractionRunId: z.uuid().nullable(),
       extractionVersion: z.number().int().nullable(),
       correctionRevision: z.number().int(),
+      metadataVersion: z.number().int().optional(),
       factRevisionId: z.uuid().nullable(),
       sourceFingerprint: z.string(),
     }),

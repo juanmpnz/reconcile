@@ -1,7 +1,10 @@
+import { z } from 'zod';
 import {
   correctionInputSchema,
   documentDetailSchema,
   documentListSchema,
+  documentListQuerySchema,
+  documentMetadataInputSchema,
 } from '@reconcile/contracts';
 import type {
   CorrectionInput,
@@ -18,7 +21,31 @@ export function documentsEndpoint(organizationId: string, documentId?: string) {
 export function documentPath(organizationId: string, documentId: string) {
   return `/organizations/${encodeURIComponent(organizationId)}/documents/${encodeURIComponent(documentId)}`;
 }
+export class DocumentConflictError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+function parseDocumentResponse<T>(schema: z.ZodType<T>, body: unknown) {
+  const result = schema.safeParse(body);
+  if (!result.success)
+    throw new Error(
+      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+    );
+  return result.data;
+}
 async function checked(response: Response) {
+  if (response.status === 409) {
+    const body: unknown = await response.json().catch(() => null);
+    const code = z.object({ code: z.string().max(100) }).safeParse(body);
+    throw new DocumentConflictError(
+      code.success ? code.data.code : 'CONFLICT',
+      'El documento cambió. Recargá los datos y revisá tu borrador antes de guardar.',
+    );
+  }
   if (!response.ok)
     throw new Error(
       response.status === 401
@@ -41,14 +68,24 @@ export async function listDocuments(
   organizationId: string,
   page: number,
   signal: AbortSignal,
+  options: Partial<z.infer<typeof documentListQuerySchema>> = {},
 ) {
+  const filters = documentListQuerySchema.parse(options);
+  const params = new URLSearchParams({
+    limit: '25',
+    offset: String(page * 25),
+    ...filters,
+  });
   const response = await checked(
-    await fetch(
-      `${documentsEndpoint(organizationId)}?limit=25&offset=${page * 25}`,
-      { signal, credentials: 'include' },
-    ),
+    await fetch(`${documentsEndpoint(organizationId)}?${params}`, {
+      signal,
+      credentials: 'include',
+    }),
   );
-  const result = documentListSchema.parse(await response.json());
+  const result = parseDocumentResponse(
+    documentListSchema,
+    await response.json(),
+  );
   if (result.items.some((item) => item.organizationId !== organizationId))
     throw new Error('La respuesta no corresponde a esta organización.');
   return result;
@@ -64,7 +101,10 @@ export async function getDocument(
       credentials: 'include',
     }),
   );
-  const result = documentDetailSchema.parse(await response.json());
+  const result = parseDocumentResponse(
+    documentDetailSchema,
+    await response.json(),
+  );
   if (result.id !== documentId || result.organizationId !== organizationId)
     throw new Error('La respuesta no corresponde al documento solicitado.');
   return result;
@@ -86,7 +126,10 @@ export async function uploadDocument(
       body: file,
     }),
   );
-  const result = documentDetailSchema.parse(await response.json());
+  const result = parseDocumentResponse(
+    documentDetailSchema,
+    await response.json(),
+  );
   if (result.organizationId !== organizationId)
     throw new Error('La respuesta no corresponde a esta organización.');
   return result;
@@ -171,3 +214,26 @@ export function timestampLabel(value: string) {
     timeStyle: 'short',
   }).format(new Date(value));
 }
+
+export async function updateDocumentMetadata(
+  organizationId: string,
+  documentId: string,
+  input: z.infer<typeof documentMetadataInputSchema>,
+) {
+  const response = await checked(
+    await fetch(documentsEndpoint(organizationId, documentId), {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(documentMetadataInputSchema.parse(input)),
+    }),
+  );
+  const result = parseDocumentResponse(
+    documentDetailSchema,
+    await response.json(),
+  );
+  if (result.organizationId !== organizationId || result.id !== documentId)
+    throw new Error('La respuesta no corresponde al documento solicitado.');
+  return result;
+}
+export type DocumentListOptions = z.infer<typeof documentListQuerySchema>;

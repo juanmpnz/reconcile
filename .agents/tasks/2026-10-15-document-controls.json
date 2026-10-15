@@ -1,0 +1,228 @@
+{
+  "id": "2026-10-15-document-controls",
+  "summary": "Edit document display name/type with audit and stale analysis, and provide compact operation controls with searchable/sortable document relationships.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
+  "scope": [
+    "apps/web/src/",
+    "apps/api/src/document.routes.ts",
+    "apps/api/test/",
+    "packages/contracts/src/",
+    "packages/application/src/",
+    "packages/database/prisma/",
+    "docs/design/operation-document-controls.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    ".agents/tasks/2026-10-15-document-controls.json",
+    ".agents/reviews/",
+    ".github/workflows/production-smoke.yml",
+    "docs/runbooks/coolify-deployment.md"
+  ],
+  "acceptance": [
+    "Edit document display name and kind from table without reupload, duplicate PDF, original-byte/checksum mutation or rewritten historical results.",
+    "Tenant/role/origin authorization, optimistic version, bounded audit reason and before/after history protect metadata edits.",
+    "Changed document metadata marks affected previous analyses stale; changed kind invalidates classified facts while rename preserves reviewed financial facts.",
+    "Document table exposes actual linked operations separately from extracted operation reference; global bounded search and stable server ordering/pagination.",
+    "Operation header groups edit/refresh/analyze, explains disabled analysis visibly and accessibly, and remains compact on mobile.",
+    "Independent architecture/security/UX/QA review and proportionate relevant checks; preserve logistics engine and existing production fixes."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Document metadata mutation changes authorization/audit/schema/contracts and analysis provenance; table search and edited workflows affect UX/a11y. Existing financial rules, PDF extraction and integrations unchanged. Product/domain and architecture/UX consulted before dependent specialist implementation.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No external connector, mail, storage adapter or queue transport changes."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No PDF parser/model/fact extraction changes; metadata kind is an explicit human classification using existing provenance."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Root reviewed additive migration and repository-root Compose workflow/runbook alignment; independently decoded actual CI jobs and compared tested source/merge tree. All production steps passed; no user-server deploy claim.",
+      "evidence": [".agents/reviews/document-controls-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-product.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-product.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-metadata-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-metadata-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-metadata-architecture.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-backend.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-frontend.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "evidence": [".agents/reviews/document-controls-frontend.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent source review and5/5 executed headless Chromium fixture groups: conflict/draft/save, disabled reason, search/sort, mobile320/390 and zoom200. Explicit synthetic API, not real-service acceptance.",
+      "evidence": [".agents/reviews/document-controls-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent source review and5/5 executed headless Chromium fixture groups: conflict/draft/save, disabled reason, search/sort, mobile320/390 and zoom200. Explicit synthetic API, not real-service acceptance.",
+      "evidence": [".agents/reviews/document-controls-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent source review and5/5 executed headless Chromium fixture groups: conflict/draft/save, disabled reason, search/sort, mobile320/390 and zoom200. Explicit synthetic API, not real-service acceptance.",
+      "evidence": [".agents/reviews/document-controls-ux.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent final source review and decoded actual CI logs:71unit51HTTP, migration, full service smoke and production build/persistence. Correctly distinguishes initial task gate failure from runtime acceptance.",
+      "evidence": [".agents/reviews/document-controls-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local check passed71unit+8harness, formatting/lint, strict types and all builds before final SQL label-only correction; subsequent targeted format/lint passed and full CI validates final executable candidate."
+    },
+    {
+      "command": "Independent Chromium UI fixture run /tmp/reconcile-controls-qa/run-ui.mjs",
+      "status": "passed",
+      "result": "5/5 groups on final web assets index-8GqciYnx.js and index-bLennfph.css; no actual service or production-browser claim."
+    },
+    {
+      "command": "Quality38808582572/job116675725971 on source841fad8052fd82f7d5b8cb17bc8a8d917c416e87",
+      "status": "passed",
+      "result": "Fullcheck71unit+8harness, additive metadata migration,51realHTTP(14analysis/11documents/5claims/21identity), API/PG/Redis/privateS3/worker smoke passed. The overall initial Quality run failed only because this task was reviewed rather than verified; do not represent that collection run as globally green."
+    },
+    {
+      "command": "Production containers38808582660/job116675726131",
+      "status": "passed",
+      "result": "Workflow completed success. Three production targets built; migrated stack/real web proxy/auth/privateS3/PDF worker, API-only recreation and durable-volume recreation passed. Docker reused API addresses, no forced-IP-change proof. Testedmerge9d66a4d7fa20d5bb4fda13bce81181aba53ff600 and source841fad share treee2cb919910f9286daa534aefdd50aa27c0fe3346."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 1bc136dbe60618838a519c94e522a7676de2904a",
+      "status": "passed",
+      "result": "Final verified task coverage and source evidence closure; this gate validates declarations, not authenticity of specialist executions."
+    }
+  ],
+  "findings": [
+    {
+      "id": "DC-P1",
+      "severity": "medium",
+      "summary": "Search and type/status ordering used raw enums while table displayed Spanish labels.",
+      "status": "resolved",
+      "resolution": "SQL projects visible Spanish labels for matching and sorting; HTTP assertions include Tarifa and Requiere revisi\u00f3n. Final independent rereview follows in specialist reports."
+    }
+  ],
+  "limitations": [
+    "No local Docker daemon; actual service/migration/container acceptance executed in GitHub Actions with isolated synthetic data.",
+    "No changes deployed to the user server by this task.",
+    "Logistics rules, extraction and original demo PDFs unchanged; missing demo ocean-handling scope remains explicit.",
+    "Metadata history displays latest50 of at most1000 edits; document links display at most20 with actual total."
+  ],
+  "evidence": [
+    ".agents/reviews/document-controls-main.md",
+    ".agents/reviews/document-controls-product.md",
+    ".agents/reviews/document-metadata-architecture.md",
+    ".agents/reviews/document-controls-backend.md",
+    ".agents/reviews/document-controls-frontend.md",
+    ".agents/reviews/document-controls-ux.md",
+    ".agents/reviews/document-controls-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38808582572",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38808582660"
+  ],
+  "changeClass": "backend",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Tenant-scoped document mutations and financial-input freshness require independent architecture/security and QA review."
+}

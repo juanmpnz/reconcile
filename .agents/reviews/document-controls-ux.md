@@ -1,0 +1,21 @@
+# Document controls — independent UX review
+
+Reviewer: /root/analysis_ux. Date: 2026-10-15. Roles ux-designer, visual-designer, ui-engineer, accessibility-reviewer. Mode independent of production frontend implementation by /root/analysis_frontend. This agent authored docs/design/operation-document-controls.md before frontend code and inspected source without editing production TSX/CSS.
+
+Examined: operation-detail.tsx header grouping/disabled reason, documents/metadata-dialog.tsx, document-list.tsx, document-detail.tsx, operation-links.tsx, list-state.ts, api.ts and relevant CSS. Governing profiles/workflow and prior compact UI specifications apply.
+
+Source result: passed, no open medium/high/critical UX findings. Edit, discrete refresh and primary analysis are grouped. A disabled analysis action has a keyboard-focusable wrapper with accessible name, title and aria-describedby linked to a visible precise reason; tooltip is supplementary. Viewer retains the actual read-only capability boundary. Local loading does not invent progress.
+
+Document metadata editing captures version at open, requires reason and preserves filename/kind on error. Fresh metadata reload and explicit comparison/rebase handle conflicts; original PDF and extracted text are described as unchanged. Low copy finding resolved by frontend: removed technical huella wording. Type change warns that operation facts require review/reanalysis. History records actual before/after metadata rather than overwriting source evidence. Actual retention and stale semantics need separate API tests.
+
+Search explicitly addresses all authorized documents and sends query/sort/direction to server; changing query/order resets pagination. URL preserves selected criteria. Sorting uses real header buttons and aria-sort; global result count distinguishes no matches from no documents. Extracted reference is separated from true operation relations, links open actual operation paths, and partial relation limits are disclosed. Source review does not assert actual SQL search coverage or tenant isolation.
+
+Browser verification and screenshots are recorded below when run against the stable final web build. Synthetic route fixtures are UI evidence only; real authorization/database/migration checks are attributed to independent QA and coordinator CI.
+
+## Executed browser verification
+
+This reviewer executed `node /tmp/reconcile-controls-qa/run-ui.mjs` against the final web dist index-8GqciYnx.js / index-bLennfph.css, after the coordinator explicitly confirmed build readiness. Result: exit 0, 5/5 groups passed. Synthetic API routes only; these are not service integration or auth correctness tests. Coverage: disabled Analyze explanation visible and keyboard-focusable described wrapper; exactly one grouped refresh action; metadata conflict retains entered filename/reason, fresh reload and explicit retry saves; 390px document table/dialog without page overflow and Escape close; global query/sort request parameters, first-page reset and aria-sort; 320px operation header and desktop CSS 200% zoom without page overflow. No pageerror exceptions. One expected HTTP409 fixture logs a resource error during the conflict scenario.
+
+Independently opened desktop-header.png and mobile390-edit.png in the output directory. Header groups actions on the right with visible disabled reason; edit dialog is compact/readable and shows original-retention copy, name/type/reason and reachable actions. Internal table scrolling preserves page width. Evidence files: /tmp/reconcile-controls-qa/results/results.json and screenshots desktop-header.png, mobile390-documents.png, mobile390-edit.png, mobile320-header.png. These are transient internal QA files, not repository deliverables. An earlier attempted run used an old dist before build readiness; it was discarded and rerun after the final build, not treated as a product failure. No source changes after this test were made by this reviewer.
+
+Limits: no full screen-reader exercise or real Figma pixel comparison; native title tooltip is supplementary to persistent text. Source-level server-search wiring is checked in browser requests, while actual beyond-page SQL search/sort behavior and authorization require backend QA evidence.

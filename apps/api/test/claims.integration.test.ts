@@ -786,4 +786,39 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
       ).statusCode,
     ).toBe(400);
   });
+  it('makes existing claims stale after a document rename without changing the historical source or draft', async () => {
+    const { owner, org, op, run, index } = await dossier();
+    await confirm(org, op, run.id, index, owner);
+    const claim = await create(org, op, run.id, index, owner);
+    const doc = run.snapshot.documents.find(
+      (doc) => doc.documentId === run.result?.findings[index]?.documentId,
+    );
+    if (!doc) throw new Error('Invoice required');
+    const renamed = await mutate(
+      'PATCH',
+      `/api/v1/organizations/${org}/documents/${doc.documentId}`,
+      owner,
+      {
+        filename: 'Reviewed-display-name.pdf',
+        kind: 'invoice',
+        expectedMetadataVersion: 0,
+        reason: 'Correct visible document label',
+      },
+    );
+    expect(renamed.statusCode, renamed.body).toBe(200);
+    const after = claimDetailSchema.parse(
+      body(await request(base(org, op) + `/claims/${claim.id}`, owner)),
+    );
+    expect(after.stale).toBe(true);
+    expect(after.sources).toEqual(claim.sources);
+    expect(after.drafts).toEqual(claim.drafts);
+    expect(
+      (
+        await request(base(org, op) + `/claims/${claim.id}/export`, owner, {
+          expectedVersion: claim.version,
+          format: 'text',
+        })
+      ).statusCode,
+    ).toBe(409);
+  });
 });

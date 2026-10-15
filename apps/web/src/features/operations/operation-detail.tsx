@@ -167,6 +167,15 @@ export function OperationDetailView({
     ? (data.analyses.find((run) => run.id === selectedRun) ??
       historicalRun.data)
     : data.analyses[0];
+  const analyzeDisabledReason = authorizationPending
+    ? 'Comprobando permisos de acceso.'
+    : busy
+      ? 'Se está solicitando el análisis.'
+      : data.analyses.some(active)
+        ? 'Hay un análisis en curso. Esperá a que termine.'
+        : data.documentIds.length === 0
+          ? 'Vinculá al menos un documento para analizar.'
+          : undefined;
   const filenames = new Map(
     documentQueries.flatMap((item) =>
       item.data ? [[item.data.id, item.data.filename] as const] : [],
@@ -190,37 +199,67 @@ export function OperationDetailView({
           <h2>{data.reference}</h2>
           <p>{data.name}</p>
         </div>
-        {data.capabilities.canWrite && (
-          <EditOperationDialog
-            organizationId={organizationId}
-            operationId={operationId}
-            name={data.name}
-            reference={data.reference}
-            fingerprint={data.fingerprint}
-            disabled={disabled}
-            activeRun={data.analyses.some(active)}
-            onSaved={refresh}
-          />
-        )}
-        {data.capabilities.canWrite && (
-          <Button
-            pending={busy}
-            disabled={
-              !canWrite ||
-              data.analyses.some(active) ||
-              data.documentIds.length === 0
-            }
-            onClick={() => {
-              void analyze();
-            }}
-          >
-            {busy
-              ? 'Solicitando análisis…'
-              : data.analyses.length > 0
-                ? 'Volver a analizar'
-                : 'Analizar operación'}
-          </Button>
-        )}
+        <div className="operation-actions-group">
+          <div className="operation-actions">
+            {data.capabilities.canWrite && (
+              <EditOperationDialog
+                organizationId={organizationId}
+                operationId={operationId}
+                name={data.name}
+                reference={data.reference}
+                fingerprint={data.fingerprint}
+                disabled={disabled}
+                activeRun={data.analyses.some(active)}
+                onSaved={refresh}
+              />
+            )}
+            <Button
+              variant="ghost"
+              pending={query.isFetching}
+              disabled={authorizationPending}
+              onClick={() => {
+                void query.refetch();
+                void Promise.all(
+                  documentQueries.map((document) => document.refetch()),
+                );
+              }}
+            >
+              Recargar datos
+            </Button>
+            {data.capabilities.canWrite && (
+              <span
+                className="analysis-action"
+                tabIndex={analyzeDisabledReason ? 0 : undefined}
+                aria-label={
+                  analyzeDisabledReason ? 'Análisis no disponible' : undefined
+                }
+                aria-describedby={
+                  analyzeDisabledReason ? 'analysis-disabled-reason' : undefined
+                }
+                title={analyzeDisabledReason}
+              >
+                <Button
+                  pending={busy}
+                  disabled={!canWrite || Boolean(analyzeDisabledReason)}
+                  onClick={() => {
+                    void analyze();
+                  }}
+                >
+                  {busy
+                    ? 'Solicitando análisis…'
+                    : data.analyses.length > 0
+                      ? 'Volver a analizar'
+                      : 'Analizar operación'}
+                </Button>
+              </span>
+            )}
+          </div>
+          {data.capabilities.canWrite && analyzeDisabledReason && (
+            <p className="permission-note" id="analysis-disabled-reason">
+              {analyzeDisabledReason}
+            </p>
+          )}
+        </div>
       </div>
       {!data.capabilities.canWrite && (
         <p className="permission-note">
@@ -289,19 +328,6 @@ export function OperationDetailView({
         </section>
       )}
 
-      <Button
-        variant="outline"
-        pending={query.isFetching}
-        disabled={authorizationPending}
-        onClick={() => {
-          void query.refetch();
-          void Promise.all(
-            documentQueries.map((document) => document.refetch()),
-          );
-        }}
-      >
-        Recargar datos
-      </Button>
       <p className="permission-note">
         La comparación identifica diferencias y evidencia disponible. No aprueba
         facturas, pagos ni reclamos.

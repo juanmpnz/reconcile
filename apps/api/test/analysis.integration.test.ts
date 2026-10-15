@@ -1206,4 +1206,75 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     expect(immutableAfterRace.result).toEqual(old.result);
     expect(restoredOp.id).toBe(op.id);
   });
+  it('keeps reviewed facts on rename, invalidates them on classification change and exposes actual operation links', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    let op = await dossier(org, owner);
+    const carrier = fact(op, 'invoice', 'Faro Ocean Demo');
+    const revisedResponse = await request(
+      `${base(org, op.id)}/fact-revisions`,
+      owner,
+      {
+        expectedFingerprint: op.fingerprint,
+        document: { ...carrier, route: 'Reviewed scope' },
+        reason: 'Reviewed line scope',
+      },
+    );
+    expect(revisedResponse.statusCode).toBe(200);
+    op = operationDetailSchema.parse(body(revisedResponse));
+    const reviewed = fact(op, 'invoice', 'Faro Ocean Demo');
+    expect(reviewed.revisionId).not.toBeNull();
+    const old = await completed(org, op.id, owner);
+    expect(
+      old.sources.every((source) => source.metadataVersion === undefined),
+    ).toBe(true);
+    const rename = async (kind: string, version: number, filename: string) =>
+      fixture.app.inject({
+        method: 'PATCH',
+        url: `/api/v1/organizations/${org}/documents/${carrier.documentId}`,
+        remoteAddress: owner.address,
+        headers: {
+          origin: fixture.origin,
+          cookie: [...owner.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+        },
+        payload: {
+          filename,
+          kind,
+          expectedMetadataVersion: version,
+          reason: 'Review document metadata',
+        },
+      });
+    expect((await rename('invoice', 0, 'Display-name.pdf')).statusCode).toBe(
+      200,
+    );
+    const renamed = await detail(org, op.id, owner);
+    expect(fact(renamed, 'invoice', 'Faro Ocean Demo').revisionId).toBe(
+      reviewed.revisionId,
+    );
+    expect(renamed.analyses[0]?.stale).toBe(true);
+    expect(renamed.analyses[0]?.snapshot).toEqual(old.snapshot);
+    expect(renamed.analyses[0]?.result).toEqual(old.result);
+    const list = await request(
+      `/api/v1/organizations/${org}/documents?q=OP-DEMO-062&sort=operation&direction=asc`,
+      owner,
+    );
+    expect(list.statusCode).toBe(200);
+    const listed = body(list);
+    expect(JSON.stringify(listed)).toContain(op.id);
+    expect(JSON.stringify(listed)).toContain(op.name);
+    const renamedRun = await completed(org, op.id, owner);
+    expect(
+      renamedRun.sources.find(
+        (source) => source.documentId === carrier.documentId,
+      )?.metadataVersion,
+    ).toBe(1);
+    expect((await rename('tariff', 1, 'Classified.pdf')).statusCode).toBe(200);
+    const reclassified = await detail(org, op.id, owner);
+    const changed = reclassified.facts.find(
+      (doc) => doc.documentId === carrier.documentId,
+    );
+    expect(changed?.kind).toBe('agreement');
+    expect(changed?.revisionId).toBeNull();
+    expect(reclassified.analyses[0]?.snapshot).toEqual(old.snapshot);
+  });
 });
