@@ -1,0 +1,11 @@
+# Phase 4 — product and logistics definition
+
+Agent: `/root/analysis_product_domain`. Roles product-manager/logistics-domain. Mode: planning and sequential self-check of the product document, not independent validation of business policy. Read AGENTS.md/workflow, both role profiles, pilot requirements and implementation plan. Scope: docs/product/reviewed-claims.md only; no production code authored in this phase.
+
+Acceptance was written before dependent implementation and shared with principal, architecture, backend and UX. Principal/architecture selected the conservative MVP identity: one claim per invoice document within an operation, one selected finding without aggregation, explicit reuse/rebase after reanalysis while preserving sent versions. This avoids unstable parser line IDs creating duplicate claims. The limitation on multiple simultaneous charges from the same invoice is explicit.
+
+Confirmed monetary correction requires a current immutable completed analysis, fresh explicit confirmation with reason, known supplier/currency and positive supported service/price difference; arithmetic/tax/matched or uncertain flags do not automatically become monetary demands. Clarification with absent requested amount is mandatory for supported uncertainty, never invented money. Append-only decisions use their own review concurrency version rather than invalidating source fingerprints just by confirming. A changed source or later decision requires explicit re-review before creation/export; historical reading remains available.
+
+Draft recipient starts empty, text is editable, exports are TXT and traceable JSON with metadata/evidence, no public PDFs or invented recipients. Export does not mean sent. Sent/response/resolution/follow-up are explicit dated manual events, no SMTP or accounting write. A response still under review does not resolve or imply recovered money. MVP server rollout still requires phase 5 backups/restore, private services, HTTPS and deployed checks.
+
+No runtime or business-user acceptance claimed here. Independent architecture/security review, actual-service integration tests and UI browser QA follow separately. No critical/high planning contradiction remains open after the principal-approved scope decision; implementation must be checked against it.

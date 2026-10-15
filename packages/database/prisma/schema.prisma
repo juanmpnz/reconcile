@@ -142,6 +142,7 @@ model Document {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ claims Claim[]
  operationLinks OperationDocument[]
  factRevisions AnalysisFactRevision[]
  runs ExtractionRun[] @relation("DocumentRuns")
@@ -211,12 +212,15 @@ model Operation {
  name String @db.VarChar(200)
  revision Int @default(0)
  runCount Int @default(0)
+ reviewVersion Int @default(0)
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
  documents OperationDocument[]
  facts AnalysisFactRevision[]
  analyses AnalysisRun[]
+ decisions FindingDecision[]
+ claims Claim[]
  @@unique([organizationId,id])
  @@unique([organizationId,reference])
  @@index([organizationId,createdAt])
@@ -271,6 +275,8 @@ model AnalysisRun {
  completedAt DateTime? @db.Timestamptz(3)
  operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
  outbox AnalysisOutbox?
+ decisions FindingDecision[]
+ claims Claim[]
  @@unique([organizationId,operationId,id])
  @@unique([organizationId,operationId,idempotencyKey])
  @@unique([operationId,version])
@@ -289,4 +295,117 @@ model AnalysisOutbox {
  @@unique([organizationId,operationId,runId])
  @@index([completedAt,lastEnqueuedAt])
  @@map("analysis_outbox")
+}
+
+model FindingDecision {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ runId String @db.Uuid
+ findingIndex Int
+ action String @db.VarChar(16)
+ reason String @db.VarChar(1000)
+ actorId String @db.Uuid
+ ordinal Int
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ run AnalysisRun @relation(fields:[organizationId,operationId,runId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([organizationId,operationId,ordinal])
+ @@index([organizationId,operationId,runId,findingIndex,ordinal])
+ @@map("finding_decisions")
+}
+model Claim {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ documentId String @db.Uuid
+ runId String @db.Uuid
+ findingIndex Int
+ sourceVersion Int @default(1)
+ version Int @default(1)
+ kind String @db.VarChar(20)
+ provider String @db.VarChar(500)
+ amount Decimal? @db.Decimal(38,12)
+ currency String? @db.VarChar(3)
+ status String @default("draft") @db.VarChar(20)
+ dueDate String? @db.VarChar(10)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ document Document @relation(fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
+ run AnalysisRun @relation(fields:[organizationId,operationId,runId],references:[organizationId,operationId,id],onDelete:Cascade)
+ drafts ClaimDraft[]
+ events ClaimEvent[]
+ sources ClaimSource[]
+ exports ClaimExport[]
+ @@unique([organizationId,operationId,id])
+ @@unique([organizationId,operationId,documentId])
+ @@map("claims")
+}
+model ClaimSource {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ claimId String @db.Uuid
+ version Int
+ data Json
+ actorId String @db.Uuid
+ reason String @db.VarChar(1000)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ claim Claim @relation(fields:[organizationId,operationId,claimId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([claimId,version])
+ @@map("claim_sources")
+}
+model ClaimDraft {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ claimId String @db.Uuid
+ version Int
+ sourceVersion Int
+ recipientEmail String? @db.VarChar(254)
+ subject String @db.VarChar(200)
+ body String @db.VarChar(10000)
+ reason String @db.VarChar(1000)
+ actorId String @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ claim Claim @relation(fields:[organizationId,operationId,claimId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([claimId,version])
+ @@map("claim_drafts")
+}
+model ClaimEvent {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ claimId String @db.Uuid
+ version Int
+ status String @db.VarChar(20)
+ reason String @db.VarChar(1000)
+ actorId String @db.Uuid
+ occurredAt DateTime @db.Timestamptz(3)
+ dueDate String? @db.VarChar(10)
+ outcome String? @db.VarChar(20)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ claim Claim @relation(fields:[organizationId,operationId,claimId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([claimId,version])
+ @@map("claim_events")
+}
+
+model ClaimExport {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ claimId String @db.Uuid
+ version Int
+ sourceVersion Int
+ draftId String @db.Uuid
+ draftVersion Int
+ format String @db.VarChar(16)
+ bytes Bytes
+ sha256 String @db.Char(64)
+ actorId String @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ claim Claim @relation(fields:[organizationId,operationId,claimId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([claimId,version])
+ @@map("claim_exports")
 }

@@ -37,7 +37,11 @@ async function operation(tx: Tx, organizationId: string, operationId: string) {
   if (!op) throw new DocumentError(404, 'NOT_FOUND');
   return op;
 }
-async function collect(tx: Tx, organizationId: string, operationId: string) {
+export async function collectAnalysisInputs(
+  tx: Tx,
+  organizationId: string,
+  operationId: string,
+) {
   const op = await operation(tx, organizationId, operationId);
   const links = await tx.operationDocument.findMany({
     where: { organizationId, operationId },
@@ -154,7 +158,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
     return prisma.$transaction(
       async (tx) => {
         const member = await authorizeDocuments(tx, organizationId, actorId);
-        const data = await collect(tx, organizationId, operationId);
+        const data = await collectAnalysisInputs(
+          tx,
+          organizationId,
+          operationId,
+        );
         const runs = await tx.analysisRun.findMany({
           where: { organizationId, operationId },
           orderBy: { version: 'desc' },
@@ -200,7 +208,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       return prisma.$transaction(
         async (tx) => {
           await authorizeDocuments(tx, organizationId, actorId);
-          const current = await collect(tx, organizationId, operationId);
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
           const rows = await tx.analysisRun.findMany({
             where: { organizationId, operationId },
             orderBy: { version: 'desc' },
@@ -299,7 +311,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             await authorizeDocuments(tx, organizationId, actorId, true);
             await operation(tx, organizationId, operationId);
             await tx.$queryRaw`SELECT id FROM operations WHERE id = ${operationId}::uuid AND "organizationId" = ${organizationId}::uuid FOR UPDATE`;
-            const current = await collect(tx, organizationId, operationId);
+            const current = await collectAnalysisInputs(
+              tx,
+              organizationId,
+              operationId,
+            );
             if (current.fingerprint !== data.expectedFingerprint)
               throw new DocumentError(409, 'STALE_OPERATION');
             if (
@@ -368,7 +384,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
           await authorizeDocuments(tx, organizationId, actorId, true);
           await operation(tx, organizationId, operationId);
           await tx.$queryRaw`SELECT id FROM operations WHERE id = ${operationId}::uuid AND "organizationId" = ${organizationId}::uuid FOR UPDATE`;
-          const current = await collect(tx, organizationId, operationId);
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
           if (current.fingerprint !== expectedFingerprint)
             throw new DocumentError(409, 'STALE_OPERATION');
           const count = await tx.document.count({
@@ -438,7 +458,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             where: { id: operationId },
             data: { revision: { increment: 0 } },
           });
-          const current = await collect(tx, organizationId, operationId);
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
           if (current.fingerprint !== data.expectedFingerprint)
             throw new DocumentError(409, 'STALE_FACTS');
           const source = current.sources.find(
@@ -557,7 +581,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             },
           });
           if (existing) return existing.id;
-          const current = await collect(tx, organizationId, operationId);
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
           if (
             (await tx.analysisRun.count({
               where: { organizationId, operationId },
@@ -610,7 +638,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       return prisma.$transaction(
         async (tx) => {
           await authorizeDocuments(tx, organizationId, actorId);
-          const current = await collect(tx, organizationId, operationId);
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
           const run = await tx.analysisRun.findFirst({
             where: { id: runId, organizationId, operationId },
           });

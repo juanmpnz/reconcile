@@ -1,0 +1,77 @@
+{
+  "id": "2026-10-15-reviewed-claims",
+  "summary": "Complete human finding review, versioned claim drafts, evidence export and manual follow-up before server rollout.",
+  "state": "implementing",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
+  "scope": [
+    "packages/contracts/",
+    "packages/application/",
+    "packages/database/prisma/",
+    "apps/api/src/",
+    "apps/api/test/",
+    "apps/web/src/",
+    "docs/product/reviewed-claims.md",
+    "docs/design/reviewed-claims.md",
+    "docs/adr/0006-reviewed-claims.md",
+    "docs/architecture/overview.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    "README.md",
+    ".agents/tasks/2026-10-15-reviewed-claims.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Explicit append-only confirm/dismiss/accept decisions with reason/actor/time tied to immutable run/finding; current membership and optimistic review version enforced without invalidating analysis inputs.",
+    "One stable claim per operation/invoice document, initialized from one explicitly confirmed finding, reused across reanalyses without automatic amount aggregation or duplicate claims.",
+    "Correction claim amount/provider/currency/evidence resolved by server from eligible confirmed positive service/price finding; clarification leaves requested amount null; no arithmetic/tax or uncertain claim money invented.",
+    "Editable persisted draft revisions and explicit reviewed rebind to new run preserve originals, exported revisions and audit; changed inputs/decisions block emission until reviewed.",
+    "Authorized versioned TXT and JSON evidence exports with exact sources/checksums/provenance, no secrets/public object URLs/storage paths; export/copy does not mark sent.",
+    "Manual sent/reply/resolution and next follow-up date with internal overdue signal, strict date/state validation and immutable history; no automatic SMTP, external ERP or accounting writes.",
+    "Concise compact accessible UI, original/decision/claim history, stable dialogs and recoverable conflicts, no viewer mutation/export business writes.",
+    "Meaningful real HTTP tests, independent architecture/domain/UX/QA/browser review, full quality gate and guide/status updates before verified."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Phase4 adds financial review and claim domain behavior, current authorized tenant writes/exports, schema/contracts/API, draft and tracking audit, and new UX. Product/domain and architecture/design decisions precede dependent implementation. Financial rules/parser/jobs are preserved; server rollout remains phase5.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No external connector, SMTP transport, ERP, queue or import adapter changes; downloads are a first-party authorized API response."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No parser, model, OCR or extraction changes; claims use immutable existing analysis evidence and deterministic reviewable templates."
+    }
+  ],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [
+    "Server deployment, TLS, production secrets, backups/restoration and deployed real-auth E2E remain phase5.",
+    "MVP claim identity is operation/invoice document with one selected finding; additional structured charge aggregation requires persistent charge identity and explicit future scope."
+  ],
+  "evidence": [
+    "docs/product/reviewed-claims.md",
+    "docs/design/reviewed-claims.md",
+    "docs/adr/0006-reviewed-claims.md"
+  ],
+  "changeClass": "backend",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Human financial decisions, claim amount integrity, protected commercial evidence export and cross-tenant access require independent architecture/security/data and product/domain/UX/QA acceptance."
+}

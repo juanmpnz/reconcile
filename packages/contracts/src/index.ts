@@ -12,3 +12,5 @@ export const PLATFORM_QUEUE = 'reconcile-platform';
 export * from './documents.js';
 
 export * from './analysis.js';
+
+export * from './claims.js';
