@@ -167,6 +167,9 @@ importers:
       '@reconcile/document-processing':
         specifier: workspace:*
         version: link:../document-processing
+      '@reconcile/sector-rules':
+        specifier: workspace:*
+        version: link:../sector-rules
 
   packages/auth:
     dependencies:
@@ -220,6 +223,15 @@ importers:
 
   packages/domain:
     dependencies:
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
+
+  packages/sector-rules:
+    dependencies:
+      '@reconcile/domain':
+        specifier: workspace:*
+        version: link:../domain
       decimal.js:
         specifier: ^10.6.0
         version: 10.6.0

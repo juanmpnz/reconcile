@@ -889,3 +889,113 @@ textarea {
     width: 100%;
   }
 }
+.operation-section {
+  margin-top: 28px;
+  min-width: 0;
+}
+.operation-section h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.operation-section .page-header {
+  margin-bottom: 14px;
+  align-items: center;
+}
+.comparison-fact {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+}
+.comparison-fact h4 {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.comparison-fact summary,
+.operation-detail summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.fact-summary {
+  font-size: 13px;
+  margin-top: 12px;
+}
+.fact-summary dl {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+  gap: 6px 14px;
+}
+.fact-summary dt {
+  color: var(--muted);
+}
+.fact-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.analysis-line-editor {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 16px 0;
+  min-width: 0;
+  padding: 12px;
+}
+.analysis-line-editor legend {
+  font-size: 13px;
+}
+.document-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.document-choice input {
+  width: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  margin: 3px 0;
+}
+.document-choice span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.document-choice small {
+  display: block;
+  margin-top: 4px;
+}
+.analysis-run-select {
+  max-width: 480px;
+}
+.finding-reason {
+  margin: 6px 0 0;
+  min-width: 220px;
+  max-width: 420px;
+}
+.operation-detail td details {
+  min-width: 180px;
+  max-width: 320px;
+}
+.operation-detail .source-evidence {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .tabs {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .fact-summary dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fact-summary dd {
+    margin-bottom: 8px;
+  }
+  .operation-section .page-header > .button {
+    width: auto;
+  }
+}
+
+.analysis-history {
+  margin: 16px 0 24px;
+}
+.operation-section > .button {
+  margin-bottom: 14px;
+}

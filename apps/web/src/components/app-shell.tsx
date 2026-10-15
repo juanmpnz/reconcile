@@ -3,6 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { getContext, organizationKey } from '../features/organizations/queries';
 import { Button } from './ui/primitives';
 import { navigate, organizationPath } from '../app/router';
+import {
+  operationsKey,
+  getOperation,
+  operationPath,
+} from '../features/operations/api';
 import { documentsKey, getDocument } from '../features/documents/api';
 export function AppShell({
   children,
@@ -14,6 +19,8 @@ export function AppShell({
   userId,
   documentsActive = false,
   documentId,
+  operationsActive = false,
+  operationId,
 }: {
   children: ReactNode;
   name: string;
@@ -24,6 +31,8 @@ export function AppShell({
   userId: string;
   documentsActive?: boolean;
   documentId?: string | undefined;
+  operationsActive?: boolean;
+  operationId?: string | undefined;
 }) {
   return (
     <div className="app-shell">
@@ -88,6 +97,8 @@ export function AppShell({
                 organizationId={organizationId}
                 documentsActive={documentsActive}
                 documentId={documentId}
+                operationsActive={operationsActive}
+                operationId={operationId}
               />
             )}
           </nav>
@@ -105,11 +116,15 @@ function OrganizationBreadcrumb({
   organizationId,
   documentsActive,
   documentId,
+  operationsActive,
+  operationId,
 }: {
   userId: string;
   organizationId: string;
   documentsActive: boolean;
   documentId: string | undefined;
+  operationsActive: boolean;
+  operationId: string | undefined;
 }) {
   const context = useQuery({
     queryKey: [...organizationKey(userId, organizationId), 'context'],
@@ -126,12 +141,47 @@ function OrganizationBreadcrumb({
       getDocument(organizationId, documentId ?? '', signal),
     enabled: false,
   });
+  const operation = useQuery({
+    queryKey: [
+      ...operationsKey(userId, organizationId),
+      'detail',
+      operationId ?? '',
+    ],
+    queryFn: ({ signal }) =>
+      getOperation(organizationId, operationId ?? '', signal),
+    enabled: false,
+  });
   return (
     <>
       <span aria-hidden="true">/</span>
       <span>
         {context.isSuccess ? context.data.organization.name : 'Organización'}
       </span>
+      {operationsActive && (
+        <>
+          <span aria-hidden="true">/</span>
+          <a
+            href={organizationPath(organizationId, 'operations')}
+            onClick={(event) => {
+              event.preventDefault();
+              navigate(organizationPath(organizationId, 'operations'));
+            }}
+          >
+            Operaciones
+          </a>
+          {operationId &&
+            context.isSuccess &&
+            !context.isFetching &&
+            operation.isSuccess && (
+              <>
+                <span aria-hidden="true">/</span>
+                <a href={operationPath(organizationId, operationId)}>
+                  {operation.data.reference}
+                </a>
+              </>
+            )}
+        </>
+      )}
       {documentsActive && (
         <>
           <span aria-hidden="true">/</span>

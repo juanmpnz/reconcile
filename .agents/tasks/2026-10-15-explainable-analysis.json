@@ -1,0 +1,72 @@
+{
+  "id": "2026-10-15-explainable-analysis",
+  "summary": "Phase3 tenant-scoped explainable line comparisons with actual document facts, immutable snapshots and asynchronous evidence-backed runs",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root, /root/analysis_product_domain, /root/analysis_backend, /root/analysis_frontend and /root/analysis_qa",
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Financial comparison rules, tenant-bound evidence and durable jobs require independent domain/security/architecture/test review before verification.",
+  "scope": [
+    "apps/",
+    "packages/",
+    "fixtures/logistics/",
+    "docs/",
+    "scripts/",
+    "package.json",
+    "pnpm-lock.yaml",
+    ".github/workflows/",
+    ".agents/tasks/2026-10-15-explainable-analysis.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Actual existing uploaded PDF page text yields reviewable line/condition/service facts with provenance; no fixture answers loaded by product.",
+    "Operation/document associations and all analyses are organization-scoped with current verified membership on reads/writes/jobs.",
+    "Case62USD identifies explicit pickup exclusion and matching transport/performance evidence; price difference alone is not service proof.",
+    "Correct/missing/expired/overlapping agreements, different pickup routes, currency/quantity/unit/tax/rounding and offsetting-line negatives have explicit nonmisleading results.",
+    "Immutable input snapshots bind exact document runs/correction revisions/reviewed facts and rules version; historical results reproducible and changes flagged stale.",
+    "Asynchronous durable PG outbox, bounded attempts, fenced lease and recovery/idempotency protect runs and findings.",
+    "Compact accessible table/detail expose expected,billed,difference,currency,reason,certainty,evidence and reviewable source facts; finding decisions remain phase4 and no accounting approvals.",
+    "Independent review, meaningful domain/integration/browser tests and source-attributed CI before verified; guide/status updated."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "integration-engineer",
+    "document-ai-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "All16 roles apply to financial product/domain, new UX/workspace, extraction of actual PDF facts, operation/analysis schema/contracts/jobs, tenant/security, local import boundaries and platform changes. Product/domain acceptance and architecture/UX planning precede dependent implementation. No realERP connector or claim/export/deployment is part of phase3.",
+  "excludedRoles": [],
+  "reviews": [],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local check passed55unit(23financialrules,4newfrontendboundaries),8harness regressions, strictapp/testtypes, lint,format andallbuilds. Browser/actualservice acceptance trackedseparately."
+    },
+    {
+      "command": "Actual PostgreSQL/S3/Redis analysis HTTP acceptance and service smoke",
+      "status": "not-run",
+      "result": "New12realHTTPgroups plus31baseline ready for CI; localPostgreSQLrootrestrictionnotbypassed."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Synthetic data and bounded PDF text parsing; real customer validation and OCR remain separate.",
+    "Phase4 claim/export and Phase5 deployment/backups/restore remain after this comparison step."
+  ],
+  "evidence": ["docs/product/explainable-analysis.md"]
+}

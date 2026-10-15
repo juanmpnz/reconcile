@@ -8,7 +8,7 @@ Only the platform ping job exists. Invoice extraction, financial analysis, claim
 
 ## Next
 
-1. Phase 3: compare actual extracted/documented charges, tariff conditions and performed services with evidence, including the62USD case and negative cases.
+1. Finish phase3 actual-service/browser verification; the implementation is described below.
 2. Phase 4: reviewed claim drafts and export; no automatic email/accounting writes.
 
 ## Expert harness
@@ -38,3 +38,9 @@ Implemented compact monochrome identity UI, reusable controls/Radix dialogs, org
 Implemented scoped accessible loading components in current identity/document flows, compact document table/upload/detail, private authorized PDF originals, real PDF.js text extraction, six labeled candidate fields with page/snippet evidence, explicit missing/OCR/error states and append-only corrections. PostgreSQL records versioned extraction runs and durable outbox intent; worker processing uses current actor authorization, fenced claims, bounded attempts and lost-job reconciliation. Architecture/limits: ADR0004 and docs/runbooks/document-processing.md. Four marked synthetic PDF inputs and isolated evaluation expectations live in fixtures/logistics; public structure references documented, no copied brands or confidential data.
 
 This is a bounded text/label extractor, not universal invoice/table recognition. No OCR, external AI, JSON operational importer, CargoWise connection, comparison motor, claim or payment action is included. The application service currently couples to Prisma and the concrete extraction adapter; the pure domain remains separate. Source implementation, real-service acceptance and browser evidence are tracked independently in .agents/tasks/2026-10-15-document-foundation.json. For source b9d6881a018162598b8f9f1f753a31340f99605a, frozen install/fullcheck passed28unit+8harness, migrations and31/31realHTTPcases(21identity+10documents) passed, and full API/PostgreSQL/Redis/privatebucket/worker smoke passed in https://github.com/juanmpnz/reconcile/actions/runs/38707704961. Independent browser12/12groups passed with explicitAPIfixtures. That evidence-collection run stopped only at the pendingverifiedtaskgate; final documentation closure changes no executable source. The prior service-run failures and correction are retained in review history. This closes the bounded document intake/review step, with the stated scope limits; it does not claim OCR, complete invoice understanding, real ERP import or production readiness.
+
+## Phase 3 — explainable comparison implementation
+
+Implemented organization-owned operations, explicit document association, structured facts from existing actual PDF page text, review revisions/reasons/provenance, versioned deterministic logistics rules and immutable asynchronous analysis snapshots. UI exposes per-line expected/invoiced/difference/currency/reason/evidence, current versus historical runs and stale-input warning. Durable PostgreSQL outbox, current actor permissions, bounded attempts/fenced leases and lost-job reconciliation extend the document foundation. Details/capacity limits: ADR0005; current flow: docs/user-guide.md.
+
+The original fourPDF demo supports pickup62 from explicit exclusion plus matching operation/service/date/route and transport invoice/performance. Missing ocean-handling scope remains no-verifiable until source review; no scope or exchange/tax condition is invented. There are no financial approval, finding decision, claim or send actions; those remain phase4. Local aggregate checks and independent source/UX/financial reviews are tracked in the task record; actual43HTTPcase CI and browser completion are pending. No production, arbitraryPDF, ERP or realcustomer accuracy claim.

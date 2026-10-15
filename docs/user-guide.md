@@ -1,6 +1,6 @@
 # Reconcile — guía de la versión actual
 
-Alcance de esta entrega: cuentas, organizaciones, miembros, invitaciones y documentos PDF con extracción de texto y revisión. La comparación de facturas y los reclamos pertenecen a los próximos pasos; consultar docs/status.md para la evidencia de verificación.
+Alcance de esta entrega: cuentas, organizaciones, miembros, invitaciones documentos PDF y comparación por operación con evidencia. Los reclamos pertenecen al próximo paso; consultar docs/status.md para la evidencia de verificación.
 
 ## Entrar
 
@@ -44,10 +44,27 @@ Esta primera versión busca seis campos etiquetados: proveedor, número, referen
 
 Para corregir un dato, abrí Corregir, escribí el valor y el motivo. Si no hay respaldo, registrá Sin dato verificable. El historial conserva el original y la corrección. Esto no aprueba una factura ni un pago. Los fallos/bloqueos muestran el motivo; con permisos de escritura podés solicitar otra extracción cuando el estado lo permita.
 
+## Comparar una operación
+
+1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
+2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. La referencia debe coincidir con la de las fuentes; no es una referencia inventada de CargoWise.
+3. Abrí la operación, pulsá **Vincular documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta20documentos de tu organización. Si un documento seguía procesándose, usá Actualizar datos cuando termine.
+4. En **Datos para comparar**, abrí **Ver datos y evidencia**. Se obtienen las partidas, exclusiones, vigencia y prestación desde el texto real del PDF. Los campos ausentes siguen ausentes. Revisar datos permite corregirlos con un motivo; conserva documento original, autor y revisión. El tipo de fuente no se cambia desde esta revisión.
+5. Pulsá **Analizar operación**. El worker pasa de En espera a Analizando y al resultado. Podés salir y volver; no necesita mantener el diálogo abierto.
+6. Inspeccioná cada hallazgo y su evidencia: documento, página y fragmento, importe esperado, facturado, diferencia y moneda. Una fila sin diferencia de precio no aprueba una factura ni acredita prestación.
+
+En el expediente original, el pickup del carrier muestra62USD excluidos por el acuerdo y evidencia de la misma recogida por el transportista. La factura del transportista por sí sola no tiene un acuerdo tarifario propio, así que no se presenta como globalmente validada. La partida de servicio base marítimo de150USD no declara su ámbito en la factura: queda no verificable hasta revisar ese dato con respaldo. No se deduce su puerto a partir de la ruta de la recogida.
+
+Si antes probaste cambiar el total a211.00, el análisis también debe señalar que ya no coincide con la suma de partidas. Para volver al escenario original, registrá otra corrección a212.00 con su motivo; no borres el historial.
+
+Probá después cambiar un dato revisado o retirar una fuente y reanalizar. La ejecución anterior queda conservada y se avisa que los datos cambiaron. El historial reciente muestra las cinco últimas ejecuciones; **Ver historial completo** consulta páginas del historial y carga el detalle elegido. La revisión de datos muestra las100últimas revisiones, con motivo y fecha. Los datos manuales se distinguen de los candidatos extraídos; revisar no certifica que el servicio haya ocurrido.
+
+Si falta acuerdo vigente, hay condiciones contradictorias, moneda distinta o servicios de tramos diferentes, la aplicación debe explicar la incertidumbre y no inventar conversiones o duplicidades. Formatos no reconocidos o demasiado grandes para el alcance de comparación se muestran como fuentes no utilizables, conservando el original.
+
 ## Indicadores de espera
 
 La sesión inicial y las primeras consultas muestran un indicador y texto. Las actualizaciones conservan filas autorizadas visibles; cada botón indica su propia acción pendiente y evita envíos repetidos. Si tenés activada la preferencia de reducir movimiento, los indicadores permanecen estáticos. No se muestran porcentajes de avance estimados.
 
 ## Qué falta
 
-Faltan el cotejo por partidas, aplicación de tarifas/condiciones, hallazgos y reclamos. La carga documental prepara evidencia; todavía no calcula si los 62 USD deben reclamarse. No hay OCR, importación JSON operativa ni integración real con CargoWise/correo. El contrato demo JSON documentado sirve para preparar el siguiente desarrollo, no es una exportación oficial de un ERP.
+Faltan las decisiones humanas sobre hallazgos, borradores/exportación y seguimiento de reclamos (fase4). Luego se prepara el servidor con HTTPS, secretos, almacenamiento privado, backups y restauración comprobada (fase5). No hay OCR, reconocimiento universal de facturas, importación JSON operativa ni integración real con CargoWise/correo. La prueba con documentos confidenciales reales requiere validación adicional del experto y los controles acordados.

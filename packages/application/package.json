@@ -16,6 +16,7 @@
   "dependencies": {
     "@reconcile/database": "workspace:*",
     "@reconcile/contracts": "workspace:*",
-    "@reconcile/document-processing": "workspace:*"
+    "@reconcile/document-processing": "workspace:*",
+    "@reconcile/sector-rules": "workspace:*"
   }
 }

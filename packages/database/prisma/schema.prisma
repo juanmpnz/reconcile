@@ -73,6 +73,7 @@ model Organization {
  members Member[]
  invitations Invitation[]
  documents Document[]
+ operations Operation[]
  @@map("organizations")
 }
 model Member {
@@ -140,6 +141,8 @@ model Document {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ operationLinks OperationDocument[]
+ factRevisions AnalysisFactRevision[]
  runs ExtractionRun[] @relation("DocumentRuns")
  currentRun ExtractionRun? @relation("CurrentRun",fields:[organizationId,id,currentRunId],references:[organizationId,documentId,id],onDelete:NoAction,onUpdate:NoAction)
  @@unique([organizationId,id])
@@ -198,4 +201,91 @@ model DocumentOutbox {
  @@unique([organizationId,documentId,runId])
  @@index([completedAt,lastEnqueuedAt])
  @@map("document_outbox")
+}
+
+model Operation {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ reference String @db.VarChar(100)
+ name String @db.VarChar(200)
+ revision Int @default(0)
+ runCount Int @default(0)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ documents OperationDocument[]
+ facts AnalysisFactRevision[]
+ analyses AnalysisRun[]
+ @@unique([organizationId,id])
+ @@unique([organizationId,reference])
+ @@index([organizationId,createdAt])
+ @@map("operations")
+}
+model OperationDocument {
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ documentId String @db.Uuid
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ document Document @relation(fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
+ @@id([organizationId,operationId,documentId])
+ @@map("operation_documents")
+}
+model AnalysisFactRevision {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ documentId String @db.Uuid
+ sourceFingerprint String @db.Char(64)
+ ordinal Int
+ facts Json
+ actorId String @db.Uuid
+ reason String @db.VarChar(500)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ document Document @relation(fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
+ @@unique([organizationId,operationId,ordinal])
+ @@index([organizationId,operationId,documentId,ordinal])
+ @@map("analysis_fact_revisions")
+}
+model AnalysisRun {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ actorId String @db.Uuid
+ version Int
+ idempotencyKey String @db.Uuid
+ fingerprint String @db.Char(64)
+ parserVersion String @db.VarChar(64)
+ ruleVersion String @db.VarChar(64)
+ snapshot Json
+ sources Json
+ inputWarnings Json
+ result Json?
+ status String @default("queued") @db.VarChar(20)
+ errorCode String? @db.VarChar(64)
+ attempts Int @default(0)
+ leaseUntil DateTime? @db.Timestamptz(3)
+ leaseToken String? @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ completedAt DateTime? @db.Timestamptz(3)
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ outbox AnalysisOutbox?
+ @@unique([organizationId,operationId,id])
+ @@unique([organizationId,operationId,idempotencyKey])
+ @@unique([operationId,version])
+ @@map("analysis_runs")
+}
+model AnalysisOutbox {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ runId String @unique @db.Uuid
+ actorId String @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ lastEnqueuedAt DateTime? @db.Timestamptz(3)
+ completedAt DateTime? @db.Timestamptz(3)
+ run AnalysisRun @relation(fields:[organizationId,operationId,runId],references:[organizationId,operationId,id],onDelete:Cascade)
+ @@unique([organizationId,operationId,runId])
+ @@index([completedAt,lastEnqueuedAt])
+ @@map("analysis_outbox")
 }

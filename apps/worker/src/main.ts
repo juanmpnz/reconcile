@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { PrismaClient } from '@reconcile/database';
 import { createPrivateDocumentStorage } from '@reconcile/document-processing';
+import { startAnalysisProcessing } from './analyses.js';
 import { startDocumentProcessing } from './documents.js';
 import { Redis } from 'ioredis';
 import { parseServiceConfig } from '@reconcile/config';
@@ -11,6 +12,10 @@ const documentStorage = createPrivateDocumentStorage(config);
 const documentRuntime = startDocumentProcessing({
   prisma,
   storage: documentStorage,
+  redisUrl: config.REDIS_URL,
+});
+const analysisRuntime = startAnalysisProcessing({
+  prisma,
   redisUrl: config.REDIS_URL,
 });
 const connection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
@@ -44,6 +49,7 @@ async function shutdown(): Promise<void> {
   if (closing) return;
   closing = true;
   await documentRuntime.close();
+  await analysisRuntime.close();
   documentStorage.close();
   await prisma.$disconnect();
   await worker.close();
