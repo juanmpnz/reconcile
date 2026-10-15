@@ -15,7 +15,7 @@ Conectar `https://github.com/juanmpnz/reconcile`, rama `main`. En General → Bu
 | Custom build command                  | Vacío, valor predeterminado             |
 | Custom start command                  | Vacío, valor predeterminado             |
 
-Guardar y cargar de nuevo la definición desde Git. El editor Docker compose content debe mostrar los servicios; no pegar allí el Compose de desarrollo. No habilitar Raw Compose ni conectar a una red predefinida para este stack autocontenido.
+Guardar y cargar de nuevo la definición desde Git. Los contextos de build usan la raíz del repositorio; para ejecutar este Compose desde consola usar `docker compose --project-directory . -f infra/docker/compose.production.yaml` desde esa raíz. El editor Docker compose content debe mostrar los servicios; no pegar allí el Compose de desarrollo. No habilitar Raw Compose ni conectar a una red predefinida para este stack autocontenido.
 
 ## Variables
 
@@ -31,7 +31,7 @@ SMTP_PASSWORD=PASSWORD_SMTP
 MAIL_FROM=REMITENTE_VERIFICADO
 ```
 
-El despliegue usa SMTP autenticado con TLS directo en el puerto 465. Hace falta un proveedor real y un remitente autorizado; Mailpit y el modo capture son solo para desarrollo/pruebas. No compartir contraseñas en el chat ni incluirlas en Git. Las conexiones internas a base, Redis y S3 las configura el manifest; no usar localhost ni copiar las credenciales locales. Los secretos son de ejecución, no variables VITE ni argumentos de build.
+El despliegue usa SMTP autenticado en el puerto 587 con STARTTLS obligatorio (SMTP_SECURE=false indica que TLS se negocia al conectar). Hace falta un proveedor real y un remitente autorizado; Mailpit y el modo capture son solo para desarrollo/pruebas. No compartir contraseñas en el chat ni incluirlas en Git. Las conexiones internas a base, Redis y S3 las configura el manifest; no usar localhost ni copiar las credenciales locales. Los secretos son de ejecución, no variables VITE ni argumentos de build.
 
 ## Dominio
 

@@ -138,6 +138,7 @@ model Document {
  currentRunId String? @db.Uuid
  runCount Int @default(0)
  correctionCount Int @default(0)
+ metadataVersion Int @default(0)
  uploadedBy String @db.Uuid
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Auth } from '@reconcile/auth';
-import type { PrismaClient } from '@reconcile/database';
+import { Prisma, type PrismaClient } from '@reconcile/database';
 import {
   createDocumentService,
   DocumentError,
@@ -12,6 +12,8 @@ import {
   DOCUMENT_MAX_BYTES,
   documentKindSchema,
   correctionInputSchema,
+  documentMetadataInputSchema,
+  documentListQuerySchema,
 } from '@reconcile/contracts';
 import type { PrivateDocumentStorage } from '@reconcile/document-processing';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -93,6 +95,14 @@ export function registerDocumentRoutes(
     try {
       return await action();
     } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2034' ||
+          (error.code === 'P2010' &&
+            typeof error.meta?.['code'] === 'string' &&
+            error.meta['code'] === '40001'))
+      )
+        return reply.status(409).send({ code: 'CONCURRENT_UPDATE' });
       if (error instanceof DocumentError)
         return reply.status(error.status).send({ code: error.code });
       return reply.status(503).send({ code: 'DOCUMENT_SERVICE_UNAVAILABLE' });
@@ -101,7 +111,13 @@ export function registerDocumentRoutes(
   const base = '/api/v1/organizations/:organizationId/documents';
   server.get<{
     Params: Params;
-    Querystring: { limit?: string; offset?: string };
+    Querystring: {
+      limit?: string;
+      offset?: string;
+      q?: string;
+      sort?: string;
+      direction?: string;
+    };
   }>(base, async (req, reply) =>
     bounded(reply, async () => {
       const actor = await context(req, reply);
@@ -118,8 +134,38 @@ export function registerDocumentRoutes(
         offset > 100000
       )
         throw new DocumentError(400, 'INVALID_PAGINATION');
-      return service.list(req.params.organizationId, actor, limit, offset);
+      const options = documentListQuerySchema.safeParse({
+        q: req.query.q,
+        sort: req.query.sort,
+        direction: req.query.direction,
+      });
+      if (!options.success)
+        throw new DocumentError(400, 'INVALID_DOCUMENT_QUERY');
+      return service.list(
+        req.params.organizationId,
+        actor,
+        limit,
+        offset,
+        options.data,
+      );
     }),
+  );
+  server.patch<{ Params: Params }>(
+    base + '/:documentId',
+    { bodyLimit: 8192 },
+    (req, reply) =>
+      bounded(reply, async () => {
+        const actor = await context(req, reply, true);
+        const input = documentMetadataInputSchema.safeParse(req.body);
+        if (!input.success)
+          throw new DocumentError(400, 'INVALID_DOCUMENT_METADATA');
+        return service.updateMetadata(
+          req.params.organizationId,
+          req.params.documentId ?? '',
+          actor,
+          input.data,
+        );
+      }),
   );
   server.post<{ Params: Params }>(
     base,

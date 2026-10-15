@@ -711,4 +711,186 @@ describe('private document intake and actual PDF processing through real service
         ),
     ).toBe(true);
   });
+  it('edits display metadata with immutable originals, global search/order, optimistic concurrency and tenant permissions', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const first = await created(org, owner, carrierPdf, 'Zulu.pdf');
+    await processDocument(first.id);
+    const original = await detail(org, first.id, owner);
+    const second = await created(
+      org,
+      owner,
+      makePdf(['DEMO', 'Operation reference: SECOND-REF']),
+      'Alpha.pdf',
+    );
+    await processDocument(second.id);
+    const patch = (
+      actor: Browser,
+      input: Record<string, unknown>,
+      origin = fixture.origin,
+      organizationId = org,
+    ) =>
+      fixture.app.inject({
+        method: 'PATCH',
+        url: path(organizationId, first.id),
+        remoteAddress: actor.address,
+        headers: {
+          origin,
+          cookie: [...actor.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+        },
+        payload: input,
+      });
+    const changed = await patch(owner, {
+      filename: 'Renamed.pdf',
+      kind: 'tariff',
+      expectedMetadataVersion: 0,
+      reason: 'Correct document label',
+    });
+    expect(changed.statusCode, changed.body).toBe(200);
+    const edited = documentDetailSchema.parse(body(changed));
+    expect(edited.metadataVersion).toBe(1);
+    expect(edited.latestRun).toEqual(original.latestRun);
+    expect(edited.sha256).toBe(original.sha256);
+    expect(edited.corrections).toEqual(original.corrections);
+    expect(edited.metadataHistory[0]).toMatchObject({
+      version: 1,
+      reason: 'Correct document label',
+      before: { filename: 'Zulu.pdf', kind: 'invoice' },
+      after: { filename: 'Renamed.pdf', kind: 'tariff' },
+    });
+    const bytes = await request(path(org, first.id) + '/download', owner);
+    expect(bytes.rawPayload).toEqual(carrierPdf);
+    const noOp = await patch(owner, {
+      filename: edited.filename,
+      kind: edited.kind,
+      expectedMetadataVersion: 1,
+      reason: 'No change',
+    });
+    expect(documentDetailSchema.parse(body(noOp)).metadataVersion).toBe(1);
+    expect(documentDetailSchema.parse(body(noOp)).metadataHistory).toHaveLength(
+      1,
+    );
+    const stale = await patch(owner, {
+      filename: 'Lost.pdf',
+      kind: 'invoice',
+      expectedMetadataVersion: 0,
+      reason: 'Stale',
+    });
+    expect(stale.statusCode).toBe(409);
+    const sorted = documentListSchema.parse(
+      body(
+        await request(
+          path(org) + '?sort=filename&direction=asc&limit=1&offset=0',
+          owner,
+        ),
+      ),
+    );
+    expect(sorted.total).toBe(2);
+    expect(sorted.items[0]?.id).toBe(second.id);
+    const nextPage = documentListSchema.parse(
+      body(
+        await request(
+          path(org) + '?sort=filename&direction=asc&limit=1&offset=1',
+          owner,
+        ),
+      ),
+    );
+    expect(nextPage.items[0]?.id).toBe(first.id);
+    const reference = documentListSchema.parse(
+      body(await request(path(org) + '?q=OP-DEMO-062&limit=1', owner)),
+    );
+    expect(reference.total).toBe(1);
+    expect(reference.items[0]?.extractedReference).toBe('OP-DEMO-062');
+    expect(reference.items[0]?.operations).toEqual([]);
+    const bySpanishKind = documentListSchema.parse(
+      body(
+        await request(path(org) + '?q=Tarifa&sort=kind&direction=asc', owner),
+      ),
+    );
+    expect(bySpanishKind.total).toBe(1);
+    expect(bySpanishKind.items[0]?.id).toBe(first.id);
+    const bySpanishStatus = documentListSchema.parse(
+      body(
+        await request(
+          path(org) +
+            '?q=' +
+            encodeURIComponent('Requiere revisión') +
+            '&sort=status&direction=asc',
+          owner,
+        ),
+      ),
+    );
+    expect(bySpanishStatus.total).toBe(2);
+
+    expect(
+      (await request(path(org) + '?sort=storageKey', owner)).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await patch(owner, {
+          filename: '../bad.pdf',
+          kind: 'invoice',
+          expectedMetadataVersion: 1,
+          reason: 'Invalid',
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await patch(
+          owner,
+          {
+            filename: 'Safe.pdf',
+            kind: 'invoice',
+            expectedMetadataVersion: 1,
+            reason: 'Invalid',
+          },
+          'https://hostile.invalid',
+        )
+      ).statusCode,
+    ).toBe(403);
+    const viewer = await verifiedUser();
+    expect(
+      (await accept(viewer, await invite(owner, org, viewer))).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await patch(viewer, {
+          filename: 'Safe.pdf',
+          kind: 'invoice',
+          expectedMetadataVersion: 1,
+          reason: 'Denied',
+        })
+      ).statusCode,
+    ).toBe(403);
+    const foreign = await verifiedUser();
+    const foreignOrg = await organization(foreign);
+    expect(
+      (
+        await patch(
+          foreign,
+          {
+            filename: 'Safe.pdf',
+            kind: 'invoice',
+            expectedMetadataVersion: 1,
+            reason: 'Denied',
+          },
+          fixture.origin,
+          foreignOrg,
+        )
+      ).statusCode,
+    ).toBe(404);
+    const race = await Promise.all(
+      ['Race-A.pdf', 'Race-B.pdf'].map((filename) =>
+        patch(owner, {
+          filename,
+          kind: 'tariff',
+          expectedMetadataVersion: 1,
+          reason: 'Concurrent rename',
+        }),
+      ),
+    );
+    expect(race.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    expect((await detail(org, first.id, owner)).metadataVersion).toBe(2);
+  });
 });

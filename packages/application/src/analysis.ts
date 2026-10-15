@@ -87,6 +87,9 @@ export async function collectAnalysisInputs(
       extractionRunId: run?.id ?? null,
       extractionVersion: run?.version ?? null,
       correctionRevision: doc.correctionCount,
+      ...(doc.metadataVersion > 0
+        ? { metadataVersion: doc.metadataVersion }
+        : {}),
     });
     if (doc.kind === 'other') {
       warnings.push('UNSUPPORTED_DOCUMENT_KIND:' + doc.id);

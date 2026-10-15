@@ -47,10 +47,57 @@ export const extractionResultSchema = z.object({
   fields: z.array(extractedFieldSchema).max(6),
   warnings: z.array(z.string().max(100)).max(20),
 });
+export const documentMetadataInputSchema = z
+  .object({
+    filename: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .refine(
+        (name) =>
+          name.toLowerCase().endsWith('.pdf') &&
+          !Array.from(name).some((character) => {
+            const code = character.codePointAt(0) ?? 0;
+            return (
+              code < 32 ||
+              code === 127 ||
+              character === '/' ||
+              character === '\\'
+            );
+          }),
+      ),
+    kind: documentKindSchema,
+    expectedMetadataVersion: z.number().int().min(0),
+    reason: z.string().trim().min(1).max(500),
+  })
+  .strict();
+export const documentListQuerySchema = z
+  .object({
+    q: z.string().trim().max(200).default(''),
+    sort: z
+      .enum([
+        'filename',
+        'kind',
+        'status',
+        'createdAt',
+        'reference',
+        'operation',
+      ])
+      .default('createdAt'),
+    direction: z.enum(['asc', 'desc']).default('desc'),
+  })
+  .strict();
 export const documentSummarySchema = z.object({
   id: z.uuid(),
   organizationId: z.uuid(),
   filename: z.string(),
+  metadataVersion: z.number().int(),
+  extractedReference: z.string().nullable(),
+  operations: z.array(
+    z.object({ id: z.uuid(), reference: z.string(), name: z.string() }),
+  ),
+  operationCount: z.number().int(),
   kind: documentKindSchema,
   sizeBytes: z.number().int(),
   status: documentStatusSchema,
@@ -83,6 +130,17 @@ export const extractionRunSchema = z.object({
 });
 export const documentDetailSchema = documentSummarySchema.extend({
   sha256: z.string(),
+  metadataHistory: z.array(
+    z.object({
+      id: z.uuid(),
+      version: z.number().int(),
+      actorId: z.uuid(),
+      reason: z.string(),
+      before: z.object({ filename: z.string(), kind: documentKindSchema }),
+      after: z.object({ filename: z.string(), kind: documentKindSchema }),
+      createdAt: z.iso.datetime(),
+    }),
+  ),
   latestRun: extractionRunSchema.nullable(),
   corrections: z.array(correctionSchema),
   capabilities: z.object({ canWrite: z.boolean() }),
@@ -109,3 +167,13 @@ export type ExtractionFieldName = z.infer<typeof extractionFieldNameSchema>;
 export type DocumentSummary = z.infer<typeof documentSummarySchema>;
 export type DocumentDetail = z.infer<typeof documentDetailSchema>;
 export type CorrectionInput = z.infer<typeof correctionInputSchema>;
+
+export const documentMetadataAuditSchema = z
+  .object({
+    documentId: z.uuid(),
+    version: z.number().int(),
+    reason: z.string(),
+    before: z.object({ filename: z.string(), kind: documentKindSchema }),
+    after: z.object({ filename: z.string(), kind: documentKindSchema }),
+  })
+  .strict();

@@ -7,6 +7,9 @@ import {
   documentSummarySchema,
   extractionResultSchema,
   documentJobSchema,
+  documentMetadataInputSchema,
+  documentListQuerySchema,
+  documentMetadataAuditSchema,
   type DocumentKind,
   type CorrectionInput,
 } from '@reconcile/contracts';
@@ -48,6 +51,7 @@ function summary(doc: {
   id: string;
   organizationId: string;
   filename: string;
+  metadataVersion: number;
   kind: string;
   sizeBytes: number;
   status: string;
@@ -57,10 +61,56 @@ function summary(doc: {
 }) {
   return documentSummarySchema.parse({
     ...doc,
+    extractedReference: null,
+    operations: [],
+    operationCount: 0,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   });
 }
+function annotated(
+  doc: Prisma.DocumentGetPayload<Record<string, never>> & {
+    currentRun: {
+      result: unknown;
+      corrections: { field: string; value: string | null; revision: number }[];
+    } | null;
+    operationLinks: {
+      operation: { id: string; name: string; reference: string };
+    }[];
+  },
+) {
+  const parsed = extractionResultSchema.safeParse(doc.currentRun?.result);
+  let extractedReference = parsed.success
+    ? (parsed.data.fields.find((f) => f.name === 'operationReference')?.value ??
+      null)
+    : null;
+  for (const c of [...(doc.currentRun?.corrections ?? [])].sort(
+    (a, b) => a.revision - b.revision,
+  ))
+    if (c.field === 'operationReference') extractedReference = c.value;
+  const operations = doc.operationLinks
+    .map((l) => ({
+      id: l.operation.id,
+      reference: l.operation.reference,
+      name: l.operation.name,
+    }))
+    .sort(
+      (a, b) =>
+        a.reference.localeCompare(b.reference, 'en') ||
+        a.id.localeCompare(b.id),
+    );
+  return {
+    ...summary(doc),
+    extractedReference,
+    operations: operations.slice(0, 20),
+    operationCount: operations.length,
+    allOperations: operations,
+  };
+}
+const documentIncludes = {
+  currentRun: { include: { corrections: true } },
+  operationLinks: { include: { operation: true } },
+} as const;
 export function createDocumentService({
   prisma,
   storage,
@@ -76,7 +126,10 @@ export function createDocumentService({
     const member = await authorizeDocuments(prisma, organizationId, actorId);
     const doc = await prisma.document.findFirst({
       where: { id: documentId, organizationId },
-      include: { runs: { orderBy: { version: 'desc' }, take: 1 } },
+      include: {
+        ...documentIncludes,
+        runs: { orderBy: { version: 'desc' }, take: 1 },
+      },
     });
     if (!doc) throw new DocumentError(404, 'NOT_FOUND');
     const run = doc.runs[0];
@@ -85,8 +138,37 @@ export function createDocumentService({
       orderBy: { revision: 'asc' },
       take: 1000,
     });
+    const events = await prisma.identityAuditEvent.findMany({
+      where: {
+        organizationId,
+        action: 'document.metadata.updated',
+        details: { path: ['documentId'], equals: documentId },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1000,
+    });
+    const orderedEvents = events
+      .sort(
+        (a, b) =>
+          documentMetadataAuditSchema.parse(b.details).version -
+          documentMetadataAuditSchema.parse(a.details).version,
+      )
+      .slice(0, 50);
+    const metadataHistory = orderedEvents.map((event) => {
+      const details = documentMetadataAuditSchema.parse(event.details);
+      return {
+        id: event.id,
+        version: details.version,
+        actorId: event.actorId,
+        reason: details.reason,
+        before: details.before,
+        after: details.after,
+        createdAt: event.createdAt.toISOString(),
+      };
+    });
     return documentDetailSchema.parse({
-      ...summary(doc),
+      ...annotated(doc),
+      metadataHistory,
       sha256: doc.sha256,
       latestRun: run
         ? {
@@ -143,23 +225,131 @@ export function createDocumentService({
       actorId: string,
       limit: number,
       offset: number,
+      options: unknown = {},
     ) {
-      await authorizeDocuments(prisma, organizationId, actorId);
-      const [items, total] = await prisma.$transaction([
-        prisma.document.findMany({
-          where: { organizationId },
-          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-          take: limit,
-          skip: offset,
-        }),
-        prisma.document.count({ where: { organizationId } }),
-      ]);
-      return documentListSchema.parse({
-        items: items.map(summary),
-        total,
-        limit,
-        offset,
-      });
+      const query = documentListQuerySchema.parse(options);
+      return prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId);
+          const columns = {
+            filename: 'filename',
+            kind: 'kindLabel',
+            status: 'statusLabel',
+            createdAt: 'createdAt',
+            reference: 'reference',
+            operation: 'operation',
+          } as const;
+          const order = Prisma.raw(
+            '"' +
+              columns[query.sort] +
+              '" ' +
+              (query.direction === 'asc' ? 'ASC' : 'DESC') +
+              ' NULLS LAST, id ASC',
+          );
+          const baseQuery = Prisma.sql`WITH projected AS (
+            SELECT d.id,d.filename,d.kind,d.status,d."createdAt",
+              CASE d.kind WHEN 'invoice' THEN 'Factura' WHEN 'tariff' THEN 'Tarifa' WHEN 'quotation' THEN 'Cotización' WHEN 'operational' THEN 'Registro operativo' WHEN 'other' THEN 'Otro' END AS "kindLabel",
+              CASE d.status WHEN 'queued' THEN 'En espera' WHEN 'processing' THEN 'Extrayendo texto' WHEN 'needs_review' THEN 'Requiere revisión' WHEN 'ready' THEN 'Extracción completada' WHEN 'failed' THEN 'Error de extracción' WHEN 'blocked' THEN 'Procesamiento bloqueado' END AS "statusLabel",
+              CASE WHEN correction.id IS NOT NULL THEN correction.value ELSE extracted.value END AS reference,
+              ops.operation,ops.search AS "operationSearch"
+            FROM documents d
+            LEFT JOIN extraction_runs r ON r.id=d."currentRunId" AND r."organizationId"=d."organizationId" AND r."documentId"=d.id
+            LEFT JOIN LATERAL (SELECT c.id,c.value FROM document_corrections c WHERE c."organizationId"=d."organizationId" AND c."documentId"=d.id AND c."extractionRunId"=r.id AND c.field='operationReference' ORDER BY c.revision DESC LIMIT 1) correction ON true
+            LEFT JOIN LATERAL (SELECT f->>'value' AS value FROM jsonb_array_elements(COALESCE(r.result->'fields','[]'::jsonb)) f WHERE f->>'name'='operationReference' LIMIT 1) extracted ON true
+            LEFT JOIN LATERAL (SELECT min(o.reference) AS operation,string_agg(o.reference||' '||o.name,' ') AS search FROM operation_documents links JOIN operations o ON o.id=links."operationId" AND o."organizationId"=links."organizationId" WHERE links."documentId"=d.id AND links."organizationId"=d."organizationId") ops ON true
+            WHERE d."organizationId"=${organizationId}::uuid
+          ), filtered AS (SELECT * FROM projected WHERE ${query.q}='' OR strpos(lower(concat_ws(' ',filename,kind,status,"kindLabel","statusLabel",reference,"operationSearch")),lower(${query.q}))>0)`;
+          const rows = await tx.$queryRaw<
+            { id: string; reference: string | null }[]
+          >(
+            Prisma.sql`${baseQuery} SELECT id,reference FROM filtered ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`,
+          );
+          const counts = await tx.$queryRaw<{ total: bigint }[]>(
+            Prisma.sql`${baseQuery} SELECT count(*) AS total FROM filtered`,
+          );
+          const documents = await tx.document.findMany({
+            where: { organizationId, id: { in: rows.map((row) => row.id) } },
+            include: {
+              operationLinks: {
+                orderBy: { operationId: 'asc' },
+                take: 20,
+                select: {
+                  operation: {
+                    select: { id: true, name: true, reference: true },
+                  },
+                },
+              },
+              _count: { select: { operationLinks: true } },
+            },
+          });
+          const byId = new Map(documents.map((doc) => [doc.id, doc]));
+          const items = rows.map((row) => {
+            const doc = byId.get(row.id);
+            if (!doc) throw new DocumentError(503, 'DOCUMENT_LIST_UNAVAILABLE');
+            return {
+              ...summary(doc),
+              extractedReference: row.reference,
+              operations: doc.operationLinks.map((link) => link.operation),
+              operationCount: doc._count.operationLinks,
+            };
+          });
+          return documentListSchema.parse({
+            items,
+            total: Number(counts[0]?.total ?? 0),
+            limit,
+            offset,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
+    },
+    async updateMetadata(
+      organizationId: string,
+      documentId: string,
+      actorId: string,
+      input: unknown,
+    ) {
+      const data = documentMetadataInputSchema.parse(input);
+      await prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId, true);
+          await tx.$queryRaw`SELECT id FROM documents WHERE id=${documentId}::uuid AND "organizationId"=${organizationId}::uuid FOR UPDATE`;
+          const doc = await tx.document.findFirst({
+            where: { id: documentId, organizationId },
+          });
+          if (!doc) throw new DocumentError(404, 'NOT_FOUND');
+          if (doc.metadataVersion !== data.expectedMetadataVersion)
+            throw new DocumentError(409, 'STALE_DOCUMENT');
+          if (doc.filename === data.filename && doc.kind === data.kind) return;
+          if (doc.metadataVersion >= 1000)
+            throw new DocumentError(409, 'METADATA_REVISION_LIMIT');
+          const changed = await tx.document.update({
+            where: { id: documentId },
+            data: {
+              filename: data.filename,
+              kind: data.kind,
+              metadataVersion: { increment: 1 },
+            },
+          });
+          await tx.identityAuditEvent.create({
+            data: {
+              organizationId,
+              actorId,
+              action: 'document.metadata.updated',
+              outcome: 'success',
+              details: {
+                documentId,
+                version: changed.metadataVersion,
+                reason: data.reason,
+                before: { filename: doc.filename, kind: doc.kind },
+                after: { filename: changed.filename, kind: changed.kind },
+              },
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
+      return detail(organizationId, documentId, actorId);
     },
     async upload(
       organizationId: string,

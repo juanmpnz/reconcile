@@ -1,3 +1,5 @@
+import { MetadataDialog } from './metadata-dialog';
+import { OperationLinks } from './operation-links';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExtractionFieldName } from '@reconcile/contracts';
@@ -171,6 +173,20 @@ export function DocumentDetailView({
             {timestampLabel(data.createdAt)}
           </p>
         </div>
+        {data.capabilities.canWrite && (
+          <MetadataDialog
+            userId={userId}
+            organizationId={organizationId}
+            document={data}
+            disabled={authorizationPending}
+            onSaved={() => {
+              setFailed(false);
+              setMessage(
+                'Datos del documento actualizados. Revisá y reanalizá las operaciones si corresponde.',
+              );
+            }}
+          />
+        )}
         <Button
           variant="outline"
           pending={downloading}
@@ -189,6 +205,17 @@ export function DocumentDetailView({
           Última actualización: {timestampLabel(data.updatedAt)}
         </span>
       </div>
+      <section
+        className="document-linked-operations"
+        aria-label="Asociaciones del documento"
+      >
+        <p>
+          <strong>Referencia extraída:</strong>{' '}
+          {data.extractedReference ?? 'Sin referencia extraída'}
+        </p>
+        <strong>Operaciones vinculadas</strong>
+        <OperationLinks document={data} organizationId={organizationId} />
+      </section>
       {isProcessing(data.status) && (
         <Loading
           inline
@@ -347,6 +374,50 @@ export function DocumentDetailView({
             del procesamiento.
           </p>
         )
+      )}
+      {data.metadataHistory.length > 0 && (
+        <details className="metadata-history">
+          <summary>Historial de nombre y tipo (últimos 50 cambios)</summary>
+          <TableRegion label="Historial de metadatos del documento">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Antes</th>
+                  <th scope="col">Después</th>
+                  <th scope="col">Motivo</th>
+                  <th scope="col">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.metadataHistory.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      {item.before.filename}
+                      <small className="file-size">
+                        {kindLabels[item.before.kind]}
+                      </small>
+                    </td>
+                    <td>
+                      {item.after.filename}
+                      <small className="file-size">
+                        {kindLabels[item.after.kind]}
+                      </small>
+                    </td>
+                    <td>{item.reason}</td>
+                    <td>
+                      {timestampLabel(item.createdAt)}
+                      <small className="file-size">
+                        {item.actorId === userId
+                          ? 'Vos'
+                          : 'Integrante del equipo'}
+                      </small>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableRegion>
+        </details>
       )}
       {data.corrections.length > 0 && (
         <section className="correction-history">

@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD COLUMN "metadataVersion" INTEGER NOT NULL DEFAULT 0;

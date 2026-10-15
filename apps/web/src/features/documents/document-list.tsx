@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
   Button,
   EmptyState,
+  Feedback,
   RequestError,
   TableRegion,
 } from '../../components/ui/primitives';
 import { Loading } from '../../components/ui/loading';
-import { navigate, organizationPath } from '../../app/router';
+import { navigate, useRoute } from '../../app/router';
 import { UploadDialog } from './upload-dialog';
+import { MetadataDialog } from './metadata-dialog';
+import { OperationLinks } from './operation-links';
+import { documentListPath, documentListState } from './list-state';
 import {
   bytesLabel,
   documentPath,
@@ -20,6 +24,7 @@ import {
   statusLabels,
   timestampLabel,
 } from './api';
+import type { DocumentListOptions } from './api';
 export function DocumentList({
   userId,
   organizationId,
@@ -33,22 +38,48 @@ export function DocumentList({
   canWrite: boolean;
   disabled: boolean;
 }) {
-  const [search, setSearch] = useState('');
+  const route = useRoute();
+  const options = documentListState(route.searchParams);
+  const [search, setSearch] = useState(options.q);
+  const [message, setMessage] = useState('');
+  useEffect(() => setSearch(options.q), [options.q]);
   const documents = useQuery({
-    queryKey: [...documentsKey(userId, organizationId), 'list', page],
-    queryFn: ({ signal }) => listDocuments(organizationId, page, signal),
+    queryKey: [
+      ...documentsKey(userId, organizationId),
+      'list',
+      options.q,
+      options.sort,
+      options.direction,
+      page,
+    ],
+    queryFn: ({ signal }) =>
+      listDocuments(organizationId, page, signal, options),
     enabled: !disabled,
     refetchInterval: (query) =>
       query.state.data?.items.some((item) => isProcessing(item.status))
         ? 3000
         : false,
   });
-  const filtered =
-    documents.data?.items.filter((item) =>
-      item.filename
-        .toLocaleLowerCase()
-        .includes(search.trim().toLocaleLowerCase()),
-    ) ?? [];
+  const headers: [DocumentListOptions['sort'], string][] = [
+    ['filename', 'Nombre'],
+    ['kind', 'Tipo'],
+    ['status', 'Estado'],
+    ['reference', 'Referencia extraída'],
+    ['operation', 'Operaciones vinculadas'],
+    ['createdAt', 'Fecha de carga'],
+  ];
+  function sort(field: DocumentListOptions['sort']) {
+    navigate(
+      documentListPath(organizationId, {
+        ...options,
+        sort: field,
+        direction:
+          options.sort === field && options.direction === 'asc'
+            ? 'desc'
+            : 'asc',
+      }),
+    );
+  }
   return (
     <section>
       <div className="page-header">
@@ -67,26 +98,69 @@ export function DocumentList({
           />
         )}
       </div>
+      <Feedback message={message} />
       {!canWrite && (
         <p className="permission-note">
-          Tu rol permite consultar documentos. La carga y corrección están
+          Tu rol permite consultar documentos. La carga y edición están
           reservadas a propietarios, administradores y analistas.
         </p>
       )}
       <div className="toolbar">
-        <div className="search">
-          <label htmlFor="document-search">Buscar en esta página</label>
-          <input
-            id="document-search"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Nombre del archivo"
-          />
-        </div>
+        <form
+          className="document-search-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            navigate(
+              documentListPath(organizationId, {
+                ...options,
+                q: search.trim(),
+              }),
+            );
+          }}
+        >
+          <div className="search">
+            <label htmlFor="document-search">
+              Buscar en todos los documentos
+            </label>
+            <input
+              id="document-search"
+              type="search"
+              maxLength={200}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Nombre, tipo, estado o referencia"
+              aria-describedby="document-search-scope"
+            />
+            <small id="document-search-scope">
+              Incluye la referencia extraída y los nombres o referencias de
+              operaciones vinculadas.
+            </small>
+          </div>
+          <Button variant="outline" disabled={disabled}>
+            Buscar
+          </Button>
+          {options.q && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() =>
+                navigate(
+                  documentListPath(organizationId, { ...options, q: '' }),
+                )
+              }
+            >
+              Limpiar búsqueda
+            </Button>
+          )}
+        </form>
         {documents.isSuccess && (
           <p className="metadata" role="status">
-            {filtered.length} documentos en esta página
+            {documents.data.total} documentos{options.q ? ' encontrados' : ''} ·
+            orden{' '}
+            {headers
+              .find(([field]) => field === options.sort)?.[1]
+              .toLocaleLowerCase()}
+            , {options.direction === 'asc' ? 'ascendente' : 'descendente'}
           </p>
         )}
       </div>
@@ -104,55 +178,86 @@ export function DocumentList({
           title={
             page > 0
               ? 'No hay documentos en esta página'
-              : 'No hay documentos todavía'
+              : options.q
+                ? 'Sin resultados para esta búsqueda'
+                : 'No hay documentos todavía'
           }
         >
           <p>
             {page > 0
               ? 'Volvé a la página anterior.'
-              : canWrite
-                ? 'Subí una factura, tarifa, cotización o registro operativo en PDF.'
-                : 'Los documentos cargados por tu equipo aparecerán acá.'}
+              : options.q
+                ? 'La búsqueda se aplica a toda la organización, incluidos los vínculos reales con operaciones.'
+                : canWrite
+                  ? 'Subí una factura, tarifa, cotización o registro operativo en PDF.'
+                  : 'Los documentos cargados por tu equipo aparecerán acá.'}
           </p>
           {page > 0 && (
             <Button
               variant="outline"
               onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'documents', page - 1),
-                )
+                navigate(documentListPath(organizationId, options, page - 1))
               }
             >
               Página anterior
             </Button>
           )}
-        </EmptyState>
-      ) : filtered.length === 0 ? (
-        <EmptyState title="No hay coincidencias">
-          <p>La búsqueda se aplica a los documentos de esta página.</p>
-          <Button variant="outline" onClick={() => setSearch('')}>
-            Limpiar búsqueda
-          </Button>
+          {options.q && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                navigate(
+                  documentListPath(organizationId, { ...options, q: '' }),
+                )
+              }
+            >
+              Limpiar búsqueda
+            </Button>
+          )}
         </EmptyState>
       ) : (
         <TableRegion label="Documentos de la organización">
           <table>
             <caption className="sr-only">
-              Documentos cargados y estado de extracción
+              Documentos, referencias extraídas y operaciones vinculadas;
+              búsqueda y orden globales
             </caption>
             <thead>
               <tr>
-                <th scope="col">Nombre</th>
-                <th scope="col">Tipo</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Fecha de carga</th>
-                <th scope="col">
-                  <span className="sr-only">Acciones</span>
-                </th>
+                {headers.map(([field, label]) => (
+                  <th
+                    scope="col"
+                    key={field}
+                    aria-sort={
+                      options.sort === field
+                        ? options.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="table-sort"
+                      onClick={() => sort(field)}
+                      disabled={disabled}
+                      aria-label={`Ordenar por ${label.toLocaleLowerCase()}, ${options.sort === field && options.direction === 'asc' ? 'descendente' : 'ascendente'}`}
+                    >
+                      {label}
+                      {options.sort === field && (
+                        <span aria-hidden="true">
+                          {' '}
+                          {options.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </button>
+                  </th>
+                ))}
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((document) => (
+              {documents.data.items.map((document) => (
                 <tr key={document.id}>
                   <td>
                     <a
@@ -174,19 +279,48 @@ export function DocumentList({
                   <td>
                     <Badge>{statusLabels[document.status]}</Badge>
                   </td>
+                  <td>
+                    {document.extractedReference ?? (
+                      <span className="metadata">Sin referencia extraída</span>
+                    )}
+                  </td>
+                  <td>
+                    <OperationLinks
+                      document={document}
+                      organizationId={organizationId}
+                    />
+                  </td>
                   <td className="metadata">
                     {timestampLabel(document.createdAt)}
                   </td>
                   <td className="table-action">
-                    <Button
-                      variant="outline"
-                      aria-label={`Abrir ${document.filename}`}
-                      onClick={() =>
-                        navigate(documentPath(organizationId, document.id))
-                      }
-                    >
-                      Abrir
-                    </Button>
+                    <div className="document-row-actions">
+                      {canWrite && (
+                        <MetadataDialog
+                          userId={userId}
+                          organizationId={organizationId}
+                          document={document}
+                          disabled={disabled}
+                          onSaved={() => {
+                            setMessage(
+                              'Datos actualizados. Revisá las operaciones y reanalizá si corresponde.',
+                            );
+                            window.document
+                              .getElementById('document-search')
+                              ?.focus();
+                          }}
+                        />
+                      )}
+                      <Button
+                        variant="outline"
+                        aria-label={`Abrir ${document.filename}`}
+                        onClick={() =>
+                          navigate(documentPath(organizationId, document.id))
+                        }
+                      >
+                        Abrir
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -197,7 +331,7 @@ export function DocumentList({
       {documents.data && documents.data.total > 0 && (
         <div className="pagination">
           <p className="metadata">
-            {documents.data.items.length > 0
+            {documents.data.items.length
               ? `${documents.data.offset + 1}–${documents.data.offset + documents.data.items.length} de ${documents.data.total} documentos`
               : '0 documentos en esta página'}
           </p>
@@ -206,9 +340,7 @@ export function DocumentList({
               variant="outline"
               disabled={page === 0 || documents.isFetching}
               onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'documents', page - 1),
-                )
+                navigate(documentListPath(organizationId, options, page - 1))
               }
             >
               Anterior
@@ -221,9 +353,7 @@ export function DocumentList({
                   documents.data.total || documents.isFetching
               }
               onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'documents', page + 1),
-                )
+                navigate(documentListPath(organizationId, options, page + 1))
               }
             >
               Siguiente

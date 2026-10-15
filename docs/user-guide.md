@@ -44,6 +44,14 @@ Esta primera versión busca seis campos etiquetados: proveedor, número, referen
 
 Para corregir un dato, abrí Corregir, escribí el valor y el motivo. Si no hay respaldo, registrá Sin dato verificable. El historial conserva el original y la corrección. Esto no aprueba una factura ni un pago. Los fallos/bloqueos muestran el motivo; con permisos de escritura podés solicitar otra extracción cuando el estado lo permita.
 
+### Corregir nombre o tipo sin volver a subir
+
+En la tabla Documentos, **Editar datos** permite corregir el nombre visible y el tipo con un motivo. Para `carrier-agreement.pdf`, elegí **Tarifa**. El PDF original no se reemplaza; el detalle conserva el historial con cambios, autor y fecha. Si otra persona lo modifica mientras editás, revisá los datos vigentes antes de guardar nuevamente.
+
+Los cambios dejan desactualizados los análisis que usaron ese documento: volvé a la operación y ejecutá **Volver a analizar**. Cambiar el tipo puede invalidar datos de comparación revisados bajo la clasificación anterior; revisalos antes de analizar. Los resultados históricos se conservan.
+
+La tabla distingue la **referencia extraída del PDF** de las **operaciones vinculadas**. Una referencia coincidente no vincula el documento automáticamente. La búsqueda y la ordenación se aplican a toda la organización y conservan la paginación.
+
 ## Comparar una operación
 
 1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
