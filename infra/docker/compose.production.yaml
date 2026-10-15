@@ -87,7 +87,7 @@ services:
     cpus: '1.0'
     pids_limit: 128
     build:
-      context: ../..
+      context: .
       dockerfile: infra/docker/Dockerfile
       target: api
     restart: unless-stopped
@@ -134,7 +134,7 @@ services:
     cpus: '1.0'
     pids_limit: 128
     build:
-      context: ../..
+      context: .
       dockerfile: infra/docker/Dockerfile
       target: worker
     restart: unless-stopped
@@ -150,7 +150,7 @@ services:
     cpus: '0.5'
     pids_limit: 64
     build:
-      context: ../..
+      context: .
       dockerfile: infra/docker/Dockerfile
       target: web
     restart: unless-stopped
