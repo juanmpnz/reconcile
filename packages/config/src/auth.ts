@@ -59,7 +59,7 @@ const authSchema = z
         new Set(config.AUTH_SECRET).size < 16
       )
         issue('AUTH_SECRET');
-      if (!config.SMTP_SECURE) issue('SMTP_SECURE');
+      if (!config.SMTP_SECURE && config.SMTP_PORT !== 587) issue('SMTP_SECURE');
       if (!config.SMTP_USER || !config.SMTP_PASSWORD) issue('SMTP_USER');
       if (/localhost|127\.0\.0\.1|\.invalid$/i.test(config.SMTP_HOST))
         issue('SMTP_HOST');
