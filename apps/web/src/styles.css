@@ -999,3 +999,96 @@ textarea {
 .operation-section > .button {
   margin-bottom: 14px;
 }
+.operation-panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 14px;
+  padding: 0 16px;
+}
+.operation-panel > summary {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
+}
+.operation-panel > .operation-section {
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+.result-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.result-status {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.result-status > span[aria-hidden] {
+  font-weight: 700;
+}
+.result-confirmed {
+  color: #b42318;
+  background: #fef3f2;
+}
+.result-matched {
+  color: #067647;
+  background: #ecfdf3;
+}
+.result-probable,
+.result-not-verifiable {
+  color: #92400e;
+  background: #fffbeb;
+}
+.result-group {
+  margin-top: 18px;
+}
+.result-group > h4 {
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+.finding-evidence {
+  max-width: 320px;
+  min-width: 200px;
+}
+.finding-evidence .source-evidence {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.finding-evidence .source-evidence p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.evidence-group {
+  margin-top: 10px;
+}
+.reference-preflight {
+  border: 1px solid #f3d19c;
+  background: #fffbeb;
+  color: #78350f;
+  padding: 12px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.reference-preflight p {
+  margin: 6px 0 10px;
+  overflow-wrap: anywhere;
+}
+.reference-preflight > div {
+  margin-top: 12px;
+}
+@media (max-width: 420px) {
+  .operation-panel {
+    padding: 0 12px;
+  }
+  .result-status {
+    white-space: normal;
+  }
+}

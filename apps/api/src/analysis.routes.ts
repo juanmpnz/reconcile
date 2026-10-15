@@ -11,6 +11,7 @@ import {
 import {
   analysisRequestSchema,
   operationCreateSchema,
+  operationUpdateSchema,
   operationDocumentsSchema,
   factRevisionInputSchema,
 } from '@reconcile/contracts';
@@ -88,7 +89,10 @@ export function registerAnalysisRoutes(
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2034'
+        (error.code === 'P2034' ||
+          (error.code === 'P2010' &&
+            typeof error.meta?.['code'] === 'string' &&
+            error.meta['code'] === '40001'))
       )
         return reply.status(409).send({ code: 'CONCURRENT_UPDATE' });
       if (error instanceof DocumentError)
@@ -134,6 +138,22 @@ export function registerAnalysisRoutes(
         await actor(req, reply),
       ),
     ),
+  );
+  server.patch<{ Params: Params }>(
+    base + '/:operationId',
+    { bodyLimit: 4096 },
+    (req, reply) =>
+      bounded(reply, async () => {
+        const who = await actor(req, reply, true);
+        const input = operationUpdateSchema.safeParse(req.body);
+        if (!input.success) throw new DocumentError(400, 'INVALID_OPERATION');
+        return service.update(
+          req.params.organizationId,
+          req.params.operationId ?? '',
+          who,
+          input.data,
+        );
+      }),
   );
   server.put<{ Params: Params }>(
     base + '/:operationId/documents',

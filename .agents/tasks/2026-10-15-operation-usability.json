@@ -1,0 +1,270 @@
+{
+  "id": "2026-10-15-operation-usability",
+  "summary": "Make operation review brief, clear and editable while preserving evidence, originals and immutable analysis history.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
+  "scope": [
+    "apps/web/src/features/operations/",
+    "apps/web/src/styles.css",
+    "apps/api/src/analysis.routes.ts",
+    "apps/api/test/analysis.integration.test.ts",
+    "packages/application/src/analysis.ts",
+    "packages/contracts/src/analysis.ts",
+    "packages/database/prisma/",
+    "docs/design/operation-usability.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    ".agents/tasks/2026-10-15-operation-usability.json",
+    ".agents/reviews/",
+    "apps/api/test/identity.integration.test.ts"
+  ],
+  "acceptance": [
+    "Edit operation name/reference on same ID with tenant/role verification, expected fingerprint, bounded before/after audit and no alteration of historical snapshots.",
+    "Manage linked documents with explicit removal semantics; originals and previous analyses retained; stale writes fail without losing form drafts.",
+    "Results before support panels; semantic red/green/amber with icon/text, faithful counts and no monetary aggregation.",
+    "Accessible document/fact/history accordions reduce scrolling while keeping important reference/stale warnings visible.",
+    "Group and exactly deduplicate evidence by original document/page/snippet, show concise preview and all unique citations on demand.",
+    "Reference preflight displays operation and extracted values; missing reference distinguished from mismatch. Existing rules and uncertainty preserved.",
+    "Corrections retain original, reason, author/time and history; changed input warns to reanalyse.",
+    "Independent architecture/security/UX/QA/browser evidence, full checks and actual HTTP CI acceptance before verification."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "New operation editing and association concurrency affect contracts, tenant authorization, audit and immutable analysis inputs. Existing deterministic financial rules/parser remain unchanged. Product/domain and UX preimplementation blueprint, architecture preimplementation contract, independent source and browser reviews required.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No external connector, import transport, queue or adapter change; editing existing operation associations only."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No extraction/parser/model or fact derivation change; existing extracted facts and revisions presented without changing provenance."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination, source scope, additive migration, unchanged dependencies/workflow and independent evidence collection.",
+      "evidence": [".agents/reviews/operation-usability-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Additive migration and unchanged workflow/dependency review; directly inspected decoded corrected CI38720562507 logs:61unit,44HTTP and API/PG/Redis/privatebucket/worker smoke all pass. No deployment claim.",
+      "evidence": [".agents/reviews/operation-usability-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Backend implementation and extended HTTP group source; self-authorship disclosed, independent QA review separate.",
+      "evidence": [".agents/reviews/operation-usability-backend.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "UI implementation and eight targeted API/presentation checks; self-authorship disclosed, independent source/browser review separate.",
+      "evidence": [".agents/reviews/operation-usability-frontend.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Full local and actual CI acceptance for source2f8c722c:61unit+8harness,44HTTP,migration and service smoke; independent new-test source review and regression closure. Browser10groups independently executed by /root/analysis_product_domain, not attributed to this reviewer.",
+      "evidence": [
+        ".agents/reviews/operation-usability-qa.md",
+        ".agents/reviews/operation-usability-browser.md"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Independent QA observed full final local check exit 0: 61 unit tests, eight harness regressions, formatting, ESLint, strict application/test TypeScript and all production builds."
+    },
+    {
+      "command": "Independent Chromium operation usability acceptance",
+      "status": "passed",
+      "result": "10/10 actual Chromium production-preview groups passed: reference edits/conflicts, original/source/history preservation, statuses/contrast, evidence version-safe deduplication, keyboard accordions/focus and320/390px/200%zoom. Explicit UI API fixtures, separate from actual44HTTP. Source unchanged since tested UI; report .agents/reviews/operation-usability-browser.md."
+    },
+    {
+      "command": "Actual CI service acceptance for corrected source2f8c722c4d54d3398c554d1fbda703cefa3c9fe9",
+      "status": "passed",
+      "result": "Run38720562507 job116373789035: frozen install, fullcheck61unit+8harness, real migrations,44/44HTTP groups (13analysis+10documents+21identity) and complete API/PG/Redis/privatebucket/worker smoke passed. Tested PR merge56d2bbd027c5ae55e123d24eb79d56a88ddfc297 and source share tree3d457fe396299755c706974260c73ccc2012bdb2. Only final task-not-verified gate failed before this evidence closure; the workflow itself is not described as green."
+    },
+    {
+      "command": "Concurrency and audit regression resolution",
+      "status": "passed",
+      "result": "First source3eddfea CI38719968438 failed2/44HTTP; evidence retained in QA review. Corrected production boundary classifies known raw PostgreSQL serialization40001 as409 without exposing SQL. Identity audit checks retain exact schema/secrecy assertions and require details null. Independent architecture/QA source review plus unchanged concurrency200/409 and all44actualHTTP now passed; no assertions weakened."
+    },
+    {
+      "command": "pnpm harness:gate -- --base d6bac070dd7131ad83dc8a0e3bff2c0da6c378da",
+      "status": "passed",
+      "result": "Verified task record covers all27changed paths with14applicable roles and explicit exclusions for unchanged integrations/document AI. Catalog and declared review evidence validated; no assertion that static gate proves runtime expertise."
+    }
+  ],
+  "findings": [
+    {
+      "id": "UX-B1",
+      "severity": "medium",
+      "summary": "Repeated reference preflight obscured concise results",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B2",
+      "severity": "medium",
+      "summary": "Summary findings count incorrectly labeled as invoice lines",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B3",
+      "severity": "low",
+      "summary": "Reference review did not move keyboard focus into facts",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B4",
+      "severity": "low",
+      "summary": "Evidence remainder label claimed all citations",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "QA-U1",
+      "severity": "medium",
+      "summary": "Raw SQL transaction serialization returned generic service error during concurrent operation edits",
+      "status": "resolved",
+      "resolution": "Narrow P2010 SQLSTATE40001 conflict classification independently reexamined by architecture/QA; unchanged simultaneous PATCH/PUT assertion now200/409 in actual correctedCI38720562507, single revision and immutable history preserved. No error prose/SQL reflected."
+    },
+    {
+      "id": "QA-U2",
+      "severity": "low",
+      "summary": "Identity audit baseline expected old persisted key set after additive schema change",
+      "status": "resolved",
+      "resolution": "Preserve exact field and secrecy assertions, include nullable details in expected shape and assert identity events keep details null; independent source review complete."
+    }
+  ],
+  "limitations": [
+    "Browser behavior tested using explicitly synthetic API fixtures; actual HTTP/service acceptance tested separately in CI. No complete deployed real-auth browser E2E or screen-reader certification.",
+    "Evidence preview preserves stable source ordering; it does not invent a decisive ranking absent from the rules contract. Aggregate missing-agreement explanations are preserved, with a specific observed missing-route note where applicable.",
+    "No financial rule, extraction grammar, claim, accounting approval or external connector change. Reference preflight is advisory; existing mismatch analysis remains non-verifiable.",
+    "Upgrade requires pnpm db:migrate for nullable audit details; no new environment variables. Server deployment and phase4 remain separate."
+  ],
+  "evidence": [
+    "docs/design/operation-usability.md",
+    "docs/user-guide.md",
+    ".agents/reviews/operation-usability-main.md",
+    ".agents/reviews/operation-usability-ux.md",
+    ".agents/reviews/operation-usability-architecture.md",
+    ".agents/reviews/operation-usability-backend.md",
+    ".agents/reviews/operation-usability-frontend.md",
+    ".agents/reviews/operation-usability-qa.md",
+    ".agents/reviews/operation-usability-browser.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38719968438",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38720562507"
+  ],
+  "changeClass": "backend",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Operation metadata and document association writes affect financial context and tenant data. Independent architecture/security/data review and independent UX/browser/QA are required."
+}

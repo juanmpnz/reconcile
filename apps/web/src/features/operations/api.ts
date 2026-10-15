@@ -1,9 +1,10 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 import {
   analysisRunSchema,
   analysisHistorySchema,
   factRevisionInputSchema,
   operationCreateSchema,
+  operationUpdateSchema,
   operationDetailSchema,
   operationDocumentsSchema,
   operationListSchema,
@@ -18,8 +19,41 @@ export const operationPath = (organizationId: string, operationId: string) =>
   `/organizations/${encodeURIComponent(organizationId)}/operations/${encodeURIComponent(operationId)}`;
 const endpoint = (organizationId: string, operationId?: string) =>
   `/api/v1/organizations/${encodeURIComponent(organizationId)}/operations${operationId ? `/${encodeURIComponent(operationId)}` : ''}`;
+export class OperationConflictError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'OperationConflictError';
+  }
+}
+const conflictMessages: Record<string, string> = {
+  STALE_OPERATION:
+    'Los datos cambiaron. Recargá la operación, revisá tu borrador y volvé a guardar.',
+  CONCURRENT_UPDATE:
+    'Otra persona actualizó la operación. Recargá y revisá tu borrador antes de guardar.',
+  ANALYSIS_ACTIVE:
+    'Hay un análisis en curso. Esperá a que termine para cambiar la operación o sus documentos.',
+  REFERENCE_EXISTS:
+    'Ya existe una operación con esa referencia. Elegí otra referencia.',
+};
 async function request(url: string, init: RequestInit = {}) {
   const response = await fetch(url, { ...init, credentials: 'include' });
+  if (response.status === 409) {
+    const body: unknown = await response.json().catch(() => null);
+    const parsed = z
+      .object({ code: z.string().max(100) })
+      .strict()
+      .safeParse(body);
+    const code = parsed.success ? parsed.data.code : 'CONFLICT';
+    throw new OperationConflictError(
+      code,
+      Object.hasOwn(conflictMessages, code)
+        ? (conflictMessages[code] ?? 'La operación cambió. Recargá los datos.')
+        : 'La operación cambió. Recargá y revisá los datos antes de reintentar.',
+    );
+  }
   if (!response.ok)
     throw new Error(
       response.status === 401
@@ -108,10 +142,14 @@ export async function linkDocuments(
   organizationId: string,
   operationId: string,
   documentIds: string[],
+  expectedFingerprint: string,
 ) {
   await request(
     `${endpoint(organizationId, operationId)}/documents`,
-    json(operationDocumentsSchema.parse({ documentIds }), 'PUT'),
+    json(
+      operationDocumentsSchema.parse({ documentIds, expectedFingerprint }),
+      'PUT',
+    ),
   );
 }
 export async function saveFacts(
@@ -193,4 +231,21 @@ export async function getAnalysis(
   )
     throw new Error('El análisis no corresponde a esta operación.');
   return run;
+}
+
+export async function updateOperation(
+  organizationId: string,
+  operationId: string,
+  input: { reference: string; name: string; expectedFingerprint: string },
+) {
+  const result = parseResponse(
+    operationDetailSchema,
+    await request(
+      endpoint(organizationId, operationId),
+      json(operationUpdateSchema.parse(input), 'PATCH'),
+    ),
+  );
+  if (result.organizationId !== organizationId || result.id !== operationId)
+    throw new Error('La respuesta no corresponde a esta operación.');
+  return result;
 }

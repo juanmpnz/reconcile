@@ -126,12 +126,14 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
           'action',
           'actorId',
           'createdAt',
+          'details',
           'id',
           'organizationId',
           'outcome',
           'requestId',
         ].sort(),
       );
+      expect(event.details).toBeNull();
       expect(JSON.stringify(event)).not.toContain(alice.email);
       for (const token of alice.cookies.values())
         expect(JSON.stringify(event)).not.toContain(token);
