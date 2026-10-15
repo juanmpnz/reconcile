@@ -8,8 +8,7 @@ At phase0closure only the platform ping job existed; document processing, financ
 
 ## Next
 
-1. Complete the Phase 4 acceptance recorded below.
-2. Phase 5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
+Phase 5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
 ## Expert harness
 
@@ -63,4 +62,6 @@ Draft recipient, subject and body can be revised with history. Changed sources o
 
 Sent, response, follow-up and resolution are explicit manual records with reason and validated chronology. The UI shows the next follow-up and overdue tasks without claiming external reminders, delivery, accounting approval or recovered funds. Historical reads remain permission-scoped, and all writes/export creation require current verified membership, write role, trusted Origin and optimistic versions. No new external dependency, integration, environment variable or financial rule is introduced. Upgrade requires `pnpm db:migrate` for the additive claims migration.
 
-Acceptance is in progress in `.agents/tasks/2026-10-15-reviewed-claims.json`: independent architecture/domain/UX/browser/QA review, full local gate and actual-service CI must pass before this phase is marked verified. Server deployment, HTTPS, production secrets, backup/restore and deployed end-to-end acceptance remain Phase 5.
+Independent architecture/security/data, product/domain and UX reviews passed; the final production UI passed 13/13 Chromium fixture groups, separately from actual-service acceptance. Full local checks passed 67 unit tests, eight harness regressions, strict types, lint, formatting and builds; the final UI choice-state delta passed scoped checks and a strict web build. Corrected source `ddd93dbd818d05300174f325cde23301dc84a3c6` passed frozen install/full check, migration, all 48 real HTTP groups (4 claims, 13 analysis, 10 documents, 21 identity) and complete API/PostgreSQL/Redis/private-bucket/worker smoke in https://github.com/juanmpnz/reconcile/actions/runs/38738540920. Tested PR merge `2adfa467729f26f8b55faf1cbb88863b65257981` has the same tree `681bbaa358860b56a1d769186fbe2c9f70c7860a`. That collection workflow stopped only at the deliberately pending task-verification gate; final closure changes documentation/evidence, with executable source unchanged. Final CI checks the complete candidate.
+
+The coordinator found a decision-change recovery gap after the initial passing service run: a reconfirmed finding could leave an old draft blocked while its UI appeared current. Detail and bounded summaries now mark changed decision identities stale, exposing explicit same-run rebase. Independent architecture/QA reread the fix; the corrected actual HTTP run passed reversal, reconfirmation, recovery/export and immutable-history assertions. See `.agents/tasks/2026-10-15-reviewed-claims.json` and its independently authored reports for exact source and limits. Server deployment, HTTPS, production secrets, backup/restore and deployed end-to-end acceptance remain Phase 5.

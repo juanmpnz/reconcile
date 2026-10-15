@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-reviewed-claims",
   "summary": "Complete human finding review, versioned claim drafts, evidence export and manual follow-up before server rollout.",
-  "state": "implementing",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
   "scope": [
@@ -58,17 +58,289 @@
       "reason": "No parser, model, OCR or extraction changes; claims use immutable existing analysis evidence and deterministic reviewable templates."
     }
   ],
-  "reviews": [],
-  "checks": [],
-  "findings": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordinated actual experts and reviewed final scope, additive migration and decoded corrected CI38738540920 logs: 67 unit, 48 real HTTP including RC-R1 and complete API/PG/Redis/privatebucket/worker smoke passed. Final closure changes metadata/documentation only.",
+      "evidence": [".agents/reviews/reviewed-claims-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordinated actual experts and reviewed final scope, additive migration and decoded corrected CI38738540920 logs: 67 unit, 48 real HTTP including RC-R1 and complete API/PG/Redis/privatebucket/worker smoke passed. Final closure changes metadata/documentation only.",
+      "evidence": [".agents/reviews/reviewed-claims-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product policy and independent production UI/source acceptance; 13 actual Chromium fixture groups passed. No production Phase 4 code authored; browser does not certify financial engine or actual API behavior.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-product.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product policy and independent production UI/source acceptance; 13 actual Chromium fixture groups passed. No production Phase 4 code authored; browser does not certify financial engine or actual API behavior.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-product.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent contracts/schema/application/routes and HTTP-test-source review; C1-C7 and RC-R1 corrected and reread, no open critical/high source findings. Runtime acceptance attributed separately.",
+      "evidence": [".agents/reviews/reviewed-claims-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent contracts/schema/application/routes and HTTP-test-source review; C1-C7 and RC-R1 corrected and reread, no open critical/high source findings. Runtime acceptance attributed separately.",
+      "evidence": [".agents/reviews/reviewed-claims-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent contracts/schema/application/routes and HTTP-test-source review; C1-C7 and RC-R1 corrected and reread, no open critical/high source findings. Runtime acceptance attributed separately.",
+      "evidence": [".agents/reviews/reviewed-claims-architecture.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final independent source review; UX-C1-C4 corrections reread. Runtime keyboard/mobile fixture evidence is separately authored.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-ux.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final independent source review; UX-C1-C4 corrections reread. Runtime keyboard/mobile fixture evidence is separately authored.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-ux.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final independent source review; UX-C1-C4 corrections reread. Runtime keyboard/mobile fixture evidence is separately authored.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-ux.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final independent source review; UX-C1-C4 corrections reread. Runtime keyboard/mobile fixture evidence is separately authored.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-ux.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented contracts/schema/routes/application and four real HTTP groups; strict builds/tests typecheck and ESLint passed. Self-authorship disclosed; independent architecture/QA acceptance separate.",
+      "evidence": [".agents/reviews/reviewed-claims-backend.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented claims UI/API presentation and six targeted tests; final explicit resolution-choice delta examined by independent UX/domain and QA artifact. Self-authorship disclosed.",
+      "evidence": [".agents/reviews/reviewed-claims-frontend.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent test-source review, local fullcheck67unit+8harness and final UI delta check; corrected CI38738540920 actual48HTTP/migration/smoke and source/tested-merge identical tree independently verified. RC-R1 reversal/reconfirm/same-run recovery passed. Browser13groups executed separately by product_domain.",
+      "evidence": [
+        ".agents/reviews/reviewed-claims-qa.md",
+        ".agents/reviews/reviewed-claims-browser.md"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Independent QA observed exit 0, 67 unit tests in 13 files, eight harness regressions, format, lint, strict TypeScript and production builds. Final UI button delta additionally passed scoped format/lint and web strict build; final artifact index-DwBAVmrC.js."
+    },
+    {
+      "command": "Independent Chromium reviewed claims acceptance",
+      "status": "passed",
+      "result": "13/13 groups passed on final production UI, with explicit synthetic HTTP fixtures. Review/conflicts, 62 supplied amount, unpriced clarification, no arithmetic demand, one-invoice reuse, draft history/export not sent, same-run stale DTO recovery, manual follow-up/outcome, viewer, keyboard and 320/390px/200% zoom. Exact source hashes and limitations in browser report."
+    },
+    {
+      "command": "Initial actual CI source124b2b1caa84d968e98a3c34625c4ed26a0389f9",
+      "status": "passed",
+      "result": "Run38737672379/job116431016858 passed frozen install, full check67unit, migration,48/48realHTTP and API/PG/Redis/privatebucket/worker smoke. Testedmergea474b77d3db763ab26ffb3e234b28fb4da3ec0e5 shares treec82db31c81966f6aba68e266fed00d08006c3fe4. Whole workflow failed only unverified-task gate. This baseline predates RC-R1 and is not final recovery acceptance."
+    },
+    {
+      "command": "Corrected RC-R1 source ddd93dbd818d05300174f325cde23301dc84a3c6 actual CI",
+      "status": "passed",
+      "result": "Run38738540920/job116433953122 passed frozen install/fullcheck67unit+8harness, all48realHTTP (4claims including RC-R1 recovery +13analysis+10documents+21identity), additive claims migration and complete API/PG/Redis/privatebucket/worker smoke. Testedmerge2adfa467729f26f8b55faf1cbb88863b65257981 and sourceddd93dbd818d05300174f325cde23301dc84a3c6 share tree681bbaa358860b56a1d769186fbe2c9f70c7860a. Only the pending verified-task gate failed before this documentation closure; the collection workflow is not described as green."
+    },
+    {
+      "command": "pnpm harness:gate -- --base a66134e824696af204621a3257d9b17773134c95",
+      "status": "passed",
+      "result": "Verified task records 14 applicable actual specialist roles, independent source/browser/QA reviews and explicit unchanged integration/document-AI exclusions. Static validation checks declared evidence, not expert authenticity."
+    }
+  ],
+  "findings": [
+    {
+      "id": "C1",
+      "severity": "high",
+      "summary": "Missing complete immutable export provenance",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C2",
+      "severity": "high",
+      "summary": "Concurrent mutable claim snapshot and lost-write conflicts",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C3",
+      "severity": "medium",
+      "summary": "Unbounded expensive summary/history loading",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C4",
+      "severity": "high",
+      "summary": "Incomplete business-event chronology",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C5",
+      "severity": "high",
+      "summary": "Overbroad clarification eligibility",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C6",
+      "severity": "medium",
+      "summary": "Exact versioned export bytes and audit retention",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "C7",
+      "severity": "medium",
+      "summary": "Missing version-correct invoice reference",
+      "status": "resolved",
+      "resolution": "Backend correction independently reread in .agents/reviews/reviewed-claims-architecture.md; actual-service acceptance tracked separately."
+    },
+    {
+      "id": "UX-C1",
+      "severity": "medium",
+      "summary": "Contradictory rejected outcome",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "UX-C2",
+      "severity": "low",
+      "summary": "Evidence inaccessible inside review modal",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "UX-C3",
+      "severity": "medium",
+      "summary": "Unexplained stale send action",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "UX-C4",
+      "severity": "medium",
+      "summary": "Resolution default without deliberate outcome",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "RC-UI1",
+      "severity": "medium",
+      "summary": "Noninvoice clarification eligibility",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "RC-UI2",
+      "severity": "low",
+      "summary": "Missing one-claim-per-invoice explanation",
+      "status": "resolved",
+      "resolution": "Corrected and independently reread by UX/domain; final 13/13 browser fixture groups passed, see their reports."
+    },
+    {
+      "id": "RC-R1",
+      "severity": "high",
+      "summary": "Changed decision identity did not mark claim stale, hiding same-run draft recovery",
+      "status": "resolved",
+      "resolution": "Detail and bounded summary compare captured/latest exact decision identity and confirmed action. Architecture and QA independently reread; real HTTP in corrected CI38738540920 passed dismiss/reconfirm stale flags, explicit same-run rebase recovery, export success and prior source/draft preservation."
+    }
+  ],
   "limitations": [
     "Server deployment, TLS, production secrets, backups/restoration and deployed real-auth E2E remain phase5.",
-    "MVP claim identity is operation/invoice document with one selected finding; additional structured charge aggregation requires persistent charge identity and explicit future scope."
+    "MVP identity is one claim per operation/invoice with one selected finding; no multiple-charge aggregation, automatic email, accounting writes or recovered-money metric.",
+    "Browser uses explicit synthetic HTTP fixtures; actual API/tenant/persistence acceptance is separately exercised with real PostgreSQL/S3/Redis in CI. No screen-reader certification or confidential real-customer accuracy claim.",
+    "Pilot bounds are 100 claim versions, 10 source versions, 100 claims per operation and bounded 512 KiB exports; no capacity benchmark claim."
   ],
   "evidence": [
     "docs/product/reviewed-claims.md",
     "docs/design/reviewed-claims.md",
-    "docs/adr/0006-reviewed-claims.md"
+    "docs/adr/0006-reviewed-claims.md",
+    "docs/user-guide.md",
+    ".agents/reviews/reviewed-claims-main.md",
+    ".agents/reviews/reviewed-claims-product.md",
+    ".agents/reviews/reviewed-claims-architecture.md",
+    ".agents/reviews/reviewed-claims-ux.md",
+    ".agents/reviews/reviewed-claims-backend.md",
+    ".agents/reviews/reviewed-claims-frontend.md",
+    ".agents/reviews/reviewed-claims-qa.md",
+    ".agents/reviews/reviewed-claims-browser.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38737672379",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38738540920"
   ],
   "changeClass": "backend",
   "risk": "high",
