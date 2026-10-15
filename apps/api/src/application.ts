@@ -4,6 +4,7 @@ import {
   createPrivateDocumentStorage,
   type PrivateDocumentStorage,
 } from '@reconcile/document-processing';
+import { registerClaimRoutes } from './claims.routes.js';
 import { registerAnalysisRoutes } from './analysis.routes.js';
 import { registerDocumentRoutes } from './document.routes.js';
 import { closeAfterStartupFailure } from './startup-diagnostics.js';
@@ -173,6 +174,7 @@ export async function createApplication({
     createPrivateDocumentStorage(parseServiceConfig(process.env));
   registerDocumentRoutes(server, { auth, prisma, storage });
   registerAnalysisRoutes(server, { auth, prisma });
+  registerClaimRoutes(server, { auth, prisma });
   server.addHook('onClose', async () => {
     if (!documentStorage) storage.close();
     await prisma.$disconnect();

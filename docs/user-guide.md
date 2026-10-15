@@ -1,6 +1,6 @@
 # Reconcile — guía de la versión actual
 
-Alcance de esta entrega: cuentas, organizaciones, miembros, invitaciones, documentos PDF y comparación por operación con evidencia. Los reclamos pertenecen al próximo paso; consultar docs/status.md para la evidencia de verificación.
+Alcance de esta entrega: cuentas, organizaciones, miembros, invitaciones, documentos PDF, comparación por operación, revisión humana y reclamos con respaldo y seguimiento manual. Consultar docs/status.md para la evidencia de verificación.
 
 ## Entrar
 
@@ -75,10 +75,25 @@ Probá después cambiar un dato revisado o retirar una fuente y reanalizar. La e
 
 Si falta acuerdo vigente, hay condiciones contradictorias, moneda distinta o servicios de tramos diferentes, la aplicación debe explicar la incertidumbre y no inventar conversiones o duplicidades. Formatos no reconocidos o demasiado grandes para el alcance de comparación se muestran como fuentes no utilizables, conservando el original.
 
+## Revisar hallazgos y preparar un reclamo
+
+1. Abrí una operación y elegí un análisis completado y vigente. Consultá el motivo y sus fuentes antes de decidir.
+2. Registrá una revisión: confirmar el hallazgo, desestimarlo o aceptar la diferencia. Escribí un motivo. Se conserva quién lo decidió y cuándo; una revisión posterior añade historial. El color del motor y la decisión humana son estados diferentes.
+3. Desde un hallazgo confirmado, prepará el reclamo. Para el pickup demo, el importe cuestionado es **62 USD** si las fuentes siguen vigentes. El servidor toma los datos del análisis. Los errores de suma, impuestos o condiciones no verificables no se convierten automáticamente en dinero reclamado; una solicitud de aclaración lleva importe sin cuantificar.
+4. Revisá y guardá destinatario, asunto y cuerpo. El destinatario empieza vacío. Cada cambio conserva su versión y motivo. El MVP mantiene un reclamo por factura dentro de la operación, iniciado desde un hallazgo; al reanalizar, reutiliza ese reclamo en lugar de duplicarlo.
+5. Copiá o exportá el texto revisado y descargá el expediente de respaldo. El texto sirve para preparar el correo fuera de la aplicación. El expediente JSON conserva la trazabilidad de las fuentes y revisiones; los PDF originales se descargan por separado mediante su acceso privado. Exportar no registra un envío.
+6. Cuando hayas enviado el correo por tu cuenta, registrá manualmente el envío, su fecha y el destinatario confirmado. La aplicación conserva el texto y la evidencia de esa versión.
+7. Registrá las respuestas y la próxima fecha de seguimiento. Una respuesta «lo estamos revisando» deja el caso abierto. Los seguimientos vencidos se señalan dentro de la aplicación.
+8. Cerrá el reclamo con fecha, resultado y motivo. El cierre registra tu decisión; no calcula dinero recuperado ni modifica facturas o pagos.
+
+Si cambian los documentos, los datos del análisis o la decisión de revisión, el reclamo anterior conserva su contenido y se muestra desactualizado. Para emitir otro texto vigente, revisá el nuevo análisis y vinculalo explícitamente al mismo borrador mediante una nueva versión. Un reclamo con envío ya registrado conserva su seguimiento y no se cambia silenciosamente a otra fuente.
+
+Propietarios, administradores y analistas pueden revisar y preparar reclamos. El lector consulta decisiones, borradores e historial; no crea nuevas exportaciones de negocio ni registra cambios. Un conflicto conserva tu borrador y requiere revisar la versión actual antes de reintentar.
+
 ## Indicadores de espera
 
 La sesión inicial y las primeras consultas muestran un indicador y texto. Las actualizaciones conservan filas autorizadas visibles; cada botón indica su propia acción pendiente y evita envíos repetidos. Si tenés activada la preferencia de reducir movimiento, los indicadores permanecen estáticos. No se muestran porcentajes de avance estimados.
 
 ## Qué falta
 
-Faltan las decisiones humanas sobre hallazgos, borradores/exportación y seguimiento de reclamos (fase 4). Luego se prepara el servidor con HTTPS, secretos, almacenamiento privado, backups y restauración comprobada (fase 5). No hay OCR, reconocimiento universal de facturas, importación JSON operativa ni integración real con CargoWise/correo. La prueba con documentos confidenciales reales requiere validación adicional del experto y los controles acordados.
+El siguiente paso es preparar el servidor con HTTPS, secretos, almacenamiento privado, backups y restauración comprobada (fase 5). No hay OCR, reconocimiento universal de facturas, importación JSON operativa ni integración real con CargoWise/correo. La prueba con documentos confidenciales reales requiere validación adicional del experto y los controles acordados.

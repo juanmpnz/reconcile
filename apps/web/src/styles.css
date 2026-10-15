@@ -1092,3 +1092,64 @@ textarea {
     white-space: normal;
   }
 }
+.claims-section {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+.claims-section h4,
+.claim-detail h4 {
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+.finding-review {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 190px;
+  max-width: 280px;
+}
+.review-history-item {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.review-history-item p {
+  margin: 5px 0;
+  white-space: pre-wrap;
+}
+.claim-detail {
+  margin-top: 14px;
+}
+.claim-text {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.claim-text > pre,
+.claim-version-text {
+  font: inherit;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 10px 0;
+  max-width: 100%;
+}
+.claim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.claim-followup {
+  margin-top: 20px;
+}
+.claim-detail details {
+  margin: 12px 0;
+}
+.claims-section .page-header {
+  margin-bottom: 12px;
+}

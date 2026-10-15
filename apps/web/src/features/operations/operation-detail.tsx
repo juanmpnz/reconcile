@@ -1,3 +1,4 @@
+import { ReviewWorkspace, FindingReviewCell } from '../claims/review-workspace';
 import { EditOperationDialog } from './edit-dialog';
 import { EvidenceList } from './evidence';
 import {
@@ -403,12 +404,21 @@ export function OperationDetailView({
             )}
             {selected.result && <ResultSummary run={selected} />}
             {selected.result && (
-              <ResultTable
-                run={selected}
-                operation={data}
-                filenames={filenames}
+              <ReviewWorkspace
+                key={selected.id}
+                userId={userId}
                 organizationId={organizationId}
-              />
+                operationId={operationId}
+                run={selected}
+                disabled={disabled}
+              >
+                <ResultTable
+                  run={selected}
+                  operation={data}
+                  filenames={filenames}
+                  organizationId={organizationId}
+                />
+              </ReviewWorkspace>
             )}
           </>
         )}
@@ -831,6 +841,7 @@ function ResultTable({
                     <th scope="col">Moneda</th>
                     <th scope="col">Resultado y motivo</th>
                     <th scope="col">Evidencia</th>
+                    <th scope="col">Revisión humana</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -870,6 +881,13 @@ function ResultTable({
                           evidence={finding.evidence}
                           filenames={filenames}
                           organizationId={organizationId}
+                        />
+                      </td>
+                      <td>
+                        <FindingReviewCell
+                          findingIndex={
+                            run.result?.findings.indexOf(finding) ?? -1
+                          }
                         />
                       </td>
                     </tr>
