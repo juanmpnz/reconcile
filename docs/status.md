@@ -10,6 +10,12 @@ At phase0closure only the platform ping job existed; document processing, financ
 
 Phase 5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
+Production configuration readiness is verified separately in `.agents/tasks/2026-10-15-coolify-deployment.json`: `/infra/docker/compose.production.yaml` reuses the existing web/API/worker targets, with private persistent PostgreSQL/Redis/S3 and stable generated credentials. The API migrates before readiness; nginx accepts supported uploads, hides health routes and resolves API service DNS dynamically. No application source, Dockerfile, dependency or financial behavior changed. Instructions: `docs/runbooks/coolify-deployment.md`.
+
+Actual three-target Docker builds and full production-stack smoke passed on source `06ea1655d872a77b6f25ad14159d62660da594d5` in https://github.com/juanmpnz/reconcile/actions/runs/38745992783: same-origin auth/Secure cookies/CSRF, private bucket, uploaded/extracted PDF above1MiB, original checksum, worker queue and PostgreSQL/Redis/S3 persistence across full recreation. API-only replacement retained nginx and restored proxy access; Docker reused its addresses, so forced-IP-change recovery is not claimed. Tested merge `dd5babe55c0e7f13cad55412b96048f2add4f3a7` shares tree `17927fd0d28a0112abfa1e2df1250df8a221cea9`. Existing Quality run38745992643 passed67unit+8harness,48realHTTP,migration and service smoke, stopping only at the deliberately pending verified-task gate before closure. Final documentation-only closure is checked again before integration.
+
+This is a tested deployment configuration, not a claim the user's Coolify instance, DNS/TLS certificate, real SMTP delivery, backups or restoration are configured. Full Phase5 operational acceptance remains pending.
+
 ## Expert harness
 
 Implemented sixteen canonical roles, shared workflow, generated Codex/Claude adapters, task/review records and additive CI validation. Independent architecture and QA reviews completed; eight negative/positive harness regressions passed. See .agents/tasks/2026-10-14-expert-harness.json for evidence and scope. Native client discovery is not verified in this cloud runtime. The harness does not implement future business phases.

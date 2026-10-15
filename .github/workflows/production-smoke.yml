@@ -1,0 +1,107 @@
+name: Production containers
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: production-containers-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: reconcile-production-ci
+      COMPOSE_PARALLEL_LIMIT: '1'
+      APP_URL: https://reconcile-ci.example.org
+      SMTP_HOST: smtp.ci.example.org
+      SMTP_USER: synthetic-ci-user
+      SMTP_PASSWORD: synthetic-ci-password-not-delivery
+      MAIL_FROM: smoke@ci.example.org
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate isolated synthetic credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, secrets, string, uuid
+          alphabet = string.ascii_letters + string.digits
+          def token(length):
+              return ''.join(secrets.choice(alphabet) for _ in range(length))
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for name in ['POSTGRES', 'REDIS', 'AUTH', 'STORAGE']:
+                  value = token(64)
+                  while name == 'AUTH' and (len(set(value)) < 16 or re.search('local|demo|example|change|development|test', value, re.I)):
+                      value = token(64)
+                  print('::add-mask::' + value)
+                  output.write('SERVICE_PASSWORD_64_' + name + '=' + value + '\n')
+              output.write('SERVICE_USER_STORAGE=' + token(16) + '\n')
+              output.write('PRODUCTION_SMOKE_ID=' + str(uuid.uuid4()) + '\n')
+          PY
+      - name: Validate private Compose topology
+        run: |
+          set -euo pipefail
+          docker compose -f infra/docker/compose.production.yaml config --format json | python3 -c 'import json,sys; c=json.load(sys.stdin); assert all(not s.get("ports") for s in c["services"].values()); assert c["services"]["web"]["expose"]==["8080"]; assert c["networks"]["data"]["internal"] is True; assert len(c["volumes"])==3; print("Private topology validated")'
+      - name: Build all three production targets
+        run: docker compose -f infra/docker/compose.production.yaml build
+      - name: Start migrated production stack
+        run: docker compose -f infra/docker/compose.production.yaml up -d --wait --wait-timeout 240
+      - name: Exercise production proxy, identity, PDF and worker
+        run: |
+          docker compose -f infra/docker/compose.production.yaml exec -T \
+            -e PRODUCTION_SMOKE_ALLOW_SYNTHETIC=true \
+            -e PRODUCTION_SMOKE_ID="$PRODUCTION_SMOKE_ID" \
+            -e PRODUCTION_SMOKE_PHASE=seed \
+            api node infra/coolify/production-smoke.mjs
+      - name: Recreate API while retaining the running web proxy
+        run: |
+          set -euo pipefail
+          WEB_BEFORE=$(docker compose -f infra/docker/compose.production.yaml ps -q web)
+          WEB_STARTED_BEFORE=$(docker inspect --format '{{.State.StartedAt}}' "$WEB_BEFORE")
+          API_BEFORE=$(docker compose -f infra/docker/compose.production.yaml ps -q api)
+          API_IP_BEFORE=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' "$API_BEFORE")
+          docker compose -f infra/docker/compose.production.yaml up -d --no-deps --force-recreate --wait --wait-timeout 240 api
+          WEB_AFTER=$(docker compose -f infra/docker/compose.production.yaml ps -q web)
+          test "$WEB_BEFORE" = "$WEB_AFTER"
+          test "$WEB_STARTED_BEFORE" = "$(docker inspect --format '{{.State.StartedAt}}' "$WEB_AFTER")"
+          API_AFTER=$(docker compose -f infra/docker/compose.production.yaml ps -q api)
+          test "$API_BEFORE" != "$API_AFTER"
+          API_IP_AFTER=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' "$API_AFTER")
+          if [ "$API_IP_BEFORE" = "$API_IP_AFTER" ]; then
+            echo 'API recreated with the same addresses; IP-change recovery is not claimed.'
+          else
+            echo 'API network addresses changed; testing retained proxy recovery.'
+          fi
+          docker compose -f infra/docker/compose.production.yaml exec -T api node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {setTimeout} from 'node:timers/promises';
+          let recovered=false;
+          for(let attempt=0;attempt<20;attempt++){
+            try{
+              const response=await fetch('http://web:8080/api/auth/get-session');
+              if(response.status===200&&await response.text()==='null'){recovered=true;break;}
+            }catch{}
+            await setTimeout(1000);
+          }
+          assert.equal(recovered,true,'Retained nginx must recover its API proxy without restarting');
+          console.info('API-only recreation passed with unchanged nginx process.');
+          JS
+      - name: Recreate containers and verify durable volumes
+        run: |
+          set -euo pipefail
+          docker compose -f infra/docker/compose.production.yaml down
+          docker compose -f infra/docker/compose.production.yaml up -d --wait --wait-timeout 240
+          docker compose -f infra/docker/compose.production.yaml exec -T \
+            -e PRODUCTION_SMOKE_ALLOW_SYNTHETIC=true \
+            -e PRODUCTION_SMOKE_ID="$PRODUCTION_SMOKE_ID" \
+            -e PRODUCTION_SMOKE_PHASE=verify \
+            api node infra/coolify/production-smoke.mjs
+      - name: Diagnostics
+        if: failure()
+        run: docker compose -f infra/docker/compose.production.yaml logs --no-color --tail 100
+      - name: Cleanup isolated stack
+        if: always()
+        run: docker compose -f infra/docker/compose.production.yaml down -v
