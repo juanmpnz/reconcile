@@ -89,7 +89,10 @@ export function registerAnalysisRoutes(
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2034'
+        (error.code === 'P2034' ||
+          (error.code === 'P2010' &&
+            typeof error.meta?.['code'] === 'string' &&
+            error.meta['code'] === '40001'))
       )
         return reply.status(409).send({ code: 'CONCURRENT_UPDATE' });
       if (error instanceof DocumentError)

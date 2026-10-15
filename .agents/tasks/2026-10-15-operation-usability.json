@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-operation-usability",
   "summary": "Make operation review brief, clear and editable while preserving evidence, originals and immutable analysis history.",
-  "state": "implementing",
+  "state": "reviewed",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
   "scope": [
@@ -16,7 +16,8 @@
     "docs/status.md",
     "docs/user-guide.md",
     ".agents/tasks/2026-10-15-operation-usability.json",
-    ".agents/reviews/operation-usability"
+    ".agents/reviews/",
+    "apps/api/test/identity.integration.test.ts"
   ],
   "acceptance": [
     "Edit operation name/reference on same ID with tenant/role verification, expected fingerprint, bounded before/after audit and no alteration of historical snapshots.",
@@ -55,16 +56,196 @@
       "reason": "No extraction/parser/model or fact derivation change; existing extracted facts and revisions presented without changing provenance."
     }
   ],
-  "reviews": [],
-  "checks": [],
-  "findings": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination, source scope, additive migration, unchanged dependencies/workflow and independent evidence collection.",
+      "evidence": [".agents/reviews/operation-usability-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination, source scope, additive migration, unchanged dependencies/workflow and independent evidence collection.",
+      "evidence": [".agents/reviews/operation-usability-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint and final UI source review; UX-B1 to B4 resolved and reexamined; no production code authored.",
+      "evidence": [".agents/reviews/operation-usability-ux.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final contracts/API/application/schema/migration source review with exact fingerprints; preserve original hash format, authorization, audit and history.",
+      "evidence": [".agents/reviews/operation-usability-architecture.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Backend implementation and extended HTTP group source; self-authorship disclosed, independent QA review separate.",
+      "evidence": [".agents/reviews/operation-usability-backend.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "UI implementation and eight targeted API/presentation checks; self-authorship disclosed, independent source/browser review separate.",
+      "evidence": [".agents/reviews/operation-usability-frontend.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Full local pnpm check: 61 unit plus eight harness regressions, strict types/lint/format/builds; independent backend test source review including real concurrency and original bytes checks. Actual service execution pending CI.",
+      "evidence": [".agents/reviews/operation-usability-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Independent QA observed full final local check exit 0: 61 unit tests, eight harness regressions, formatting, ESLint, strict application/test TypeScript and all production builds."
+    },
+    {
+      "command": "Independent Chromium operation usability acceptance",
+      "status": "passed",
+      "result": "10/10 UI fixture groups passed final production preview, including editing/conflicts, preserved draft/source facts/history, accordion keyboard focus, semantic status contrast, 320/390 and zoom. Browser report being recorded; actual services separate."
+    },
+    {
+      "command": "CI run38719968438 actual migration/HTTP",
+      "status": "failed",
+      "result": "Source3eddfea099bdae07eeffa7d8206416ff324ca2d1: pnpm check61+8 and additive migration passed; 42/44 HTTP groups passed, concurrent raw SQL serialization incorrectly returned503 instead of409 and baseline identity audit exact-key assertion did not account for nullable details. Smoke skipped; corrections independently source-reviewed, rerun required."
+    }
+  ],
+  "findings": [
+    {
+      "id": "UX-B1",
+      "severity": "medium",
+      "summary": "Repeated reference preflight obscured concise results",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B2",
+      "severity": "medium",
+      "summary": "Summary findings count incorrectly labeled as invoice lines",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B3",
+      "severity": "low",
+      "summary": "Reference review did not move keyboard focus into facts",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "UX-B4",
+      "severity": "low",
+      "summary": "Evidence remainder label claimed all citations",
+      "status": "resolved",
+      "resolution": "Corrected by frontend implementer and independently reexamined in .agents/reviews/operation-usability-ux.md."
+    },
+    {
+      "id": "QA-U1",
+      "severity": "medium",
+      "summary": "Raw SQL transaction serialization returned generic service error during concurrent operation edits",
+      "status": "open",
+      "resolution": "Map only Prisma P2010 meta.code40001 to409 CONCURRENT_UPDATE alongside existing P2034. Backend corrected, independent architecture reexamined; actual unchanged race assertion must pass next CI."
+    },
+    {
+      "id": "QA-U2",
+      "severity": "low",
+      "summary": "Identity audit baseline expected old persisted key set after additive schema change",
+      "status": "resolved",
+      "resolution": "Preserve exact field and secrecy assertions, include nullable details in expected shape and assert identity events keep details null; independent source review complete."
+    }
+  ],
   "limitations": [
     "No deployment, claims or accounting approval added.",
     "Local environment has no Docker; actual service acceptance requires CI; browser fixture checks explicitly separate."
   ],
   "evidence": [
     "docs/design/operation-usability.md",
-    ".agents/reviews/operation-usability-architecture.md"
+    "docs/user-guide.md",
+    ".agents/reviews/operation-usability-main.md",
+    ".agents/reviews/operation-usability-ux.md",
+    ".agents/reviews/operation-usability-architecture.md",
+    ".agents/reviews/operation-usability-backend.md",
+    ".agents/reviews/operation-usability-frontend.md",
+    ".agents/reviews/operation-usability-qa.md",
+    ".agents/reviews/operation-usability-browser.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38719968438"
   ],
   "changeClass": "backend",
   "risk": "medium",

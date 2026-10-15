@@ -41,3 +41,11 @@ fc82c7523dd274c51c4228eee4461dc148ce2b169841810ab2f063b869b32fe8 packages/databa
 ```
 
 Final status: independent architecture/security/data/integration source review passed; no open critical/high findings. Review execution here was read-only source inspection (`git diff`, `sed`, `rg`, `cat`, `sha256sum`), not infrastructure testing. Full review-history UI and financial Phase 4 remain outside this change.
+
+## Incremental review after real CI concurrency failure
+
+CI run `38719968438` reported two failures in 44 real HTTP cases: concurrent PATCH/PUT returned `[200,503]` instead of required `[200,409]`, and the identity audit exact-key assertion lacked the new nullable details column. QA supplied the actual PostgreSQL serialization-failure evidence; this reviewer does not claim an independent CI retrieval.
+
+Independently inspected the corrective diff after source `3eddfea099bdae07eeffa7d8206416ff324ca2d1`: retain Prisma P2034 handling, and additionally map only a `PrismaClientKnownRequestError` P2010 with string SQLSTATE `40001` to safe `409 CONCURRENT_UPDATE`. Other raw SQL failures remain service-unavailable; no database message or SQL reaches clients. This preserves strict concurrency rather than weakening the test. Identity audit tests add `details` to the exact key set and require null for existing identity events, preserving prior email/cookie exclusion assertions.
+
+Incremental source review passed. New hashes: routes `c7706a9a016efd8de634300255a5e4b74b08bf5318d5b981ed95464b0dacf290`, identity tests `6f052a1aad046afe3fe160571f455c3bb96c9a2098bbbc84fd1321dff0e969ed`, concurrency test source `3452a861c174d1bf8d51fd56fe8629a37b53621aa0a8a82e7ff1389deeab32d5`. Real CI rerun remains required; earlier runtime success is not extrapolated to this correction.
