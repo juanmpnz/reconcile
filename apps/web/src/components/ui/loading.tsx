@@ -16,17 +16,19 @@ export function Loading({
         <Spinner />
         <span>{label}</span>
       </div>
-      {rows > 0 && (
-        <div className="skeleton-table" aria-hidden="true" aria-busy="true">
-          {Array.from({ length: rows }, (_, index) => (
-            <div className="skeleton-row" key={index}>
-              <span />
-              <span />
-              <span />
-            </div>
-          ))}
-        </div>
-      )}
+      <div role="group" aria-label="Contenido pendiente" aria-busy="true">
+        {rows > 0 && (
+          <div className="skeleton-table" aria-hidden="true">
+            {Array.from({ length: rows }, (_, index) => (
+              <div className="skeleton-row" key={index}>
+                <span />
+                <span />
+                <span />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

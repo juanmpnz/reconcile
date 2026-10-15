@@ -207,6 +207,26 @@ export function createDocumentService({
           });
         });
       } catch (error) {
+        // A lost commit acknowledgement can reject after PostgreSQL committed.
+        // Preserve the original unless the primary confirms this candidate is absent.
+        let committed;
+        try {
+          committed = await prisma.document.findUnique({ where: { id } });
+        } catch {
+          throw new DocumentError(503, 'UPLOAD_COMMIT_UNCERTAIN');
+        }
+        if (committed) {
+          if (
+            committed.organizationId !== organizationId ||
+            committed.storageKey !== storageKey ||
+            committed.sha256 !== sha256
+          )
+            throw new DocumentError(503, 'UPLOAD_COMMIT_UNCERTAIN');
+          return {
+            created: true,
+            document: await detail(organizationId, id, actorId),
+          };
+        }
         await storage.remove(storageKey).catch(() => undefined);
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&

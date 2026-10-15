@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { parseServiceConfig } from '@reconcile/config';
 import {
+  createDocumentService,
+  processDocumentRun,
+} from '@reconcile/application';
+import {
   DOCUMENT_MAX_BYTES,
   documentDetailSchema,
   documentListSchema,
@@ -162,6 +166,7 @@ describe('private document intake and actual PDF processing through real service
     const config = parseServiceConfig(process.env);
     const anonymousStorage = await fetch(
       `${config.S3_ENDPOINT}/${config.S3_BUCKET}/${stored.storageKey}`,
+      { signal: AbortSignal.timeout(5000) },
     );
     expect([401, 403, 404]).toContain(anonymousStorage.status);
     await runtime.process(job);
@@ -230,6 +235,56 @@ describe('private document intake and actual PDF processing through real service
       (await request(`${path(org, initial.id)}/download`, owner)).rawPayload,
     ).toEqual(carrierPdf);
     expect(JSON.stringify(reviewed)).not.toContain(stored.storageKey);
+  });
+
+  it('preserves an original after real database commit succeeds but acknowledgement is lost', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const actor = await prisma.user.findUniqueOrThrow({
+      where: { email: owner.email },
+    });
+    let committedTransactions = 0;
+    const acknowledgementFault = new Proxy(prisma, {
+      get(target, property) {
+        if (property === '$transaction') {
+          return async (...args: Parameters<typeof prisma.$transaction>) => {
+            await target.$transaction(...args);
+            committedTransactions++;
+            throw new Error(
+              'Synthetic acknowledgement loss after actual commit',
+            );
+          };
+        }
+        const value: unknown = Reflect.get(target, property, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    const service = createDocumentService({
+      prisma: acknowledgementFault,
+      storage,
+    });
+    const uploaded = await service.upload(org, actor.id, {
+      filename: 'commit-ack-loss.pdf',
+      kind: 'invoice',
+      bytes: carrierPdf,
+    });
+    expect(committedTransactions).toBe(1);
+    expect(uploaded.created).toBe(true);
+    expect(
+      await prisma.document.count({ where: { organizationId: org } }),
+    ).toBe(1);
+    expect(
+      await prisma.extractionRun.count({ where: { organizationId: org } }),
+    ).toBe(1);
+    expect(
+      await prisma.documentOutbox.count({ where: { organizationId: org } }),
+    ).toBe(1);
+    const downloaded = await request(
+      `${path(org, uploaded.document.id)}/download`,
+      owner,
+    );
+    expect(downloaded.statusCode, downloaded.body).toBe(200);
+    expect(downloaded.rawPayload).toEqual(carrierPdf);
   });
 
   it('deduplicates concurrent same-tenant bytes without disclosing another tenant duplicate', async () => {
@@ -504,6 +559,108 @@ describe('private document intake and actual PDF processing through real service
         })
       ).statusCode,
     ).toBe(409);
+  });
+
+  it('persists a finite storage-failure retry budget across redelivery', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const doc = await created(org, owner);
+    const job = await jobFor(doc.id);
+    const original = await prisma.document.findUniqueOrThrow({
+      where: { id: doc.id },
+    });
+    await storage.remove(original.storageKey);
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      await expect(runtime.process(job)).rejects.toMatchObject({
+        code: 'PROCESSING_TEMPORARILY_UNAVAILABLE',
+      });
+      const run = await prisma.extractionRun.findUniqueOrThrow({
+        where: { id: job.runId },
+      });
+      expect(run.attempts).toBe(attempt);
+      expect(run.status).toBe('queued');
+    }
+    await runtime.process(job);
+    const failed = await detail(org, doc.id, owner);
+    expect(failed.status).toBe('failed');
+    expect(failed.errorCode).toBe('PROCESSING_RETRIES_EXHAUSTED');
+    expect(failed.latestRun?.result).toBeNull();
+    expect(
+      (
+        await prisma.documentOutbox.findUniqueOrThrow({
+          where: { id: job.outboxId },
+        })
+      ).completedAt,
+    ).not.toBeNull();
+    await runtime.process(job);
+    expect(
+      (
+        await prisma.extractionRun.findUniqueOrThrow({
+          where: { id: job.runId },
+        })
+      ).attempts,
+    ).toBe(3);
+  });
+
+  it('fences a stale worker failure after another worker reclaims the lease and completes', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const doc = await created(org, owner);
+    const job = await jobFor(doc.id);
+    let firstReadStarted = false;
+    const pendingRead: { reject?: (reason: Error) => void } = {};
+    const delayedRead = new Promise<Uint8Array>((_resolve, reject) => {
+      pendingRead.reject = reject;
+    });
+    // Controlled transport fault only; authorization, Prisma and the winning parser/S3 read are real.
+    const delayedStorage = {
+      ...storage,
+      get: async () => {
+        firstReadStarted = true;
+        return delayedRead;
+      },
+    };
+    const staleRun = processDocumentRun({
+      prisma,
+      storage: delayedStorage,
+      payload: job,
+    });
+    const staleFailure = expect(staleRun).rejects.toMatchObject({
+      code: 'PROCESSING_TEMPORARILY_UNAVAILABLE',
+    });
+    try {
+      await expect.poll(() => firstReadStarted, { timeout: 10000 }).toBe(true);
+      await prisma.extractionRun.update({
+        where: { id: job.runId },
+        data: { leaseUntil: new Date(Date.now() - 1000) },
+      });
+      await runtime.process(job);
+      const completed = await detail(org, doc.id, owner);
+      expect(completed.status).toBe('needs_review');
+      const winningResult = structuredClone(completed.latestRun?.result);
+      pendingRead.reject?.(
+        new Error('Synthetic delayed transport failure after losing lease'),
+      );
+      await staleFailure;
+      const afterStaleFailure = await detail(org, doc.id, owner);
+      expect(afterStaleFailure.status).toBe('needs_review');
+      expect(afterStaleFailure.latestRun?.result).toEqual(winningResult);
+      expect(
+        (
+          await prisma.extractionRun.findUniqueOrThrow({
+            where: { id: job.runId },
+          })
+        ).attempts,
+      ).toBe(2);
+      expect(
+        await prisma.identityAuditEvent.count({
+          where: { organizationId: org, action: 'document.extracted' },
+        }),
+      ).toBe(1);
+    } finally {
+      pendingRead.reject?.(new Error('Synthetic transport cleanup'));
+      await staleFailure;
+    }
   });
 
   it('recovers durable intent after the published Redis job is lost and processes through BullMQ', async () => {
