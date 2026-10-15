@@ -27,6 +27,10 @@ function body(response: { body: string }): Record<string, unknown> {
   const parsed: unknown = JSON.parse(response.body);
   return record(parsed);
 }
+function records(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) throw new Error('Expected an HTTP array response');
+  return value.map(record);
+}
 
 describe('identity and tenant boundaries through real Better Auth HTTP', () => {
   const origin = 'http://localhost:3000';
@@ -396,6 +400,129 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
     },
   );
 
+  it('scopes native member and invitation listings to current membership, including revocation', async () => {
+    const owner = await verifiedUser();
+    const viewer = await verifiedUser();
+    const foreignOwner = await verifiedUser();
+    const pendingInvitee = await verifiedUser();
+    const orgId = await organization(owner);
+    const foreignOrgId = await organization(foreignOwner);
+    expect(
+      (await accept(viewer, await invite(owner, orgId, viewer))).statusCode,
+    ).toBe(200);
+    const pendingId = await invite(owner, orgId, pendingInvitee, 'analyst');
+    for (const member of [owner, viewer]) {
+      const members = await request(
+        `/api/auth/organization/list-members?organizationId=${orgId}&limit=1&offset=0`,
+        member,
+      );
+      expect(members.statusCode, members.body).toBe(200);
+      expect(body(members).total).toBe(2);
+      const memberRows = records(body(members).members);
+      expect(memberRows).toHaveLength(1);
+      expect(memberRows.every((row) => row.organizationId === orgId)).toBe(
+        true,
+      );
+      const invitations = await request(
+        `/api/auth/organization/list-invitations?organizationId=${orgId}`,
+        member,
+      );
+      expect(invitations.statusCode, invitations.body).toBe(200);
+      const parsedInvitations: unknown = JSON.parse(invitations.body);
+      const invitationRows = records(parsedInvitations);
+      expect(invitationRows.every((row) => row.organizationId === orgId)).toBe(
+        true,
+      );
+      expect(
+        invitationRows.some(
+          (row) =>
+            row.id === pendingId &&
+            row.email === pendingInvitee.email &&
+            row.status === 'pending',
+        ),
+      ).toBe(true);
+      for (const endpoint of ['list-members', 'list-invitations']) {
+        const denied = await request(
+          `/api/auth/organization/${endpoint}?organizationId=${foreignOrgId}`,
+          member,
+        );
+        rejected(denied);
+        expect(denied.body).not.toContain(foreignOwner.email);
+      }
+    }
+    const membership = await prisma.member.findFirstOrThrow({
+      where: { organizationId: orgId, user: { email: viewer.email } },
+    });
+    expect(
+      (
+        await request('/api/auth/organization/remove-member', owner, {
+          organizationId: orgId,
+          memberIdOrEmail: membership.id,
+        })
+      ).statusCode,
+    ).toBe(200);
+    for (const endpoint of ['list-members', 'list-invitations']) {
+      const denied = await request(
+        `/api/auth/organization/${endpoint}?organizationId=${orgId}`,
+        viewer,
+      );
+      rejected(denied);
+      expect(denied.body).not.toContain(pendingInvitee.email);
+    }
+  });
+
+  it.each(['viewer', 'analyst'])(
+    'prevents %s and foreign owners from cancelling another organization invitation',
+    async (role) => {
+      const owner = await verifiedUser();
+      const member = await verifiedUser();
+      const foreignOwner = await verifiedUser();
+      const invitee = await verifiedUser();
+      const orgId = await organization(owner);
+      await organization(foreignOwner);
+      expect(
+        (await accept(member, await invite(owner, orgId, member, role)))
+          .statusCode,
+      ).toBe(200);
+      const invitationId = await invite(owner, orgId, invitee);
+      for (const deniedActor of [member, foreignOwner]) {
+        rejected(
+          await request(
+            '/api/auth/organization/cancel-invitation',
+            deniedActor,
+            { invitationId },
+          ),
+        );
+        expect(
+          (
+            await prisma.invitation.findUniqueOrThrow({
+              where: { id: invitationId },
+            })
+          ).status,
+        ).toBe('pending');
+      }
+      expect(
+        (
+          await request('/api/auth/organization/cancel-invitation', owner, {
+            invitationId,
+          })
+        ).statusCode,
+      ).toBe(200);
+      const list = await request(
+        `/api/auth/organization/list-invitations?organizationId=${orgId}`,
+        owner,
+      );
+      expect(list.statusCode, list.body).toBe(200);
+      const parsed: unknown = JSON.parse(list.body);
+      expect(
+        records(parsed).some(
+          (row) => row.id === invitationId && row.status === 'canceled',
+        ),
+      ).toBe(true);
+      rejected(await accept(invitee, invitationId));
+    },
+  );
+
   it('applies role and membership revocation immediately to an existing session', async () => {
     const owner = await verifiedUser();
     const member = await verifiedUser();
@@ -455,6 +582,22 @@ describe('identity and tenant boundaries through real Better Auth HTTP', () => {
       (await accept(invitee, await invite(admin, orgId, invitee, 'viewer')))
         .statusCode,
     ).toBe(200);
+    const pendingInvitee = await verifiedUser();
+    const pendingInvitationId = await invite(admin, orgId, pendingInvitee);
+    expect(
+      (
+        await request('/api/auth/organization/cancel-invitation', admin, {
+          invitationId: pendingInvitationId,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await prisma.invitation.findUniqueOrThrow({
+          where: { id: pendingInvitationId },
+        })
+      ).status,
+    ).toBe('canceled');
     rejected(
       await request('/api/auth/organization/invite-member', admin, {
         organizationId: orgId,

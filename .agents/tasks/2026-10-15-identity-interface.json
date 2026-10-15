@@ -1,0 +1,54 @@
+{
+  "id": "2026-10-15-identity-interface",
+  "summary": "Reset current identity UX into compact monochrome components and real organization/team tables",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root/identity_frontend and /root/harness_qa",
+  "changeClass": "ui",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Substantial identity UI/data presentation needs independent accessibility, tenant/cache security and QA review.",
+  "scope": [
+    "apps/web/",
+    "apps/api/test/identity.integration.test.ts",
+    "pnpm-lock.yaml",
+    "docs/design/",
+    "docs/user-guide.md",
+    "docs/status.md",
+    "README.md",
+    ".agents/tasks/2026-10-15-identity-interface.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Compact monochrome layout with body14 and headings<=24; no marketing hero or decorative halfscreen panel.",
+    "Reusable controls/dialog/table/layout components; real organizations, members and invitations, with supported pagination and search.",
+    "Create/invite/cancel use actual authorized native BetterAuth; no mock rows or fabricated counts in product.",
+    "User/organization-scoped queries and mutation state prevent cross-tenant stale display; logout clears protected data.",
+    "Existing account/recovery/verification/invitation flows preserved; keyboard/mobile/loading/empty/error states verified.",
+    "A short current-scope user guide distinguishes available features from planned invoices."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "solution-architect",
+    "security-engineer",
+    "frontend-engineer",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "accessibility-reviewer",
+    "backend-engineer",
+    "qa-engineer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Product scope is current identity administration; UX/visual blueprint precedes implementation. Native member/invitation contracts reviewed before data UI. No logistics rules, invoices, extraction, financial actions, schema or business integrations change. Backend route applies to real-HTTP acceptance tests only.",
+  "excludedRoles": [],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [
+    "Accepted Obra Community URL has no concrete design node; Figma web retrieval failed. No node inference, asset copying or pixel-fidelity certification.",
+    "Initial tables use actual native BetterAuth listing contracts; invitations endpoint does not provide server pagination/total."
+  ],
+  "evidence": ["docs/design/identity-interface.md"]
+}

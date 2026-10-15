@@ -29,3 +29,7 @@ API startup now reports bounded stages, safe configuration field names and recog
 ## Development API port
 
 Local pnpm dev defaults to API 3001 and Vite proxies to that same validated DEV_API_PORT. Existing .env PORT=3000 is preserved for direct start/deployment; no local source edit is required to avoid a competing application on3000. Frontend/auth origin remains localhost:5173. PostgreSQL host mapping is independent and remains an explicit local infrastructure setting.
+
+## Identity interface redesign — under review
+
+Current-scope UI is being reorganized into a compact monochrome application shell and reusable controls. Organizations, members and invitations use native authorized Better Auth data; account flows remain in scope. The design specification is docs/design/identity-interface.md and the current-scope guide is docs/user-guide.md. No invoice capability or exact Figma-node fidelity is claimed. Final browser, security and runtime evidence is tracked in .agents/tasks/2026-10-15-identity-interface.json before verification.

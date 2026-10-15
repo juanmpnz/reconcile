@@ -11,3 +11,11 @@ Licencia vigente consultada el 2026-10-14: Community Edition bajo CC BY 4.0; per
 Antes de implementar pantallas: UX define bandeja y revisión; visual-designer fija tokens y variantes; ui-engineer/maquetador implementa; frontend integra estados/datos; accessibility-reviewer y QA comprueban interacción y fidelidad visual. Registrar en Figma los estados, anchos de referencia, tipografía, tamaños, espacios y comportamiento responsive. Una comparación al píxel necesita nodos exactos, assets y capturas bajo viewport y fuentes equivalentes; no basta con un enlace al kit.
 
 La ficha Figma no se pudo inspeccionar por web en esta sesión. Se verificaron disponibilidad gratuita y licencia en documentación del autor. No se promete cobertura completa de todas las pantallas ni plugins gratuitos adicionales.
+
+## Renovación de identidad — 2026-10-15
+
+Dirección solicitada por el usuario: blanco y negro, tipografía de sistema, títulos contenidos, ocupación útil de pantalla y administración mediante tablas. La especificación ejecutable está en identity-interface.md. Se consultaron las páginas oficiales de shadcn/ui Table/Dialog y Radix Dialog para composición e interacción.
+
+La implementación usa componentes propios reutilizables y el primitivo accesible @radix-ui/react-dialog, con CSS y tokens locales. No se presenta como instalación del CLI shadcn ni de Tailwind, ni como copia de nodos del Figma Community. No se importaron assets del kit. Obra Studio BV permanece acreditado como referencia aceptada; se mantiene la limitación de inspección exacta.
+
+Referencias de componentes: https://ui.shadcn.com/docs/components/radix/table, https://ui.shadcn.com/docs/components/radix/dialog, https://www.radix-ui.com/primitives/docs/components/dialog.

@@ -12,6 +12,7 @@ Every task follows [AGENTS.md](AGENTS.md) and the [expert workflow](.agents/WORK
 
 Use Node 24, pnpm 11.25 and Docker Compose v2. See [local development](docs/runbooks/local-development.md) for environment setup, migrations and startup.
 
+- [Guía de uso actual](docs/user-guide.md)
 - [Implementation plan](docs/plans/implementation.md)
 - [Product requirements](docs/product/pilot-requirements.md)
 - [Architecture](docs/architecture/overview.md)
