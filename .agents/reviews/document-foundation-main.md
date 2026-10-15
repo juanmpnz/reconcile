@@ -29,3 +29,9 @@ Acceptance limits retained: no OCR/table understanding/AIprovider, no operationa
 ## Real-service evidence iteration
 
 Run38706903198 on072ec5af passed frozen install/check/infra/migrations and all21identity cases, but7document cases failed (24/31total); smoke was skipped. This is not treated as a gate-only failure. Root and QA independently reproduced PDF extraction under Vitest: transformed import.meta.resolve was unsupported, whereas the built Node adapter worked. The adapter now resolves the fixed installed PDF.js module with Node createRequire plus pathToFileURL, with two real-byte regressions (valid carrier evidence and malformed PDF). Root and independent QA ran2/2 successfully. Wrong MIME now returns415 in the authorized onRequest guard before text-body parsing. No integration assertion was weakened. Corrected source requires another complete real-service run before verification.
+
+## Runtime closure
+
+Root independently fetched run38707704961/job116331124372 logs for sourceb9d6881a018162598b8f9f1f753a31340f99605a: frozen install and fullcheck passed28unit+8harness; migration and31/31realHTTP(21identity+10documents) passed; fullsmoke passed API,PostgreSQL,Redis,privatebucket,worker. Only final harness gate failed because this task had deliberately remained reviewed pending actual acceptance. The final closure modifies documentation/task evidence only; no source or test assertion changes. The earlier failed run remains in history and is superseded by this corrected exact-source result.
+
+Status: bounded phase2 acceptance satisfied with explicit limitations. Independent security/source and browser review records, plus independently observed realservice results, support closure. Scope does not include OCR, universal table recognition, operationalJSON importer, financialcomparison/claims, realcustomer-data or productionreadiness.
