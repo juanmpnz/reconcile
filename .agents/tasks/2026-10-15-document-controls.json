@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-document-controls",
   "summary": "Edit document display name/type with audit and stale analysis, and provide compact operation controls with searchable/sortable document relationships.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
   "scope": [
@@ -68,7 +68,7 @@
       "reviewer": "/root",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "examined": "Root reviewed additive migration and repository-root Compose workflow/runbook alignment; independently decoded actual CI jobs and compared tested source/merge tree. All production steps passed; no user-server deploy claim.",
       "evidence": [".agents/reviews/document-controls-main.md"]
     },
     {
@@ -164,7 +164,7 @@
       "reviewer": "/root/analysis_qa",
       "mode": "independent",
       "status": "passed",
-      "examined": "Planning/source review and bounded specialist checks; actual runtime acceptance recorded separately.",
+      "examined": "Independent final source review and decoded actual CI logs:71unit51HTTP, migration, full service smoke and production build/persistence. Correctly distinguishes initial task gate failure from runtime acceptance.",
       "evidence": [".agents/reviews/document-controls-qa.md"]
     }
   ],
@@ -180,9 +180,19 @@
       "result": "5/5 groups on final web assets index-8GqciYnx.js and index-bLennfph.css; no actual service or production-browser claim."
     },
     {
-      "command": "Actual service HTTP/migrations and production-container CI",
-      "status": "not-run",
-      "result": "Pending workflow on published candidate; no local Docker daemon."
+      "command": "Quality38808582572/job116675725971 on source841fad8052fd82f7d5b8cb17bc8a8d917c416e87",
+      "status": "passed",
+      "result": "Fullcheck71unit+8harness, additive metadata migration,51realHTTP(14analysis/11documents/5claims/21identity), API/PG/Redis/privateS3/worker smoke passed. The overall initial Quality run failed only because this task was reviewed rather than verified; do not represent that collection run as globally green."
+    },
+    {
+      "command": "Production containers38808582660/job116675726131",
+      "status": "passed",
+      "result": "Workflow completed success. Three production targets built; migrated stack/real web proxy/auth/privateS3/PDF worker, API-only recreation and durable-volume recreation passed. Docker reused API addresses, no forced-IP-change proof. Testedmerge9d66a4d7fa20d5bb4fda13bce81181aba53ff600 and source841fad share treee2cb919910f9286daa534aefdd50aa27c0fe3346."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 1bc136dbe60618838a519c94e522a7676de2904a",
+      "status": "passed",
+      "result": "Final verified task coverage and source evidence closure; this gate validates declarations, not authenticity of specialist executions."
     }
   ],
   "findings": [
@@ -195,7 +205,7 @@
     }
   ],
   "limitations": [
-    "No Docker daemon available locally; service-backed HTTP/migration acceptance requires CI.",
+    "No local Docker daemon; actual service/migration/container acceptance executed in GitHub Actions with isolated synthetic data.",
     "No changes deployed to the user server by this task.",
     "Logistics rules, extraction and original demo PDFs unchanged; missing demo ocean-handling scope remains explicit.",
     "Metadata history displays latest50 of at most1000 edits; document links display at most20 with actual total."
@@ -207,7 +217,9 @@
     ".agents/reviews/document-controls-backend.md",
     ".agents/reviews/document-controls-frontend.md",
     ".agents/reviews/document-controls-ux.md",
-    ".agents/reviews/document-controls-qa.md"
+    ".agents/reviews/document-controls-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38808582572",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38808582660"
   ],
   "changeClass": "backend",
   "risk": "high",

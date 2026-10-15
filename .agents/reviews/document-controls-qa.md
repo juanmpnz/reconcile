@@ -43,3 +43,21 @@ Independently reexamined the final SQL-label correction and its HTTP assertions.
 The separately authored document HTTP group now queries `Tarifa` and asserts the matching renamed document, then queries `Requiere revisión` and asserts both extracted documents before pagination. This exercises actual server filtering rather than a browser-only fixture. Targeted source/test review passed; DC-P1 runtime evidence remains pending CI. The principal reports the preceding full local check passed 71 unit tests plus 8 harness regressions, while this later SQL-only change received author-scoped format/lint; QA does not independently relabel those reported commands as its own execution.
 
 The separate UX execution recorded 5/5 browser groups against final web assets `index-8GqciYnx.js` / `index-bLennfph.css` in `document-controls-ux.md`. Those explicit HTTP fixtures demonstrate interaction and responsive layout, not the corrected SQL's runtime truth. No frontend changes are required by this SQL correction.
+
+## Independent actual-service and production-image acceptance
+
+Independently fetched bounded decoded logs, job summaries and Git commit-tree metadata for source **`841fad8052fd82f7d5b8cb17bc8a8d917c416e87`**. Both workflows checked out PR merge **`9d66a4d7fa20d5bb4fda13bce81181aba53ff600`**; both Git commit endpoints report identical tree **`e2cb919910f9286daa534aefdd50aa27c0fe3346`**.
+
+[Quality run 38808582572](https://github.com/juanmpnz/reconcile/actions/runs/38808582572), job 116675725971:
+
+- Frozen install/full check passed, including **71 unit tests** and retained harness/type/lint/format/build checks.
+- Real PostgreSQL/private-S3/Redis infrastructure and migrations passed, specifically `20261016100000_document_metadata`.
+- **51/51 actual HTTP groups passed**: 14 analysis, 11 documents, 5 claims and 21 identity. This includes metadata concurrency/original retention, actual global Spanish-label search/sort, reviewed-fact preservation/classification invalidation, captured metadata version and stale claim/export behavior.
+- Existing API/worker smoke passed.
+- The complete collection job fails only at the intentional pre-closure expert gate: `Task is not verified: 2026-10-15-document-controls`. It is not called globally green.
+
+[Production containers run 38808582660](https://github.com/juanmpnz/reconcile/actions/runs/38808582660), job 116675726131, completed successfully. The real root-project-directory Compose invocation validated topology, built all three production targets, started migrated services and passed seed smoke, API-only recreation and full teardown/recreation with retained volumes. Actual >1 MiB PDF/private storage/extraction, secure cookies and Redis worker checks passed. The API reused the same IP addresses during recreation; changed-IP recovery is not claimed. SMTP configuration is synthetic and no mail delivery is claimed.
+
+DC-P1 and the requested metadata/provenance acceptance additions are resolved by independently reviewed source plus these real-service results. Independent QA source/runtime acceptance: **passed on this pinned tree**. Separate UX browser evidence remains 5/5 fixture-based interaction groups and is not substituted for server authorization or SQL behavior.
+
+Final documentation/task closure requires its own final workflow result. No user-server deployment, full-screen-reader certification, confidential-document accuracy or complete Phase-5 operational readiness is inferred from this bounded acceptance.
