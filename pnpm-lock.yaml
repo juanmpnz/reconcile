@@ -81,6 +81,9 @@ importers:
       '@reconcile/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@reconcile/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@reconcile/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

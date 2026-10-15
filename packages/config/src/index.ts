@@ -30,3 +30,5 @@ export function parseServiceConfig(
 
 export { parseAuthConfig } from './auth.js';
 export type { AuthConfig } from './auth.js';
+
+export { parseDevelopmentConfig } from './development.js';

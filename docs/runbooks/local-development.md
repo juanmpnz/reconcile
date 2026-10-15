@@ -1,6 +1,6 @@
 # Local development
 
-Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 1025, 3000, 5173, 5432, 6379, 8025 and 9000 must be free.
+Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 1025, 3001, 5173, 5432, 6379, 8025 and 9000 must be free.
 
 ```bash
 cp .env.example .env
@@ -13,15 +13,15 @@ pnpm dev
 
 The root migration command and app dev scripts explicitly load the root .env. Environment variables supplied by CI or deployment take precedence.
 
-Web: http://localhost:5173. API liveness: http://localhost:3000/api/v1/health/live. Readiness: /api/v1/health/ready. Local S3 endpoint: http://localhost:9000. SeaweedFS mini creates the configured bucket and credentials on startup. Credentials in .env.example are only for local demo; no storage administration ports are exposed.
+Web: http://localhost:5173. Development API liveness: http://127.0.0.1:3001/api/v1/health/live. Readiness: /api/v1/health/ready. Local S3 endpoint: http://localhost:9000. SeaweedFS mini creates the configured bucket and credentials on startup. Credentials in .env.example are only for local demo; no storage administration ports are exposed.
 
 ```bash
 pnpm check
-pnpm --filter @reconcile/worker smoke
+SMOKE_API_URL=http://127.0.0.1:3001 pnpm --filter @reconcile/worker smoke
 pnpm infra:down
 ```
 
-Smoke requires API and worker running and checks a real queued job, database, Redis and bucket. It does not test invoice comparison. `infra:down` preserves data; add `-v` only when intentionally deleting local volumes.
+Smoke requires API and worker running and checks a real queued job, database, Redis and bucket. Its default URL remains localhost:3000 for direct/CI starts; the local command above selects the development API 3001 (adjust if overriding DEV_API_PORT). It does not test invoice comparison. `infra:down` preserves data; add `-v` only when intentionally deleting local volumes.
 
 Docker builds from repository root: `docker build -f infra/docker/Dockerfile --target api .` (also worker, web). Deploy API/worker with environment variables and private dependencies. Containers set HOST=0.0.0.0; local development defaults to loopback. Web nginx expects API hostname `api:3000` on the same network. Production compose/Coolify wiring and TLS are pending; never expose the local dependency compose publicly.
 
@@ -39,4 +39,4 @@ A successful API boot prints `API listening on http://HOST:PORT`. A failure prin
 
 For `EADDRINUSE`, inspect the reported port with `lsof -nP -iTCP:3000 -sTCP:LISTEN` (substitute the reported port). Docker Desktop running is not proof that every Compose service started: run `pnpm infra:up` and `docker compose -f infra/docker/compose.yaml ps`.
 
-If another project uses PostgreSQL port 5432, change only the host side of its Compose mapping (for example `127.0.0.1:5433:5432`) and the DATABASE_URL port to 5433. If API port 3000 is occupied, change PORT in .env and the API proxy target in apps/web/vite.config.ts together. AUTH_BASE_URL and WEB_ORIGIN remain the frontend origin (normally http://localhost:5173). Restart dev processes after editing .env. No existing external service needs to be stopped.
+If another project uses PostgreSQL port 5432, change only the host side of its Compose mapping (for example `127.0.0.1:5433:5432`) and the DATABASE_URL port to 5433. `pnpm dev` uses DEV_API_PORT (default 3001) for both the API and Vite proxy, independently of an existing PORT=3000 in .env. To select another development API port, change only DEV_API_PORT and restart dev processes; no source edit is needed. Direct production/start commands continue to use PORT (default 3000). AUTH_BASE_URL and WEB_ORIGIN remain the frontend origin (normally http://localhost:5173). Restart dev processes after editing .env. No existing external service needs to be stopped.

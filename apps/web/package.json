@@ -16,7 +16,8 @@
     "@reconcile/contracts": "workspace:*",
     "better-auth": "1.7.8",
     "zod": "^4.1.12",
-    "@reconcile/auth": "workspace:*"
+    "@reconcile/auth": "workspace:*",
+    "@reconcile/config": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

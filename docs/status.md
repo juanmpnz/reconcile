@@ -25,3 +25,7 @@ Obra Community is accepted as design reference. Initial responsive native-contro
 ## Development startup diagnostics
 
 API startup now reports bounded stages, safe configuration field names and recognized listener/network errors; failed initialization closes resources with a deadline. This addresses missing diagnostic visibility, not an established fix for the user's Mac failure. An available-port tsx bootstrap was reproduced in the executor; the original local cause still requires the user's resulting diagnostic. Existing authentication behavior is unchanged.
+
+## Development API port
+
+Local pnpm dev defaults to API 3001 and Vite proxies to that same validated DEV_API_PORT. Existing .env PORT=3000 is preserved for direct start/deployment; no local source edit is required to avoid a competing application on3000. Frontend/auth origin remains localhost:5173. PostgreSQL host mapping is independent and remains an explicit local infrastructure setting.

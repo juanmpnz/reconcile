@@ -1,0 +1,113 @@
+{
+  "id": "2026-10-15-development-api-port",
+  "summary": "Make local API/proxy use3001 without editing existing.env PORT",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root",
+  "changeClass": "platform",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Shared dev-entrypoint and proxy settings need independent runtime/architecture review.",
+  "scope": [
+    "apps/api/package.json",
+    "apps/api/src/dev.ts",
+    "apps/web/package.json",
+    "apps/web/vite.config.ts",
+    "packages/config/src/development.ts",
+    "packages/config/src/index.ts",
+    "pnpm-lock.yaml",
+    ".env.example",
+    "docs/runbooks/local-development.md",
+    "docs/status.md",
+    ".agents/tasks/2026-10-15-development-api-port.json",
+    ".agents/reviews/dev-port-main.md",
+    ".agents/reviews/dev-port-architecture.md",
+    ".agents/reviews/dev-port-qa.md"
+  ],
+  "acceptance": [
+    "pnpmdev API uses3001 even with existing.env PORT3000; Vite proxies to sameport.",
+    "DEV_API_PORT overrides both devlistener andproxy through one validated configuration.",
+    "Production main/start and infrastructure PORT behavior unchanged."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "backend-engineer",
+    "frontend-engineer",
+    "platform-engineer",
+    "solution-architect",
+    "qa-engineer"
+  ],
+  "semanticRouting": "Development startup configuration only; no product/domain/UI behavior or auth changes. No new UX/visual/accessibility flow.",
+  "excludedRoles": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Development-only entrypoint, shared validatedport, root.env matchingViteproxy, workspace-only lockdelta andfullcheck",
+      "evidence": [".agents/reviews/dev-port-main.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Development-only entrypoint, shared validatedport, root.env matchingViteproxy, workspace-only lockdelta andfullcheck",
+      "evidence": [".agents/reviews/dev-port-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Development-only entrypoint, shared validatedport, root.env matchingViteproxy, workspace-only lockdelta andfullcheck",
+      "evidence": [".agents/reviews/dev-port-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Development-only entrypoint, shared validatedport, root.env matchingViteproxy, workspace-only lockdelta andfullcheck",
+      "evidence": [".agents/reviews/dev-port-main.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final deventrypoint/sharedparser/Viteconfig/workspace lock with production isolation, scoped builds and actual config probes; fingerprints in record",
+      "evidence": [".agents/reviews/dev-port-architecture.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/harness_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Actual dev.ts startup default/override while3000occupied, liveness+shutdown, resolvedViteproxy and productionguard probes; fingerprints in record",
+      "evidence": [".agents/reviews/dev-port-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local format/lint, strict types, 20 unit tests, 8 harness regressions and production builds passed. No resolved dependency versions changed."
+    },
+    {
+      "command": "Independent real development-entrypoint / Vite config probes",
+      "status": "passed",
+      "result": "QA occupied3000; actual dev.ts with PORT3000 listened3001, liveness200 and matching Viteproxy. OverrideDEV_API_PORT3002 movedboth; graceful shutdown. Invaliddevport rejectedserve; build ignoreddevport; productiondevlaunch refused."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Cannot operate the user's Mac or terminate its existing port3000 process."
+  ],
+  "evidence": [
+    ".agents/reviews/dev-port-main.md",
+    ".agents/reviews/dev-port-architecture.md",
+    ".agents/reviews/dev-port-qa.md"
+  ]
+}
