@@ -2,7 +2,7 @@
 
 Kershell product foundation for comparing supplier invoices with agreed costs and evidence of performed services. Common core, sector-specific rules, logistics as first pilot.
 
-This repository implements phase 0 infrastructure and phase 1 account/organization access. It does not process or approve invoices yet. See docs/status.md for verified scope.
+This repository provides infrastructure, account/organization access and the phase 2 PDF document intake implementation. It does not compare or approve invoices yet. See docs/status.md for verification evidence and current limits.
 
 ## Expert harness
 
@@ -12,6 +12,7 @@ Every task follows [AGENTS.md](AGENTS.md) and the [expert workflow](.agents/WORK
 
 Use Node 24, pnpm 11.25 and Docker Compose v2. See [local development](docs/runbooks/local-development.md) for environment setup, migrations and startup.
 
+- [Guía de uso actual](docs/user-guide.md)
 - [Implementation plan](docs/plans/implementation.md)
 - [Product requirements](docs/product/pilot-requirements.md)
 - [Architecture](docs/architecture/overview.md)

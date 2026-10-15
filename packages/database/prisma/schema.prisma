@@ -72,6 +72,7 @@ model Organization {
  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
  members Member[]
  invitations Invitation[]
+ documents Document[]
  @@map("organizations")
 }
 model Member {
@@ -120,4 +121,81 @@ model IdentityAuditEvent {
   @@index([organizationId,createdAt])
   @@index([actorId,createdAt])
   @@map("identity_audit_events")
+}
+
+model Document {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ filename String @db.VarChar(200)
+ kind String @db.VarChar(20)
+ sizeBytes Int
+ sha256 String @db.Char(64)
+ storageKey String @unique
+ status String @default("queued") @db.VarChar(20)
+ errorCode String? @db.VarChar(64)
+ currentRunId String? @db.Uuid
+ runCount Int @default(0)
+ correctionCount Int @default(0)
+ uploadedBy String @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @db.Timestamptz(3)
+ organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ runs ExtractionRun[] @relation("DocumentRuns")
+ currentRun ExtractionRun? @relation("CurrentRun",fields:[organizationId,id,currentRunId],references:[organizationId,documentId,id],onDelete:NoAction,onUpdate:NoAction)
+ @@unique([organizationId,id])
+ @@unique([organizationId,sha256])
+ @@index([organizationId,createdAt])
+ @@map("documents")
+}
+model ExtractionRun {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ documentId String @db.Uuid
+ actorId String @db.Uuid
+ version Int
+ attempts Int @default(0)
+ status String @default("queued") @db.VarChar(20)
+ errorCode String? @db.VarChar(64)
+ result Json?
+ leaseUntil DateTime? @db.Timestamptz(3)
+ leaseToken String? @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ completedAt DateTime? @db.Timestamptz(3)
+ currentFor Document[] @relation("CurrentRun")
+ document Document @relation("DocumentRuns",fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
+ corrections DocumentCorrection[]
+ outbox DocumentOutbox?
+ @@unique([organizationId,documentId,id])
+ @@unique([documentId,version])
+ @@map("extraction_runs")
+}
+model DocumentCorrection {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ documentId String @db.Uuid
+ extractionRunId String @db.Uuid
+ actorId String @db.Uuid
+ revision Int
+ field String @db.VarChar(32)
+ value String? @db.VarChar(500)
+ reason String @db.VarChar(500)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ run ExtractionRun @relation(fields:[organizationId,documentId,extractionRunId],references:[organizationId,documentId,id],onDelete:Cascade)
+ @@unique([documentId,revision])
+ @@index([organizationId,documentId,createdAt])
+ @@map("document_corrections")
+}
+model DocumentOutbox {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ documentId String @db.Uuid
+ runId String @unique @db.Uuid
+ actorId String @db.Uuid
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ lastEnqueuedAt DateTime? @db.Timestamptz(3)
+ completedAt DateTime? @db.Timestamptz(3)
+ run ExtractionRun @relation(fields:[organizationId,documentId,runId],references:[organizationId,documentId,id],onDelete:Cascade)
+ @@unique([organizationId,documentId,runId])
+ @@index([completedAt,lastEnqueuedAt])
+ @@map("document_outbox")
 }

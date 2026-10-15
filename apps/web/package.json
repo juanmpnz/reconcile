@@ -10,14 +10,15 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "1.1.15",
+    "@reconcile/auth": "workspace:*",
+    "@reconcile/config": "workspace:*",
+    "@reconcile/contracts": "workspace:*",
+    "@tanstack/react-query": "^5.90.0",
+    "better-auth": "1.7.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@tanstack/react-query": "^5.90.0",
-    "@reconcile/contracts": "workspace:*",
-    "better-auth": "1.7.8",
-    "zod": "^4.1.12",
-    "@reconcile/auth": "workspace:*",
-    "@reconcile/config": "workspace:*"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

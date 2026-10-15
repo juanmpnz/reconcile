@@ -1,4 +1,10 @@
 import 'reflect-metadata';
+import { parseServiceConfig } from '@reconcile/config';
+import {
+  createPrivateDocumentStorage,
+  type PrivateDocumentStorage,
+} from '@reconcile/document-processing';
+import { registerDocumentRoutes } from './document.routes.js';
 import { closeAfterStartupFailure } from './startup-diagnostics.js';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -17,9 +23,11 @@ class AppModule {}
 export async function createApplication({
   auth,
   prisma,
+  documentStorage,
 }: {
   auth: Auth;
   prisma: PrismaClient;
+  documentStorage?: PrivateDocumentStorage;
 }): Promise<NestFastifyApplication> {
   const adapter = new FastifyAdapter({
     bodyLimit: 1024 * 1024,
@@ -159,7 +167,12 @@ export async function createApplication({
       };
     },
   );
+  const storage =
+    documentStorage ??
+    createPrivateDocumentStorage(parseServiceConfig(process.env));
+  registerDocumentRoutes(server, { auth, prisma, storage });
   server.addHook('onClose', async () => {
+    if (!documentStorage) storage.close();
     await prisma.$disconnect();
   });
   try {

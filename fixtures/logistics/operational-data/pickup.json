@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "reconcile-demo-v1",
+  "demo": true,
+  "operationReference": "OP-DEMO-062",
+  "serviceReference": "PICK-DEMO-001",
+  "date": "2026-10-10",
+  "route": { "from": "Warehouse A", "to": "Port A" },
+  "assignedProvider": "Ruta Norte Demo",
+  "recordedPerformedBy": "Ruta Norte Demo",
+  "status": "completed",
+  "internalCarrierEstimate": { "amount": "150.00", "currency": "USD" },
+  "evidenceDocument": "pickup-record.pdf"
+}
