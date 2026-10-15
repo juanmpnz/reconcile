@@ -1,9 +1,9 @@
 {
   "id": "2026-10-15-identity-interface",
   "summary": "Reset current identity UX into compact monochrome components and real organization/team tables",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
-  "implementer": "/root/identity_frontend and /root/harness_qa",
+  "implementer": "/root, /root/identity_frontend and /root/harness_qa",
   "changeClass": "ui",
   "risk": "medium",
   "independentReviewRequired": true,
@@ -43,12 +43,184 @@
   ],
   "semanticRouting": "Product scope is current identity administration; UX/visual blueprint precedes implementation. Native member/invitation contracts reviewed before data UI. No logistics rules, invoices, extraction, financial actions, schema or business integrations change. Backend route applies to real-HTTP acceptance tests only.",
   "excludedRoles": [],
-  "reviews": [],
-  "checks": [],
-  "findings": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Current identity scope, native21-case test delta, dependency/lock review, local checks and desktop/mobile screenshot inspection; no independent claim",
+      "evidence": [".agents/reviews/identity-redesign-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Current identity scope, native21-case test delta, dependency/lock review, local checks and desktop/mobile screenshot inspection; no independent claim",
+      "evidence": [".agents/reviews/identity-redesign-main.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Current identity scope, native21-case test delta, dependency/lock review, local checks and desktop/mobile screenshot inspection; no independent claim",
+      "evidence": [".agents/reviews/identity-redesign-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Current identity scope, native21-case test delta, dependency/lock review, local checks and desktop/mobile screenshot inspection; no independent claim",
+      "evidence": [".agents/reviews/identity-redesign-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/identity_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Final extracted frontend implementation/self-check after focus, context, callback and mobile corrections",
+      "evidence": [".agents/reviews/identity-redesign-frontend.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final source corrections and desktop screenshots; browser interactions attributed separately",
+      "evidence": [".agents/reviews/identity-redesign-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final source corrections and desktop screenshots; browser interactions attributed separately",
+      "evidence": [".agents/reviews/identity-redesign-ux.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final source corrections and desktop screenshots; browser interactions attributed separately",
+      "evidence": [".agents/reviews/identity-redesign-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final source corrections and desktop screenshots; browser interactions attributed separately",
+      "evidence": [".agents/reviews/identity-redesign-ux.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final native contracts/query/cache/mounted guards, UI-only notices, realHTTP test source and final fingerprint",
+      "evidence": [".agents/reviews/identity-redesign-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final native contracts/query/cache/mounted guards, UI-only notices, realHTTP test source and final fingerprint",
+      "evidence": [".agents/reviews/identity-redesign-architecture.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/harness_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "14/14 real-browser UI fixture groups and independently fetched21/21realPostgreSQL HTTP acceptance, exact testedsource999e4c/CI38700626741; test authorship separately disclosed",
+      "evidence": [".agents/reviews/identity-redesign-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local formatting/lint/strict source+test types/builds passed:23 unit tests,8 harness regressions. Focused final frontend lint/types/build passed after last small source corrections."
+    },
+    {
+      "command": "Independent Playwright/Chromium UI contract checks",
+      "status": "passed",
+      "result": "14/14 scenario groups on real React/Vite with synthetic API fixtures: tables/dialogs/forms/pending/error/retry, native-shape payloads, permissions/cache/races/logout, 390/320px overflow, keyboard focus and CSS200% zoom. Not real-auth browser E2E."
+    },
+    {
+      "command": "Exact Figma comparison / real customer-data browser E2E / full assistive-tech audit",
+      "status": "not-run",
+      "result": "No concrete Community node available; no pixel-fidelity, customer-data or full screen-reader claim."
+    },
+    {
+      "command": "CI pnpm check / native integration / service smoke",
+      "status": "passed",
+      "result": "At source999e4c76127beaecf95cdaa968987579849e8e73 (same tree as PR merge1b809584314acc066cfe820b9bf9a0e552666cbe), frozen install/check passed23 unit+8harness, migrations and21/21realPostgreSQL HTTP cases passed, API/DB/Redis/privatebucket/worker smoke passed. https://github.com/juanmpnz/reconcile/actions/runs/38700626741. Only the evidence-collection gate lacked this verified record; final metadata closure changes no app/auth/test source."
+    }
+  ],
+  "findings": [
+    {
+      "id": "UIUX01",
+      "severity": "medium",
+      "summary": "SPA navigation removed focused control without destination focus.",
+      "status": "resolved",
+      "resolution": "Pathname navigation focuses main; tab/page query navigation preserves focus. Independent source and keyboard browser checks passed."
+    },
+    {
+      "id": "UIUX02",
+      "severity": "low",
+      "summary": "Detail hierarchy omitted current organization name.",
+      "status": "resolved",
+      "resolution": "Breadcrumb receives current server-scoped organization context; independent source/screenshot recheck passed."
+    },
+    {
+      "id": "UIARCH01",
+      "severity": "medium",
+      "summary": "Cached organization tables could display before fresh membership check on remount.",
+      "status": "resolved",
+      "resolution": "Fresh context render/query gating; native IDs validated and browser cached-revocation/tenant race cases passed."
+    },
+    {
+      "id": "UIARCH02",
+      "severity": "medium",
+      "summary": "Late create/accept completion could redirect a screen no longer owning the request.",
+      "status": "resolved",
+      "resolution": "Mounted guards and user-keyed component boundaries; independent source and late-create browser race passed."
+    },
+    {
+      "id": "UIARCH03",
+      "severity": "medium",
+      "summary": "Native sign-in callback could redirect before mounted guard ran.",
+      "status": "resolved",
+      "resolution": "Email sign-in omits callbackURL and uses guarded manual destination; mailed callbacks retained. Independent source and modeled native late-login browser case passed."
+    },
+    {
+      "id": "UIQA01",
+      "severity": "medium",
+      "summary": "Absolute visually hidden invitation-table heading caused mobile page overflow.",
+      "status": "resolved",
+      "resolution": "Table region positioned as containing block; actual390/320px retests fit exactly with internal table scrolling preserved, no body-overflow mask."
+    }
+  ],
   "limitations": [
     "Accepted Obra Community URL has no concrete design node; Figma web retrieval failed. No node inference, asset copying or pixel-fidelity certification.",
-    "Initial tables use actual native BetterAuth listing contracts; invitations endpoint does not provide server pagination/total."
+    "Initial tables use actual native BetterAuth listing contracts; invitations endpoint does not provide server pagination/total.",
+    "Browser UI fixtures are separate from actual native PostgreSQL HTTP evidence; no complete real-auth browser E2E or full assistive-technology certification.",
+    "Browser fixture runner/screenshots are transient internal QA artifacts; their source fingerprints and executed scope are recorded in the review."
   ],
-  "evidence": ["docs/design/identity-interface.md"]
+  "evidence": [
+    "docs/design/identity-interface.md",
+    "docs/user-guide.md",
+    ".agents/reviews/identity-redesign-main.md",
+    ".agents/reviews/identity-redesign-frontend.md",
+    ".agents/reviews/identity-redesign-ux.md",
+    ".agents/reviews/identity-redesign-architecture.md",
+    ".agents/reviews/identity-redesign-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38700626741"
+  ]
 }
