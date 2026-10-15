@@ -491,7 +491,54 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
         })
       ).statusCode,
     ).toBe(409);
+    expect(
+      (await review(org, op, owner)).claims.find((x) => x.id === c.id)?.stale,
+    ).toBe(true);
+    expect(
+      claimDetailSchema.parse(
+        body(await request(base(org, op) + `/claims/${c.id}`, owner)),
+      ).stale,
+    ).toBe(true);
     await confirm(org, op, run.id, index, owner);
+    const reconfirmed = await review(org, op, owner);
+    expect(reconfirmed.claims.find((x) => x.id === c.id)?.stale).toBe(true);
+    expect(
+      claimDetailSchema.parse(
+        body(await request(base(org, op) + `/claims/${c.id}`, owner)),
+      ).stale,
+    ).toBe(true);
+    const originalSource = c.sources[0],
+      originalDraft = c.drafts[0];
+    const sameRunRebase = await request(
+      base(org, op) + `/claims/${c.id}/rebase`,
+      owner,
+      {
+        expectedVersion: c.version,
+        expectedReviewVersion: reconfirmed.version,
+        expectedFingerprint: reconfirmed.fingerprint,
+        runId: run.id,
+        findingIndex: index,
+        reason:
+          'Actualizar explícitamente la nueva confirmación del mismo análisis',
+      },
+    );
+    expect(sameRunRebase.statusCode, sameRunRebase.body).toBe(200);
+    c = claimDetailSchema.parse(body(sameRunRebase));
+    expect(c.stale).toBe(false);
+    expect(c.sources[1]).toEqual(originalSource);
+    expect(c.drafts[1]).toEqual(originalDraft);
+    expect(
+      (await review(org, op, owner)).claims.find((x) => x.id === c.id)?.stale,
+    ).toBe(false);
+    const sameRunExport = await request(
+      base(org, op) + `/claims/${c.id}/export`,
+      owner,
+      { expectedVersion: c.version, format: 'text' },
+    );
+    expect(sameRunExport.statusCode, sameRunExport.body).toBe(200);
+    c = claimDetailSchema.parse(
+      body(await request(base(org, op) + `/claims/${c.id}`, owner)),
+    );
     const oldSource = c.sources[0];
     const oldDraft = c.drafts[0];
     const operation = operationDetailSchema.parse(
@@ -532,7 +579,7 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
     );
     expect(rebased.statusCode, rebased.body).toBe(200);
     c = claimDetailSchema.parse(body(rebased));
-    expect(c.sources).toHaveLength(2);
+    expect(c.sources).toHaveLength(3);
     expect(c.sources[1]).toEqual(oldSource);
     expect(c.drafts[1]).toEqual(oldDraft);
     expect(c.runId).toBe(next.id);

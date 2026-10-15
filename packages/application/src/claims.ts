@@ -229,11 +229,18 @@ export function createClaimService({ prisma }: { prisma: PrismaClient }) {
     );
     return parsed;
   }
-  function summary(c: ClaimRow, fingerprint: string) {
+  function summary(
+    c: ClaimRow,
+    fingerprint: string,
+    latest: { id: string; action: string } | null,
+  ) {
     return claimSummarySchema.parse({
       ...c,
       amount: c.amount?.toFixed() ?? null,
-      stale: currentSource(c).fingerprint !== fingerprint,
+      stale:
+        currentSource(c).fingerprint !== fingerprint ||
+        latest?.id !== currentSource(c).decision.id ||
+        latest?.action !== 'confirm',
       createdAt: date(c.createdAt),
       updatedAt: date(c.updatedAt),
     });
@@ -245,8 +252,18 @@ export function createClaimService({ prisma }: { prisma: PrismaClient }) {
         const current = await collectAnalysisInputs(tx, org, op);
         const c = await readClaim(tx, org, op, id);
         const source = currentSource(c);
+        const latest = await tx.findingDecision.findFirst({
+          where: {
+            organizationId: org,
+            operationId: op,
+            runId: c.runId,
+            findingIndex: c.findingIndex,
+          },
+          orderBy: { ordinal: 'desc' },
+          select: { id: true, action: true },
+        });
         return claimDetailSchema.parse({
-          ...summary(c, current.fingerprint),
+          ...summary(c, current.fingerprint, latest),
           finding: source.finding,
           snapshot: source.snapshot,
           sourceFingerprint: source.fingerprint,
@@ -367,15 +384,25 @@ export function createClaimService({ prisma }: { prisma: PrismaClient }) {
             take: 100,
           });
           const fingerprints = await tx.$queryRaw<
-            { id: string; fingerprint: string }[]
-          >`SELECT c.id, s.data->>'fingerprint' AS fingerprint FROM claims c JOIN claim_sources s ON s."claimId"=c.id AND s.version=c."sourceVersion" WHERE c."organizationId"=${org}::uuid AND c."operationId"=${op}::uuid`;
+            {
+              id: string;
+              fingerprint: string;
+              sourceDecisionId: string;
+              latestDecisionId: string | null;
+              latestAction: string | null;
+            }[]
+          >`SELECT c.id, s.data->>'fingerprint' AS fingerprint, s.data->'decision'->>'id' AS "sourceDecisionId", latest.id::text AS "latestDecisionId", latest.action AS "latestAction" FROM claims c JOIN claim_sources s ON s."claimId"=c.id AND s.version=c."sourceVersion" LEFT JOIN LATERAL (SELECT d.id,d.action FROM finding_decisions d WHERE d."organizationId"=c."organizationId" AND d."operationId"=c."operationId" AND d."runId"=c."runId" AND d."findingIndex"=c."findingIndex" ORDER BY d.ordinal DESC LIMIT 1) latest ON true WHERE c."organizationId"=${org}::uuid AND c."operationId"=${op}::uuid`;
           const claims = rows.map((c) =>
             claimSummarySchema.parse({
               ...c,
               amount: c.amount?.toFixed() ?? null,
               stale:
                 fingerprints.find((s) => s.id === c.id)?.fingerprint !==
-                current.fingerprint,
+                  current.fingerprint ||
+                fingerprints.find((s) => s.id === c.id)?.latestDecisionId !==
+                  fingerprints.find((s) => s.id === c.id)?.sourceDecisionId ||
+                fingerprints.find((s) => s.id === c.id)?.latestAction !==
+                  'confirm',
               createdAt: date(c.createdAt),
               updatedAt: date(c.updatedAt),
             }),

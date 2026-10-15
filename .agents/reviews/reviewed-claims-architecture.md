@@ -50,3 +50,17 @@ caa47aae7fb00c02368df6d76fc12d36424e252621acc2383d525fe84f0628ba packages/databa
 ```
 
 No critical/high source findings remain open in this scope. Existing real-data/deployment prerequisites, one-claim-per-invoice limit, manual follow-up, lack of automatic email and lack of recovered-money validation remain explicit. This is independent source approval, not production readiness certification.
+
+## Reopened review — RC-R1 decision obsolescence
+
+Coordinator review found a blocking behavior missed in the preceding source approval: summary/detail `stale` compared only analysis input fingerprints. A later decision can change with identical source inputs, so `assertCurrent` rejects export/edit with REVIEW_CHANGED while the UI still considers the draft current and does not offer explicit rebase. Confirm → dismiss → confirm can therefore trap an unsent draft despite an otherwise valid current analysis.
+
+Prior final approval is reopened for this scope until correction is independently reread. Required fix: stale if source fingerprint differs **or** the latest exact organization/operation/run/finding decision identity differs from the captured source decision, including repeated confirm with a new decision ID. Detail and summary queries must remain bounded. Historical reads stay allowed; a reconfirmed same-run finding must support explicit unsent rebase with immutable prior source/draft versions and no duplicate claim. Add actual HTTP coverage for reversal, reconfirmation, stale DTOs and same-run rebase recovery. Backend owns implementation/tests; this reviewer remains independent.
+
+## RC-R1 correction independently reexamined
+
+Incremental source approval reinstated after reading the complete correction and new HTTP assertions. Detail now queries the latest exact organization/operation/run/finding decision by descending ordinal and marks stale when its ID differs from the captured source decision or its action is not confirm, in addition to fingerprint changes. Summary uses a tenant-scoped lateral latest-decision query with scalar IDs/action and the same condition, retaining bounded reads instead of loading histories. Missing latest decisions fail closed as stale. Source snapshots and original decisions remain immutable.
+
+The expanded real-service test source exercises dismiss reversal in both summary/detail, reconfirmation that remains stale until explicit same-run rebase, successful rebase restoring current state and export, unchanged prior source/draft, and a later new-run rebase preserving all three source versions. This closes the formerly trapped-draft path without weakening current export checks or duplicating a claim.
+
+Reviewed corrective SHA-256: application `3a13c13a681e160d3f73d4b2c2637e23b9614b7e11ae27a6feeadf650d3b8443`; HTTP tests `f011fa0787bde3cb60bb6bceb9c262fc7c2e7920ebb58f8ee43dd3efda493459`. No production code or tests were authored by this reviewer. RC-R1 is resolved in source; actual CI execution of this correction remains required and is not inferred from earlier runs. No critical/high source findings remain open in the reviewed scope.

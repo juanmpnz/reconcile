@@ -34,3 +34,32 @@ Meaningful existing assertions cover authoritative 62 USD creation after confirm
 Requested before final approval: concurrent edit versus export (not only two draft edits), reversal of a confirmation blocking export, event dates before claim creation/last event, explicit fiscal/operation-mismatch ineligibility, dossier provenance/checksum/export-hash assertions, sent-source rebase/export prohibition and broader viewer mutation coverage. Backend owns those test changes. A concrete test mismatch was identified: document correction endpoint returns 201 while the new claim negative setup expected 200; fix the setup assertion rather than altering that existing API. A frontend fixture lacked the required exports array and would fail schema validation before its intended foreign-tenant check; frontend was notified to complete the fixture.
 
 Source review remains open pending corrections and actual execution. No runtime pass is inferred from this inspection.
+
+## Final assembled source review and local gate
+
+Reexamined the backend changes and expanded four HTTP test groups. The earlier correction setup now correctly expects 201. Added acceptance checks cover concurrent edit/export requiring exactly `[200,409]`, SHA-256 of exact persisted export bytes, dossier draft ID/version and parser/rule/run lineage plus original invoice reference, reversal blocking export, stale source/rebase history, manual event date before creation, sent export/rebase rejection, contradictory terminal outcomes, fiscal and operation-mismatch rejection, and strict rejection of client-supplied amount. The mismatch negative explicitly selects the known invoice document, avoiding a vacuous 422 caused by an unrelated operational-record kind. Frontend fixture exports are present, so its foreign-attribution tests reach their intended checks.
+
+Independent new test-source review: passed for the examined implementation. Runtime safety is still pending actual CI. The broader role/tenant surface is reviewed in the shared backend authorization path; the four new groups are proportional, not an exhaustive every-route/every-role matrix.
+
+`pnpm check > /tmp/reconcile-phase4-check.log 2>&1` completed with exit 0 after backend/frontend source freeze:
+
+- Catalog validation and **8 harness regression tests** passed.
+- Formatting, ESLint and strict application/test TypeScript passed.
+- **67 unit tests in 13 files** passed.
+- All packages, API, worker and web production builds passed.
+
+A final frontend-only correction during this run requires explicit resolution outcome selection rather than defaulting to withdrawn. It landed before the final web build: `claim-detail.tsx` mtime 2026-10-15T12:47:42.752Z; production JS artifact mtime 12:47:55.488Z. The built JS includes the explicit resolution placeholder; this is artifact attribution, not a replacement for browser behavior tests. Post-fix scoped Prettier and ESLint also passed. Actual final production assets handed to independent browser QA: **`index-CXNIMy76.css` / `index-enDI0Y2i.js`**. No duplicate production build was requested.
+
+Known Rollup dependency-annotation and bundle-size advisories remain visible. Real migration/HTTP/storage acceptance and service smoke remain pending the exact CI candidate; neither compilation nor the UI fixture suite certifies them.
+
+## Final UI delta attribution
+
+After the full check and its first web artifact, frontend added the explicit disabled Save condition for a resolved event without a chosen outcome. QA did not attribute the previous artifact to that later line. Ran scoped Prettier, scoped ESLint and `pnpm --filter @reconcile/web build` (strict TypeScript plus Vite), all passed, log `/tmp/reconcile-phase4-web-delta.log`.
+
+The **definitive final browser artifact** is **`index-DwBAVmrC.js` / `index-CXNIMy76.css`**, replacing the earlier JS artifact above. Final `claim-detail.tsx` SHA-256: `965be0b89ca40d1dda576e1b5e644728f624615ce0428e105985e99f86446b90`. Frontend explicitly stopped production edits. Browser execution was informed to rerun its full thirteen groups against this final artifact; the earlier in-flight browser pass is not relabeled as testing the later change.
+
+## Additional lifecycle finding RC-R1
+
+The principal identified a blocking recovery gap after the first candidate publication: claim summary/detail stale flags compared only source input fingerprint, while export correctly checked decision identity. A confirm → dismiss → confirm sequence on the same run could leave `stale=false` but export blocked by `REVIEW_CHANGED`, hiding the UI's explicit rebase route. Initial CI run 38737672379 tests only the earlier source and cannot certify this later correction.
+
+Backend owns the bounded decision-identity stale calculation plus real HTTP reversal/reconfirmation/same-run rebase recovery acceptance. QA will independently reexamine it and require a corrected-source CI run. Earlier source/full-check evidence is retained with its limits; no final runtime approval is inferred while RC-R1 is open.
