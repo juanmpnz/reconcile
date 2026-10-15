@@ -39,3 +39,17 @@ Fencing uses a Prisma proxy only to delay the transaction boundary; the actual t
 ## Limits
 
 All business evidence is synthetic and does not establish document accuracy for real carriers or confidential data. No physical disaster recovery, corporate SSO/MFA, production deployment or full screen-reader certification is claimed. Browser interaction QA is a separately attributed execution; it must remain distinct from actual-service HTTP acceptance.
+
+## Actual-service CI acceptance — independently inspected
+
+On 2026-10-15 `/root/analysis_qa` fetched the job summaries and decoded logs directly through the connected GitHub API for [run 38714946560](https://github.com/juanmpnz/reconcile/actions/runs/38714946560), job 116355251495. Source commit: `793afc70a715724f59882193bed764692e55d313`. Checkout tested PR merge `24d9827c72c4a03b79837dd16f55f51868070a05`; both Git commit endpoints report the identical tree `ef6e4061e1c635f4c4c6f3989bb9a778c6f3329a`.
+
+- Frozen install, `pnpm check`, real Compose infrastructure and migrations: passed.
+- Unit suite: **55 passed** in 9 files, including parser and financial rule tests.
+- Actual-service HTTP acceptance: **43 passed** in 3 files: **12 analysis**, 10 private-document and 21 identity integration cases. The analysis file completed in 17.236 seconds. This includes all twelve behaviors and declared fault boundaries above; no parser, authentication or financial output mock was substituted.
+- API/worker smoke: passed; readiness reported database, Redis and private storage up, then the platform worker completed its smoke job.
+- Entire job conclusion is **failure**, solely because the final expert gate rejected `Task is not verified: 2026-10-15-explainable-analysis`. This collection run intentionally precedes evidence closure; do not call this run globally green.
+
+The actual CI PDF-to-analysis acceptance passed on the pinned tree, closing the earlier overloaded local parser-smoke uncertainty for these synthetic fixtures. No production timeout was relaxed. A later metadata/UI closure commit requires its own CI result; these logs are not attributed to an untested later tree.
+
+Independent architecture execution `/root/analysis_architecture` reviewed the twelve-group test source and found no additional blocking source findings, while correctly retaining the runtime-pending limitation before this CI evidence arrived. QA authored the test code and does not describe that authorship as an independent test-code review.

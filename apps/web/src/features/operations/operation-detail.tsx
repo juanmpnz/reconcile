@@ -1,3 +1,4 @@
+import { WarningsList } from './warnings';
 import { useState } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AnalysisRun, OperationDetail } from '@reconcile/contracts';
@@ -317,6 +318,7 @@ export function OperationDetailView({
           Revisá los candidatos extraídos antes de analizar. Los formatos no
           reconocidos y los campos ausentes no se completan con suposiciones.
         </p>
+        <WarningsList warnings={data.warnings} filenames={filenames} />
         {!data.facts.length ? (
           <p>
             No hay datos de comparación disponibles. Esperá a que finalice la
@@ -533,17 +535,11 @@ export function OperationDetailView({
                 Iniciado {timestampLabel(selected.createdAt)}
               </span>
             </div>
-            {selected.inputWarnings.length > 0 && (
-              <div className="document-warning">
-                <strong>Limitaciones de los documentos de este análisis</strong>
-                <p>
-                  Hay documentos o datos que no pudieron usarse completamente.
-                  Revisá las fuentes, sus estados de extracción y las partidas
-                  marcadas como no verificables. El resultado no cubre los datos
-                  omitidos.
-                </p>
-              </div>
-            )}
+            <WarningsList
+              warnings={selected.inputWarnings}
+              filenames={filenames}
+              historical
+            />
             {selected.stale && (
               <div className="document-warning">
                 <strong>Datos modificados desde este análisis</strong>

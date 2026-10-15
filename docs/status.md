@@ -1,15 +1,15 @@
 # Implementation status
 
-## Phase 0
+## Phase 0 — historical baseline
 
 Implemented: workspace, TypeScript and lint configuration, React foundation showing actual readiness, NestJS/Fastify health endpoints, PostgreSQL schema/migration, BullMQ platform ping worker, local infrastructure, Docker targets and CI with service smoke.
 
-Only the platform ping job exists. Invoice extraction, financial analysis, claim generation and business jobs remain unimplemented. Phase 1 identity is described below. No remote system is connected. Local verification passed: formatting, lint, strict TypeScript, five tests and production builds. API liveness returned 200; readiness correctly returned 503 with unavailable dependencies. Complete service smoke, dependency startup, migration and anonymous bucket denial passed in GitHub Actions for commit 63dcd20a0d2eee7501dc3137b31d334bb740982c: https://github.com/juanmpnz/reconcile/actions/runs/38614690917. Docker container targets themselves have not been built in this environment.
+At phase0closure only the platform ping job existed; document processing and financial analysis were implemented in the later phases below. Claims remain unimplemented. Phase 1 identity is described below. No remote system is connected. Local verification passed: formatting, lint, strict TypeScript, five tests and production builds. API liveness returned 200; readiness correctly returned 503 with unavailable dependencies. Complete service smoke, dependency startup, migration and anonymous bucket denial passed in GitHub Actions for commit 63dcd20a0d2eee7501dc3137b31d334bb740982c: https://github.com/juanmpnz/reconcile/actions/runs/38614690917. Docker container targets themselves have not been built in this environment.
 
 ## Next
 
-1. Finish phase3 actual-service/browser verification; the implementation is described below.
-2. Phase 4: reviewed claim drafts and export; no automatic email/accounting writes.
+1. Phase4: human finding decisions, reviewed claim drafts and export; no automatic email/accounting writes.
+2. Phase5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
 ## Expert harness
 
@@ -43,4 +43,4 @@ This is a bounded text/label extractor, not universal invoice/table recognition.
 
 Implemented organization-owned operations, explicit document association, structured facts from existing actual PDF page text, review revisions/reasons/provenance, versioned deterministic logistics rules and immutable asynchronous analysis snapshots. UI exposes per-line expected/invoiced/difference/currency/reason/evidence, current versus historical runs and stale-input warning. Durable PostgreSQL outbox, current actor permissions, bounded attempts/fenced leases and lost-job reconciliation extend the document foundation. Details/capacity limits: ADR0005; current flow: docs/user-guide.md.
 
-The original fourPDF demo supports pickup62 from explicit exclusion plus matching operation/service/date/route and transport invoice/performance. Missing ocean-handling scope remains no-verifiable until source review; no scope or exchange/tax condition is invented. There are no financial approval, finding decision, claim or send actions; those remain phase4. Local aggregate checks and independent source/UX/financial reviews are tracked in the task record; actual43HTTPcase CI and browser completion are pending. No production, arbitraryPDF, ERP or realcustomer accuracy claim.
+The original fourPDF demo supports pickup62 from explicit exclusion plus matching operation/service/date/route and transport invoice/performance. Missing ocean-handling scope remains no-verifiable until source review; no scope or exchange/tax condition is invented. There are no financial approval, finding decision, claim or send actions; those remain phase4. For source793afc70a715724f59882193bed764692e55d313, run38714946560 passed frozeninstall/fullcheck55unit+8harness, migration,43/43realHTTP(12analysis+31baseline) and completeAPI/PG/Redis/privatebucket/worker smoke. TestedPRmerge24d9827c72c4a03b79837dd16f55f51868070a05 has the identicaltree. Onlypendingverifiedtaskgate failed in that evidencecollection run. FinalUX-A4warningpresentation adds two targetedprivacytests(types/lintpassed); independentlyrebuiltReactbrowser17/17groups passed finalUIwith explicitAPIfixtures. Finalclosure changes presentation/task/docs, with API/domain/schema/jobs/tests unchanged since actualserviceacceptance. FinalCIchecks the completecandidate. Exactscope/limits in .agents/tasks/2026-10-15-explainable-analysis.json. No production, arbitraryPDF, ERP or realcustomer accuracy claim.

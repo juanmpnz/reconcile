@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-explainable-analysis",
   "summary": "Phase3 tenant-scoped explainable line comparisons with actual document facts, immutable snapshots and asynchronous evidence-backed runs",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root, /root/analysis_product_domain, /root/analysis_backend, /root/analysis_frontend and /root/analysis_qa",
   "changeClass": "domain",
@@ -18,7 +18,8 @@
     "pnpm-lock.yaml",
     ".github/workflows/",
     ".agents/tasks/2026-10-15-explainable-analysis.json",
-    ".agents/reviews/"
+    ".agents/reviews/",
+    "README.md"
   ],
   "acceptance": [
     "Actual existing uploaded PDF page text yields reviewable line/condition/service facts with provenance; no fixture answers loaded by product.",
@@ -50,7 +51,136 @@
   ],
   "semanticRouting": "All16 roles apply to financial product/domain, new UX/workspace, extraction of actual PDF facts, operation/analysis schema/contracts/jobs, tenant/security, local import boundaries and platform changes. Product/domain acceptance and architecture/UX planning precede dependent implementation. No realERP connector or claim/export/deployment is part of phase3.",
   "excludedRoles": [],
-  "reviews": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Scope/routing, exactmergedmainbase, workspace/lock, full55unit+8harnesscheck, actual43HTTPandservice-smokelogreview; sourceauthor/coordinator disclosed",
+      "evidence": [".agents/reviews/explainable-analysis-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Scope/routing, exactmergedmainbase, workspace/lock, full55unit+8harnesscheck, actual43HTTPandservice-smokelogreview; sourceauthor/coordinator disclosed",
+      "evidence": [".agents/reviews/explainable-analysis-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Preimplementationacceptance, versionedpurefinancialengine and23rulecases; selfauthorshipdisclosed, independentarchitect/QA validate separately",
+      "evidence": [".agents/reviews/explainable-analysis-product-domain.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Preimplementationacceptance, versionedpurefinancialengine and23rulecases; selfauthorshipdisclosed, independentarchitect/QA validate separately",
+      "evidence": [".agents/reviews/explainable-analysis-product-domain.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "ActualPDFfactadapter, services/schema/API/outbox/history/provenance implementation andchecks; selfreviewdisclosed",
+      "evidence": [".agents/reviews/explainable-analysis-backend.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "ActualPDFfactadapter, services/schema/API/outbox/history/provenance implementation andchecks; selfreviewdisclosed",
+      "evidence": [".agents/reviews/explainable-analysis-backend.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Frontendoperations/facts/history/evidence andlatewarningspresentation/types/lint; selfreviewdisclosed",
+      "evidence": [".agents/reviews/explainable-analysis-frontend.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "All11sourcefindings resolved/reexamined, typedfinancialrules,12HTTPtestsource andboundary/provenance/capacityguards; independently23rulecasespassed",
+      "evidence": [".agents/reviews/explainable-analysis-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "All11sourcefindings resolved/reexamined, typedfinancialrules,12HTTPtestsource andboundary/provenance/capacityguards; independently23rulecasespassed",
+      "evidence": [".agents/reviews/explainable-analysis-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "All11sourcefindings resolved/reexamined, typedfinancialrules,12HTTPtestsource andboundary/provenance/capacityguards; independently23rulecasespassed",
+      "evidence": [".agents/reviews/explainable-analysis-architecture.md"]
+    },
+    {
+      "role": "integration-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "All11sourcefindings resolved/reexamined, typedfinancialrules,12HTTPtestsource andboundary/provenance/capacityguards; independently23rulecasespassed",
+      "evidence": [".agents/reviews/explainable-analysis-architecture.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Blueprintbeforeimplementation, finalUX-A1toA4sourcefixes anddesktop/mobilevisualinspection; browserexecutionattributedseparately",
+      "evidence": [".agents/reviews/explainable-analysis-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Blueprintbeforeimplementation, finalUX-A1toA4sourcefixes anddesktop/mobilevisualinspection; browserexecutionattributedseparately",
+      "evidence": [".agents/reviews/explainable-analysis-ux.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Blueprintbeforeimplementation, finalUX-A1toA4sourcefixes anddesktop/mobilevisualinspection; browserexecutionattributedseparately",
+      "evidence": [".agents/reviews/explainable-analysis-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Blueprintbeforeimplementation, finalUX-A1toA4sourcefixes anddesktop/mobilevisualinspection; browserexecutionattributedseparately",
+      "evidence": [".agents/reviews/explainable-analysis-ux.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "ActualCI43HTTPwithactualPDF/auth/PG/S3/Redis, exactsource793afc70/sametreePRmerge24d9827c,55unit+smokepass; testauthorshipdisclosed/testsourceindependentlyreviewedbyarchitect",
+      "evidence": [".agents/reviews/explainable-analysis-qa.md"]
+    }
+  ],
   "checks": [
     {
       "command": "pnpm check",
@@ -58,15 +188,155 @@
       "result": "Full local check passed55unit(23financialrules,4newfrontendboundaries),8harness regressions, strictapp/testtypes, lint,format andallbuilds. Browser/actualservice acceptance trackedseparately."
     },
     {
-      "command": "Actual PostgreSQL/S3/Redis analysis HTTP acceptance and service smoke",
-      "status": "not-run",
-      "result": "New12realHTTPgroups plus31baseline ready for CI; localPostgreSQLrootrestrictionnotbypassed."
+      "command": "CI real-service evidence collection",
+      "status": "passed",
+      "result": "Source793afc70a715724f59882193bed764692e55d313 run38714946560 job116355251495:55unit+8harness; actual43HTTP(12analysis+10document+21identity), migration andAPI/PG/Redis/privatebucket/worker smoke passed. TestedPRmerge24d9827c72c4a03b79837dd16f55f51868070a05 hasidenticaltreeef6e4061e1c635f4c4c6f3989bb9a778c6f3329a. Onlygateawaitedverifiedrecord. NewUXA4presentationdelta checkedseparatelyandfinalCIrequired."
+    },
+    {
+      "command": "Independent actual Chromium UI checks",
+      "status": "passed",
+      "result": "17/17groups passed final rebuiltReactproductionpreview with explicitAPIfixtures. Includes warningcurrent/historicalprivacy delta, factediting/polling/permissions/history/latequeries/keyboard/320/390and200%zoom. Actualbackend/serviceevidence separate."
+    },
+    {
+      "command": "Focused finalwarning presentation checks",
+      "status": "passed",
+      "result": "2warningprivacy/fallback tests, frontendtypecheck andscopedESLint passed afterUX-A4; prior55unit/fullcheck unchangedbackend. FinalCIwillverify57unit+43HTTP onmergedcandidate."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 14813331075cbe7996de66e7a2ff26027bbc4c18",
+      "status": "passed",
+      "result": "Finalverifiedrecord coverswholeanalysisdiff includingREADME/source/review/artifacts,16requiredroles; formatting/diffchecks pass. PreviousscopeomissionREADME corrected beforepublication."
     }
   ],
-  "findings": [],
-  "limitations": [
-    "Synthetic data and bounded PDF text parsing; real customer validation and OCR remain separate.",
-    "Phase4 claim/export and Phase5 deployment/backups/restore remain after this comparison step."
+  "findings": [
+    {
+      "id": "AR-A1",
+      "severity": "high",
+      "summary": "Agreement price scope could ignore route",
+      "status": "resolved",
+      "resolution": "Every supported service requires known matching scope; applicable scope selected before ambiguity, independentrulecases/sourcechecked."
+    },
+    {
+      "id": "AR-A2",
+      "severity": "medium",
+      "summary": "Blank identities and invalid calendar dates could compare",
+      "status": "resolved",
+      "resolution": "Explicit nonempty identity guards and calendar round-trip validation; no unknown equals unknown."
+    },
+    {
+      "id": "AR-A3",
+      "severity": "high",
+      "summary": "Historical snapshot lacked explicit immutable input lineage",
+      "status": "resolved",
+      "resolution": "Stored sources capture document checksum, extraction/version, correction revision and reviewed-fact identity; queue snapshot frozen."
+    },
+    {
+      "id": "AR-A4",
+      "severity": "medium",
+      "summary": "Fact review could change source classification",
+      "status": "resolved",
+      "resolution": "Persisted linked extraction and document kind enforced; UIkindreadonly."
+    },
+    {
+      "id": "AR-A5",
+      "severity": "high",
+      "summary": "Same-time review ordering could choose older random UUID",
+      "status": "resolved",
+      "resolution": "Serialized monotonic operation ordinal with unique constraint and ordinalorderedreads."
+    },
+    {
+      "id": "AR-A6",
+      "severity": "high",
+      "summary": "Explicit line currency could be discarded",
+      "status": "resolved",
+      "resolution": "Header/line/tax currency conflicts become warnings/unknown, no implicitconversion."
+    },
+    {
+      "id": "AR-A7",
+      "severity": "high",
+      "summary": "Conflicting agreement scope or basis used last match",
+      "status": "resolved",
+      "resolution": "Ambiguous facts remain unknown withwarnings ratherthanorderdependentselection."
+    },
+    {
+      "id": "AR-A8",
+      "severity": "medium",
+      "summary": "Unsupported structured source could block entireoperation",
+      "status": "resolved",
+      "resolution": "Bounded safe candidate derivation produces visible document-scoped unsupportedwarnings; no silentline truncation."
+    },
+    {
+      "id": "AR-A9",
+      "severity": "medium",
+      "summary": "Polling embedded too many complete histories",
+      "status": "resolved",
+      "resolution": "Perdoc16KiB, snapshot/result128KiB,5recentfullruns, paginatedmetadatahistory andon-demandfullrun."
+    },
+    {
+      "id": "AR-A10",
+      "severity": "medium",
+      "summary": "Manual review metadata invisible to operator",
+      "status": "resolved",
+      "resolution": "Newest100review IDs/actors/reasons/ordinals/times exposed; completehistory retainedDB."
+    },
+    {
+      "id": "AR-A11",
+      "severity": "high",
+      "summary": "Oversized result could be stored after boundfailure",
+      "status": "resolved",
+      "resolution": "Allprocessingerror/revocationpaths clear result beforeterminalcommit; no oversized failedresult."
+    },
+    {
+      "id": "UX-A1",
+      "severity": "medium",
+      "summary": "Backgroundpolling closed/reopened editingdialogs",
+      "status": "resolved",
+      "resolution": "Onlyfreshauthorization suspendshiddenprotecteddata; harmlesspolling preservesmodal/draft, actualbrowserchecked."
+    },
+    {
+      "id": "UX-A2",
+      "severity": "medium",
+      "summary": "Readonly reader could not inspect agreement exclusionbasis",
+      "status": "resolved",
+      "resolution": "Readonly exclusions and sourceevidence visible outsideeditcontrols."
+    },
+    {
+      "id": "UX-A3",
+      "severity": "low",
+      "summary": "Viewer saw disabled analyze action without clearpolicy",
+      "status": "resolved",
+      "resolution": "Mutationcontrols hidden and readonlyscope explained."
+    },
+    {
+      "id": "UX-A4",
+      "severity": "medium",
+      "summary": "Omitted current/historical source could not be identified",
+      "status": "resolved",
+      "resolution": "Friendly perdocfilename/reason warninglist forcurrentandhistoricalinputs; unknownfallbackhidescodes/UUIDs."
+    }
   ],
-  "evidence": ["docs/product/explainable-analysis.md"]
+  "limitations": [
+    "Bounded label/table PDF grammar and synthetic evaluation; no OCR/LLM, fuzzy/universal supplier recognition or companyaccuracyguarantee.",
+    "Ocean-handling route absent in originalcarrierPDF staysnotverifiable until explicitsourcefactreview; no scope inferredfrompickup.",
+    "Findinghuman decisions/claims phase4; serverdeployment/HTTPS/backups/restore/deployedverificationphase5; noconfidentialdatarolloutclaim.",
+    "Latest100fact-reviewmetadata UI; full DBhistoryretained, fullreviewpaginationfuture. Latest5fullruns pluspaginatedanalysis metadata/history.",
+    "Node thread managedheap/parserbounds are not OSsandbox/totalnative-memory limit; realdatasecurity/MFArequirements unchanged.",
+    "BrowserAPIresponses are declaredfixtures, separatefrom43actualserviceHTTPcases; no complete real-auth browserE2E or full screen-reader certification.",
+    "Initialapplication directlyusesPrisma/concreteparser perexplicitpriorADRtradeoff; purefinancialdomainandsectorrules remainframeworkindependent."
+  ],
+  "evidence": [
+    "docs/product/explainable-analysis.md",
+    "docs/adr/0005-explainable-analysis.md",
+    "docs/design/analysis-workspace.md",
+    "docs/user-guide.md",
+    ".agents/reviews/explainable-analysis-main.md",
+    ".agents/reviews/explainable-analysis-product-domain.md",
+    ".agents/reviews/explainable-analysis-backend.md",
+    ".agents/reviews/explainable-analysis-frontend.md",
+    ".agents/reviews/explainable-analysis-architecture.md",
+    ".agents/reviews/explainable-analysis-ux.md",
+    ".agents/reviews/explainable-analysis-qa.md",
+    ".agents/reviews/explainable-analysis-browser.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38714946560"
+  ]
 }
