@@ -15,3 +15,17 @@ Primary dependency documentation consulted: PDF.js API getDocument/text controls
 ## Verification closure
 
 Implementation and final CI/browser/security reviews pending. This record does not certify a completed phase or independent approval. Exact final source, commands and limitations will be added after review.
+
+## Final local/source review
+
+Full local pnpm check completed with26unit tests,8harness regressions, strict application/test types, lint, formatting and builds. After the final fenced-lease/backend compensation and loader busy-group corrections, targeted application/API/worker/web types/lint and actual parser probes passed. QA added10real-service document cases alongside21identity cases; their source uses actual PostgreSQL/storage/parser with explicitly scoped transport/commit-ack fault injection for recovery tests, not fabricated extraction.
+
+Independent source review by /root/harness_architecture closes high stale-worker, retry-budget and uncertain-commit compensation findings. Independent browser execution /root/documents_browser_qa passed12/12groups, including final exposed busy group, reduced motion, retained selected file across fresh permissions, correction provenance, viewer controls,320/390px, keyboard and200%zoom. Root also viewed desktop document table/detail and320px detail screenshots: compact monochrome, no clipping or oversized typography. Browser fixtures do not prove real-service authorization.
+
+Platform correction after clean-build inspection: API test types import the worker's public documents export. Root typecheck now builds worker after shared packages before noEmit workspace checks, so a clean CI checkout does not depend on stale dist artifacts. Targeted worker build and API/test typecheck passed. Executable source current072ec5af355129807053519ea1d651832b340620; initial evidence run superseded by38706903198. Final runtime and evidence gate remain pending.
+
+Acceptance limits retained: no OCR/table understanding/AIprovider, no operationalJSON importer, no financial comparisons or claim actions. Application's direct Prisma/concrete-extractor dependency is an explicit bounded tradeoff in ADR0004; pure financial domain remains separate. Orphan storage cleanup is documented/manual, not atomic distributed storage/DB transaction. No real-auth browser E2E, full screen-reader audit or customer-format accuracy guarantee.
+
+## Real-service evidence iteration
+
+Run38706903198 on072ec5af passed frozen install/check/infra/migrations and all21identity cases, but7document cases failed (24/31total); smoke was skipped. This is not treated as a gate-only failure. Root and QA independently reproduced PDF extraction under Vitest: transformed import.meta.resolve was unsupported, whereas the built Node adapter worked. The adapter now resolves the fixed installed PDF.js module with Node createRequire plus pathToFileURL, with two real-byte regressions (valid carrier evidence and malformed PDF). Root and independent QA ran2/2 successfully. Wrong MIME now returns415 in the authorized onRequest guard before text-body parsing. No integration assertion was weakened. Corrected source requires another complete real-service run before verification.

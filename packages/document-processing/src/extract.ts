@@ -1,4 +1,6 @@
 import { Worker } from 'node:worker_threads';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import {
   extractionResultSchema,
   type ExtractionResult,
@@ -31,7 +33,11 @@ export async function extractPdf(bytes: Uint8Array): Promise<ExtractionResult> {
       execArgv: [],
       workerData: {
         bytes,
-        moduleUrl: import.meta.resolve('pdfjs-dist/legacy/build/pdf.mjs'),
+        moduleUrl: pathToFileURL(
+          createRequire(import.meta.url).resolve(
+            'pdfjs-dist/legacy/build/pdf.mjs',
+          ),
+        ).href,
       },
       resourceLimits: {
         maxOldGenerationSizeMb: 128,

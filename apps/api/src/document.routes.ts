@@ -128,6 +128,8 @@ export function registerDocumentRoutes(
       onRequest: async (req, reply) => {
         await bounded(reply, async () => {
           await context(req, reply, true);
+          if (req.headers['content-type'] !== 'application/pdf')
+            throw new DocumentError(415, 'PDF_REQUIRED');
         });
       },
     },

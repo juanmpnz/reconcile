@@ -49,7 +49,136 @@
   ],
   "semanticRouting": "All16 roles apply: new document product scope, logistics fixtures, UX/loaders, tenant-bound storage/schema/extraction/jobs, platform dependencies and real acceptance tests. Root product/domain acceptance precedes business implementation; independent architecture and design precede dependent work.",
   "excludedRoles": [],
-  "reviews": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Product/domain acceptance before implementation, synthetic references/PDFs and actual extraction probes; local fullcheck and final clean-build ordering; coordinator authorship disclosed",
+      "evidence": [".agents/reviews/document-foundation-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Product/domain acceptance before implementation, synthetic references/PDFs and actual extraction probes; local fullcheck and final clean-build ordering; coordinator authorship disclosed",
+      "evidence": [".agents/reviews/document-foundation-main.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Product/domain acceptance before implementation, synthetic references/PDFs and actual extraction probes; local fullcheck and final clean-build ordering; coordinator authorship disclosed",
+      "evidence": [".agents/reviews/document-foundation-main.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Product/domain acceptance before implementation, synthetic references/PDFs and actual extraction probes; local fullcheck and final clean-build ordering; coordinator authorship disclosed",
+      "evidence": [".agents/reviews/document-foundation-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/identity_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "React document flows, loaders, response boundaries and targeted lint/types/unit checks; self-review disclosed",
+      "evidence": [".agents/reviews/document-foundation-frontend.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/identity_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Private API/schema/parser/outbox implementation, bounded thread and source checks; self-review disclosed",
+      "evidence": [".agents/reviews/document-intake-backend.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/identity_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Private API/schema/parser/outbox implementation, bounded thread and source checks; self-review disclosed",
+      "evidence": [".agents/reviews/document-intake-backend.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final published backend/schema/security/source and10newreal-service test cases, actual PDF probes; runtime results separately pending",
+      "evidence": [".agents/reviews/document-foundation-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final published backend/schema/security/source and10newreal-service test cases, actual PDF probes; runtime results separately pending",
+      "evidence": [".agents/reviews/document-foundation-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final published backend/schema/security/source and10newreal-service test cases, actual PDF probes; runtime results separately pending",
+      "evidence": [".agents/reviews/document-foundation-architecture.md"]
+    },
+    {
+      "role": "integration-engineer",
+      "reviewer": "/root/harness_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final published backend/schema/security/source and10newreal-service test cases, actual PDF probes; runtime results separately pending",
+      "evidence": [".agents/reviews/document-foundation-architecture.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final bounded source recheck and targeted types; browser proof separately attributed",
+      "evidence": [".agents/reviews/document-foundation-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final bounded source recheck and targeted types; browser proof separately attributed",
+      "evidence": [".agents/reviews/document-foundation-ux.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final bounded source recheck and targeted types; browser proof separately attributed",
+      "evidence": [".agents/reviews/document-foundation-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/identity_ui_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation blueprint, final bounded source recheck and targeted types; browser proof separately attributed",
+      "evidence": [".agents/reviews/document-foundation-ux.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/documents_browser_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "12/12 actual Chromium UI contractfixturegroups; loader/motion/keyboard/mobile/corrections/tenant-race acceptance; not real-auth E2E",
+      "evidence": [".agents/reviews/document-foundation-browser.md"]
+    }
+  ],
   "checks": [
     {
       "command": "pnpm check",
@@ -65,11 +194,99 @@
       "command": "Real PostgreSQL/S3/Redis HTTP acceptance and browser checks",
       "status": "not-run",
       "result": "New7case real-service suite ready; CI and independent browser execution pending."
+    },
+    {
+      "command": "Independent Playwright/Chromium document and loader contract checks",
+      "status": "passed",
+      "result": "12/12groups passed final rerun; actual UI with synthetic API fixtures. Final source fingerprints recorded, no real-auth/E2E claim."
     }
   ],
-  "findings": [],
-  "limitations": [
-    "Phase3 financial comparison and real CargoWise integrations remain outside this step."
+  "findings": [
+    {
+      "id": "DOC-01",
+      "severity": "high",
+      "summary": "Stale worker failure could reset another lease owner result",
+      "status": "resolved",
+      "resolution": "Atomic fenced run/document transitions require matching token and unexpired lease; actual-service stale-worker regression added."
+    },
+    {
+      "id": "DOC-02",
+      "severity": "high",
+      "summary": "Redis redispatch could bypass transient retry budget",
+      "status": "resolved",
+      "resolution": "Persisted attempts end after3; actual missing-object regression checks no fourth effect."
+    },
+    {
+      "id": "DOC-03",
+      "severity": "high",
+      "summary": "Lost PostgreSQL commit acknowledgement could delete committed original",
+      "status": "resolved",
+      "resolution": "Primary candidate lookup before compensation; uncertain state preserves private object, actual commit-then-fault regression added."
+    },
+    {
+      "id": "UI-01",
+      "severity": "medium",
+      "summary": "Busy subtree could suppress loading live status or hide exposed busy state",
+      "status": "resolved",
+      "resolution": "Separate exposed busy group from live status; final actualbrowser assertion passed."
+    },
+    {
+      "id": "UI-02",
+      "severity": "medium",
+      "summary": "Empty page could render reversed ranges",
+      "status": "resolved",
+      "resolution": "Explicit empty page count; source and browser recheck."
+    },
+    {
+      "id": "DOC-04",
+      "severity": "medium",
+      "summary": "Correction order and count could race",
+      "status": "resolved",
+      "resolution": "Monotonic bounded revision reserved transactionally; canonical order used by UI."
+    },
+    {
+      "id": "DOC-05",
+      "severity": "medium",
+      "summary": "Upload authorization happened after buffering",
+      "status": "resolved",
+      "resolution": "Exact Origin/current verified membership and rate limit in onRequest before PDF buffering."
+    },
+    {
+      "id": "BUILD-01",
+      "severity": "medium",
+      "summary": "Clean noEmit typecheck could miss worker public test export",
+      "status": "resolved",
+      "resolution": "Build worker after packages before workspace typechecks; clean CI verification pending."
+    },
+    {
+      "id": "DOC-06",
+      "severity": "medium",
+      "summary": "PDF module lookup failed under actual integration runner and MIME rejection occurred too late",
+      "status": "resolved",
+      "resolution": "Portable Node installed-module resolution;2actual-byte parser regressions pass independently. MIME guard moved into authorizedonRequest. Real-service rerun required."
+    }
   ],
-  "evidence": ["docs/design/document-workspace.md"]
+  "limitations": [
+    "Initial extraction supports bounded embedded PDF text and six labeled candidates; no OCR or universal table/field accuracy.",
+    "Operational JSON is documented demo contract only; no importer or real CargoWise/mail connector.",
+    "Application currently directly uses Prisma/concrete extraction adapter, explicit ADR0004 tradeoff; financial domain remains independent.",
+    "No real-auth browser E2E, complete assistive-tech audit, exact Figma fidelity or realcustomer validation.",
+    "Storage/DB commit is not distributed atomic; possible orphan objects require documented manual retention/cleanup.",
+    "Page/text/time/resource bounds implemented; not every encrypted/over-limit PDF variant exercised by current acceptance suite."
+  ],
+  "evidence": [
+    "docs/product/document-intake.md",
+    "docs/product/demo-document-references.md",
+    "docs/adr/0004-document-ingestion.md",
+    "docs/design/document-workspace.md",
+    "docs/user-guide.md",
+    "docs/runbooks/document-processing.md",
+    ".agents/reviews/document-foundation-main.md",
+    ".agents/reviews/document-foundation-frontend.md",
+    ".agents/reviews/document-intake-backend.md",
+    ".agents/reviews/document-foundation-architecture.md",
+    ".agents/reviews/document-foundation-ux.md",
+    ".agents/reviews/document-foundation-qa.md",
+    ".agents/reviews/document-foundation-browser.md"
+  ]
 }
