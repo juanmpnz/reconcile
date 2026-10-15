@@ -109,8 +109,12 @@ export const operationCreateSchema = z
     name: z.string().trim().min(1).max(200),
   })
   .strict();
+export const operationUpdateSchema = operationCreateSchema
+  .extend({ expectedFingerprint: z.string().regex(/^[a-f0-9]{64}$/) })
+  .strict();
 export const operationDocumentsSchema = z
   .object({
+    expectedFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     documentIds: z
       .array(z.uuid())
       .max(20)

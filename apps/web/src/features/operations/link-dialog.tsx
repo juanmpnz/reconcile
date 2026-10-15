@@ -10,12 +10,14 @@ import {
   statusLabels,
 } from '../documents/api';
 import { useMounted } from '../../lib/use-mounted';
-import { linkDocuments } from './api';
+import { linkDocuments, OperationConflictError } from './api';
 export function LinkDialog({
   userId,
   organizationId,
   operationId,
   documentIds,
+  fingerprint,
+  activeRun,
   disabled,
   onSaved,
 }: {
@@ -23,6 +25,8 @@ export function LinkDialog({
   organizationId: string;
   operationId: string;
   documentIds: string[];
+  fingerprint: string;
+  activeRun: boolean;
   disabled: boolean;
   onSaved: () => Promise<void>;
 }) {
@@ -31,6 +35,8 @@ export function LinkDialog({
   const [selected, setSelected] = useState(documentIds);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [expectedFingerprint, setFingerprint] = useState(fingerprint);
+  const [conflict, setConflict] = useState(false);
   const mounted = useMounted();
   const documents = useQuery({
     queryKey: [...documentsKey(userId, organizationId), 'list', page],
@@ -39,8 +45,8 @@ export function LinkDialog({
   });
   return (
     <Dialog
-      title="Vincular documentos"
-      description="Elegí hasta 20 documentos de esta organización. Se conservarán los originales."
+      title="Gestionar documentos"
+      description="Elegí hasta 20 documentos. Desmarcar quita la asociación con esta operación; no borra el PDF, su extracción ni los análisis anteriores."
       open={open && !disabled}
       busy={busy}
       onOpenChange={(next) => {
@@ -49,11 +55,13 @@ export function LinkDialog({
         if (next) {
           setSelected(documentIds);
           setPage(0);
+          setFingerprint(fingerprint);
+          setConflict(false);
         }
       }}
       trigger={
-        <Button variant="outline" disabled={disabled}>
-          Vincular documentos
+        <Button variant="outline" disabled={disabled || activeRun}>
+          Gestionar documentos
         </Button>
       }
     >
@@ -61,12 +69,17 @@ export function LinkDialog({
         aria-busy={busy}
         onSubmit={(event) => {
           event.preventDefault();
-          if (busy || disabled) return;
+          if (busy || disabled || activeRun || conflict) return;
           setBusy(true);
           setError('');
           void (async () => {
             try {
-              await linkDocuments(organizationId, operationId, selected);
+              await linkDocuments(
+                organizationId,
+                operationId,
+                selected,
+                expectedFingerprint,
+              );
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -77,6 +90,13 @@ export function LinkDialog({
                     ? error.message
                     : 'No se pudieron vincular los documentos.',
                 );
+              if (error instanceof OperationConflictError && mounted.current) {
+                setConflict(
+                  error.code === 'STALE_OPERATION' ||
+                    error.code === 'CONCURRENT_UPDATE',
+                );
+                await onSaved();
+              }
             } finally {
               if (mounted.current) setBusy(false);
             }
@@ -84,6 +104,27 @@ export function LinkDialog({
         }}
       >
         <Feedback error message={error} />
+        {conflict && (
+          <p className="document-warning">
+            La operación ahora tiene {documentIds.length} documentos vinculados.
+            Los documentos que siguen vinculados se indican en la lista. Tu
+            selección anterior se conservó; revisala antes de guardar.
+          </p>
+        )}
+        {conflict && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || activeRun}
+            onClick={() => {
+              setFingerprint(fingerprint);
+              setConflict(false);
+              setError('');
+            }}
+          >
+            Revisé las asociaciones actualizadas; conservar mi selección
+          </Button>
+        )}
         <p className="metadata" role="status">
           {selected.length} documentos seleccionados en todas las páginas.
         </p>
@@ -119,6 +160,9 @@ export function LinkDialog({
               />
               <span>
                 {item.filename}
+                {documentIds.includes(item.id) && (
+                  <small>Vinculado actualmente</small>
+                )}
                 <small>
                   {kindLabels[item.kind]} · {statusLabels[item.status]}
                 </small>
@@ -161,7 +205,9 @@ export function LinkDialog({
           </Button>
           <Button
             pending={busy}
-            disabled={documents.isPending || documents.isError}
+            disabled={
+              documents.isPending || documents.isError || conflict || activeRun
+            }
           >
             {busy ? 'Guardando…' : 'Guardar documentos'}
           </Button>

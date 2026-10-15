@@ -1,0 +1,13 @@
+# Operation editing and document links — implementation review
+
+Execution `/root/analysis_backend`, backend-engineer, sequential self-review. This is not independent review.
+
+Changed contracts, application operation update/link cases, API PATCH route, identity audit optional JSON column and additive migration, and real HTTP acceptance tests in `apps/api/test/analysis.integration.test.ts`.
+
+PATCH `/api/v1/organizations/:organizationId/operations/:operationId` accepts strict `{ name, reference, expectedFingerprint }` with create-equivalent bounds. PUT `.../documents` now requires `{ documentIds, expectedFingerprint }`. Both authorize a fresh verified writer, use existing exact Origin/CSRF checks and per-actor write throttling, and serialize on the operation row inside Repeatable Read transactions. Stale fingerprints fail `409 STALE_OPERATION`; active queued/processing analyses block material edits with `409 ANALYSIS_ACTIVE`; reference conflicts fail `409 REFERENCE_EXISTS`; concurrent serialization conflicts retain the existing `409 CONCURRENT_UPDATE` route boundary. Identical no-ops preserve revision, timestamp and business audit count. Existing fact revisions retain their phase 3 immutable-snapshot semantics.
+
+Material metadata/link changes increment revision. Fingerprints retain the previous format (reference, revision and linked source set); name edits increment the existing revision, preserving compatibility with prior unchanged runs. historical snapshots/results are untouched and become stale. Before/after metadata or document identifiers, actor, operation ID and revision are recorded in bounded audit details. No PDF contents or credentials enter audit metadata. Unlinking only removes operation links, preserving original documents and historical snapshots. The additive nullable `details JSONB` migration preserves existing audit rows.
+
+Acceptance coverage added: edit existing operation and restore `OP-DEMO-062` without recreating it; original four PDFs still produce the 62 USD finding; historical snapshot immutability/stale flag; stale metadata/link rejection; no-op; duplicate reference; explicit unlink/relink preserving originals; viewer/foreign tenant/hostile origin/invalid input denial; active analysis edit/link blocking. Existing HTTP test helper now supplies the current link fingerprint.
+
+Validation: Prisma client generation succeeded. Strict contracts/database/application compilation and API test compilation passed. ESLint on changed production/test TS passed. Actual PostgreSQL/Redis/S3 acceptance requires the canonical CI run and is not claimed by this self-review.

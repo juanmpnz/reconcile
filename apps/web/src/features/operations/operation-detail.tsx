@@ -1,3 +1,12 @@
+import { EditOperationDialog } from './edit-dialog';
+import { EvidenceList } from './evidence';
+import {
+  findingCounts,
+  findingGroup,
+  outcomeLabels,
+  outcomeIcons,
+  observedMissingFacts,
+} from './presentation';
 import { WarningsList } from './warnings';
 import { useState } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -36,12 +45,6 @@ const runLabels: Record<AnalysisRun['status'], string> = {
   completed: 'Completado · requiere revisión',
   failed: 'Error de análisis',
   blocked: 'Análisis bloqueado',
-};
-const outcomeLabels = {
-  confirmed: 'Diferencia respaldada por evidencia',
-  probable: 'Posible diferencia',
-  'not-verifiable': 'No verificable',
-  matched: 'Sin diferencia de precio detectada',
 };
 const serviceLabels: Record<string, string> = {
   'ocean-handling': 'Servicio base marítimo',
@@ -187,6 +190,18 @@ export function OperationDetailView({
           <p>{data.name}</p>
         </div>
         {data.capabilities.canWrite && (
+          <EditOperationDialog
+            organizationId={organizationId}
+            operationId={operationId}
+            name={data.name}
+            reference={data.reference}
+            fingerprint={data.fingerprint}
+            disabled={disabled}
+            activeRun={data.analyses.some(active)}
+            onSaved={refresh}
+          />
+        )}
+        {data.capabilities.canWrite && (
           <Button
             pending={busy}
             disabled={
@@ -200,8 +215,8 @@ export function OperationDetailView({
           >
             {busy
               ? 'Solicitando análisis…'
-              : selected?.stale
-                ? 'Reanalizar operación'
+              : data.analyses.length > 0
+                ? 'Volver a analizar'
                 : 'Analizar operación'}
           </Button>
         )}
@@ -213,6 +228,66 @@ export function OperationDetailView({
         </p>
       )}
       <Feedback error message={error} />
+      {data.analyses.some(active) && (
+        <p className="permission-note">
+          Hay un análisis en curso. Podrás editar la operación y sus documentos
+          cuando termine.
+        </p>
+      )}
+      <WarningsList warnings={data.warnings} filenames={filenames} />
+      {data.facts.some(
+        (fact) => fact.operationReference !== data.reference,
+      ) && (
+        <section
+          className="reference-preflight"
+          aria-label="Referencias de los documentos"
+        >
+          <strong>Revisá las referencias antes de analizar</strong>
+          <p>
+            Referencia esperada de la operación: {data.reference}. Las
+            referencias diferentes se analizarán como no verificables; no se
+            corrigen automáticamente.
+          </p>
+          <TableRegion label="Referencias encontradas en los documentos">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Documento</th>
+                  <th scope="col">Referencia encontrada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.facts
+                  .filter((fact) => fact.operationReference !== data.reference)
+                  .map((fact) => (
+                    <tr key={fact.documentId}>
+                      <td>
+                        {filenames.get(fact.documentId) ??
+                          'Documento vinculado'}
+                      </td>
+                      <td>
+                        {fact.operationReference ??
+                          'Sin referencia identificada'}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </TableRegion>
+          <a
+            href="#comparison-facts"
+            onClick={() => {
+              const heading = document.getElementById('comparison-facts');
+              const panel = heading?.closest('details');
+              if (panel) panel.open = true;
+              heading?.focus();
+            }}
+          >
+            {data.capabilities.canWrite ? 'Revisar datos' : 'Ver datos'}
+          </a>
+        </section>
+      )}
+
       <Button
         variant="outline"
         pending={query.isFetching}
@@ -224,7 +299,7 @@ export function OperationDetailView({
           );
         }}
       >
-        Actualizar datos
+        Recargar datos
       </Button>
       <p className="permission-note">
         La comparación identifica diferencias y evidencia disponible. No aprueba
@@ -235,252 +310,9 @@ export function OperationDetailView({
       )}
       <section
         className="operation-section"
-        aria-labelledby="operation-documents"
-      >
-        <div className="page-header">
-          <h3 id="operation-documents">Documentos</h3>
-          {data.capabilities.canWrite && (
-            <LinkDialog
-              userId={userId}
-              organizationId={organizationId}
-              operationId={operationId}
-              documentIds={data.documentIds}
-              disabled={disabled}
-              onSaved={refresh}
-            />
-          )}
-        </div>
-        {!data.documentIds.length ? (
-          <EmptyState title="No hay documentos vinculados">
-            <p>
-              Vinculá las facturas, el acuerdo aplicable y el registro operativo
-              de esta misma operación.
-            </p>
-          </EmptyState>
-        ) : (
-          <TableRegion label="Documentos vinculados a la operación">
-            <table>
-              <caption className="sr-only">
-                Originales y estado de extracción
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Documento</th>
-                  <th scope="col">Tipo</th>
-                  <th scope="col">Extracción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.documentIds.map((id, index) => {
-                  const document = documentQueries[index];
-                  return (
-                    <tr key={id}>
-                      <td>
-                        <a
-                          href={documentPath(organizationId, id)}
-                          onClick={(event) => {
-                            if (!event.metaKey && !event.ctrlKey) {
-                              event.preventDefault();
-                              navigate(documentPath(organizationId, id));
-                            }
-                          }}
-                        >
-                          {document?.data?.filename ?? 'Documento vinculado'}
-                        </a>
-                        {document?.isError && (
-                          <p className="metadata">
-                            No se pudo cargar el nombre. Abrí el documento para
-                            reintentar.
-                          </p>
-                        )}
-                      </td>
-                      <td>
-                        {document?.data
-                          ? kindLabels[document.data.kind]
-                          : 'Consultando…'}
-                      </td>
-                      <td>
-                        {document?.data
-                          ? statusLabels[document.data.status]
-                          : 'Consultando…'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </TableRegion>
-        )}
-      </section>
-      <section className="operation-section" aria-labelledby="comparison-facts">
-        <h3 id="comparison-facts">Datos para comparar</h3>
-        <p className="metadata">
-          Revisá los candidatos extraídos antes de analizar. Los formatos no
-          reconocidos y los campos ausentes no se completan con suposiciones.
-        </p>
-        <WarningsList warnings={data.warnings} filenames={filenames} />
-        {!data.facts.length ? (
-          <p>
-            No hay datos de comparación disponibles. Esperá a que finalice la
-            extracción y actualizá la operación.
-          </p>
-        ) : (
-          data.facts.map((fact) => (
-            <article key={fact.documentId} className="comparison-fact">
-              <div className="page-header">
-                <div>
-                  <h4>
-                    {filenames.get(fact.documentId) ?? 'Documento vinculado'}
-                  </h4>
-                  <p>
-                    {fact.provider ?? 'Proveedor sin dato'} ·{' '}
-                    {fact.operationReference ?? 'Referencia sin dato'} ·{' '}
-                    {fact.total ?? 'Total sin dato'} {fact.currency ?? ''}
-                  </p>
-                </div>
-                {data.capabilities.canWrite && (
-                  <FactsEditor
-                    key={fact.documentId}
-                    organizationId={organizationId}
-                    operationId={operationId}
-                    document={fact}
-                    filename={
-                      filenames.get(fact.documentId) ?? 'Documento vinculado'
-                    }
-                    fingerprint={data.fingerprint}
-                    disabled={disabled}
-                    onSaved={refresh}
-                  />
-                )}
-              </div>
-              <p className="metadata">
-                {fact.revisionId
-                  ? 'Revisión humana registrada · original conservado'
-                  : 'Candidato extraído · pendiente de revisión'}{' '}
-                · {fact.lines.length} partidas · {fact.excludedServices.length}{' '}
-                exclusiones
-              </p>
-              <details>
-                <summary>Ver datos y evidencia</summary>
-                <FactSummary fact={fact} />
-              </details>
-            </article>
-          ))
-        )}
-      </section>
-      {data.factRevisions.length > 0 && (
-        <section className="operation-section" aria-labelledby="fact-revisions">
-          <h3 id="fact-revisions">Historial de revisión de datos</h3>
-          <p className="metadata">
-            Se muestran las últimas 100 revisiones. Los documentos originales se
-            conservan.
-          </p>
-          <TableRegion label="Revisiones humanas de datos">
-            <table>
-              <caption className="sr-only">
-                Documento, motivo y fecha de cada revisión de datos
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Documento</th>
-                  <th scope="col">Revisión</th>
-                  <th scope="col">Motivo</th>
-                  <th scope="col">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.factRevisions.map((revision) => (
-                  <tr key={revision.id}>
-                    <td>
-                      {filenames.get(revision.documentId) ??
-                        'Documento vinculado'}
-                    </td>
-                    <td>{revision.ordinal}</td>
-                    <td>{revision.reason}</td>
-                    <td>{timestampLabel(revision.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
-        </section>
-      )}
-      <section
-        className="operation-section"
         aria-labelledby="operation-analysis"
       >
         <h3 id="operation-analysis">Análisis</h3>
-        <Button variant="outline" onClick={() => setShowHistory(!showHistory)}>
-          {showHistory
-            ? 'Ocultar historial completo'
-            : 'Ver historial completo'}
-        </Button>
-        {showHistory && (
-          <div className="analysis-history">
-            {history.isPending ? (
-              <Loading label="Cargando historial…" />
-            ) : history.isError ? (
-              <RequestError
-                error={history.error}
-                retry={() => {
-                  void history.refetch();
-                }}
-              />
-            ) : (
-              <>
-                <TableRegion label="Historial completo de análisis">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.data.items.map((run) => (
-                        <tr key={run.id}>
-                          <td>{timestampLabel(run.createdAt)}</td>
-                          <td>{runLabels[run.status]}</td>
-                          <td>
-                            <Button
-                              variant="outline"
-                              onClick={() => setSelectedRun(run.id)}
-                            >
-                              Ver análisis
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableRegion>
-                <div className="pagination">
-                  <Button
-                    variant="outline"
-                    disabled={!historyPage || history.isFetching}
-                    onClick={() => setHistoryPage(historyPage - 1)}
-                  >
-                    Anterior
-                  </Button>
-                  <span className="metadata">
-                    Página {historyPage + 1} · {history.data.total} análisis
-                  </span>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      (historyPage + 1) * 25 >= history.data.total ||
-                      history.isFetching
-                    }
-                    onClick={() => setHistoryPage(historyPage + 1)}
-                  >
-                    Siguiente
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
         {selectedRun &&
           historicalRun.isFetching &&
           !data.analyses.some((run) => run.id === selectedRun) && (
@@ -569,6 +401,7 @@ export function OperationDetailView({
                 </p>
               </div>
             )}
+            {selected.result && <ResultSummary run={selected} />}
             {selected.result && (
               <ResultTable
                 run={selected}
@@ -580,6 +413,280 @@ export function OperationDetailView({
           </>
         )}
       </section>
+      <details className="operation-panel">
+        <summary>Documentos ({data.documentIds.length} vinculados)</summary>{' '}
+        <section
+          className="operation-section"
+          aria-labelledby="operation-documents"
+        >
+          <div className="page-header">
+            <h3 id="operation-documents">Documentos</h3>
+            {data.capabilities.canWrite && (
+              <LinkDialog
+                userId={userId}
+                organizationId={organizationId}
+                operationId={operationId}
+                documentIds={data.documentIds}
+                fingerprint={data.fingerprint}
+                activeRun={data.analyses.some(active)}
+                disabled={disabled}
+                onSaved={refresh}
+              />
+            )}
+          </div>
+          {!data.documentIds.length ? (
+            <EmptyState title="No hay documentos vinculados">
+              <p>
+                Vinculá las facturas, el acuerdo aplicable y el registro
+                operativo de esta misma operación.
+              </p>
+            </EmptyState>
+          ) : (
+            <TableRegion label="Documentos vinculados a la operación">
+              <table>
+                <caption className="sr-only">
+                  Originales y estado de extracción
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Documento</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Extracción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.documentIds.map((id, index) => {
+                    const document = documentQueries[index];
+                    return (
+                      <tr key={id}>
+                        <td>
+                          <a
+                            href={documentPath(organizationId, id)}
+                            onClick={(event) => {
+                              if (!event.metaKey && !event.ctrlKey) {
+                                event.preventDefault();
+                                navigate(documentPath(organizationId, id));
+                              }
+                            }}
+                          >
+                            {document?.data?.filename ?? 'Documento vinculado'}
+                          </a>
+                          {document?.isError && (
+                            <p className="metadata">
+                              No se pudo cargar el nombre. Abrí el documento
+                              para reintentar.
+                            </p>
+                          )}
+                        </td>
+                        <td>
+                          {document?.data
+                            ? kindLabels[document.data.kind]
+                            : 'Consultando…'}
+                        </td>
+                        <td>
+                          {document?.data
+                            ? statusLabels[document.data.status]
+                            : 'Consultando…'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableRegion>
+          )}
+        </section>
+      </details>
+      <details className="operation-panel">
+        <summary>
+          Datos para comparar ({data.facts.length} documentos ·{' '}
+          {data.factRevisions.length} revisiones)
+        </summary>{' '}
+        <section
+          className="operation-section"
+          aria-labelledby="comparison-facts"
+        >
+          <h3 id="comparison-facts" tabIndex={-1}>
+            Datos para comparar
+          </h3>
+          <p className="metadata">
+            Revisá los candidatos extraídos antes de analizar. Los formatos no
+            reconocidos y los campos ausentes no se completan con suposiciones.
+          </p>
+
+          {!data.facts.length ? (
+            <p>
+              No hay datos de comparación disponibles. Esperá a que finalice la
+              extracción y actualizá la operación.
+            </p>
+          ) : (
+            data.facts.map((fact) => (
+              <article key={fact.documentId} className="comparison-fact">
+                <div className="page-header">
+                  <div>
+                    <h4>
+                      {filenames.get(fact.documentId) ?? 'Documento vinculado'}
+                    </h4>
+                    <p>
+                      {fact.provider ?? 'Proveedor sin dato'} ·{' '}
+                      {fact.operationReference ?? 'Referencia sin dato'} ·{' '}
+                      {fact.total ?? 'Total sin dato'} {fact.currency ?? ''}
+                    </p>
+                  </div>
+                  {data.capabilities.canWrite && (
+                    <FactsEditor
+                      key={fact.documentId}
+                      organizationId={organizationId}
+                      operationId={operationId}
+                      document={fact}
+                      filename={
+                        filenames.get(fact.documentId) ?? 'Documento vinculado'
+                      }
+                      fingerprint={data.fingerprint}
+                      disabled={disabled}
+                      onSaved={refresh}
+                    />
+                  )}
+                </div>
+                <p className="back-link">
+                  <a href={documentPath(organizationId, fact.documentId)}>
+                    Ver extracción original
+                  </a>
+                </p>
+                <p className="metadata">
+                  {fact.revisionId
+                    ? 'Revisión humana registrada · original conservado'
+                    : 'Candidato extraído · pendiente de revisión'}{' '}
+                  · {fact.lines.length} partidas ·{' '}
+                  {fact.excludedServices.length} exclusiones
+                </p>
+                <details>
+                  <summary>Ver datos y evidencia</summary>
+                  <FactSummary fact={fact} />
+                </details>
+              </article>
+            ))
+          )}
+        </section>
+      </details>
+      <details className="operation-panel">
+        <summary>Historial de análisis y correcciones</summary>{' '}
+        <Button
+          variant="outline"
+          aria-expanded={showHistory}
+          onClick={() => setShowHistory(!showHistory)}
+        >
+          {showHistory
+            ? 'Ocultar historial completo'
+            : 'Ver historial completo'}
+        </Button>
+        {showHistory && (
+          <div className="analysis-history">
+            {history.isPending ? (
+              <Loading label="Cargando historial…" />
+            ) : history.isError ? (
+              <RequestError
+                error={history.error}
+                retry={() => {
+                  void history.refetch();
+                }}
+              />
+            ) : (
+              <>
+                <TableRegion label="Historial completo de análisis">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.data.items.map((run) => (
+                        <tr key={run.id}>
+                          <td>{timestampLabel(run.createdAt)}</td>
+                          <td>{runLabels[run.status]}</td>
+                          <td>
+                            <Button
+                              variant="outline"
+                              onClick={() => setSelectedRun(run.id)}
+                            >
+                              Ver análisis
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableRegion>
+                <div className="pagination">
+                  <Button
+                    variant="outline"
+                    disabled={!historyPage || history.isFetching}
+                    onClick={() => setHistoryPage(historyPage - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="metadata">
+                    Página {historyPage + 1} · {history.data.total} análisis
+                  </span>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      (historyPage + 1) * 25 >= history.data.total ||
+                      history.isFetching
+                    }
+                    onClick={() => setHistoryPage(historyPage + 1)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        {data.factRevisions.length > 0 && (
+          <section
+            className="operation-section"
+            aria-labelledby="fact-revisions"
+          >
+            <h3 id="fact-revisions">Historial de revisión de datos</h3>
+            <p className="metadata">
+              Se muestran las últimas 100 revisiones. Los documentos originales
+              se conservan.
+            </p>
+            <TableRegion label="Revisiones humanas de datos">
+              <table>
+                <caption className="sr-only">
+                  Documento, motivo y fecha de cada revisión de datos
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Documento</th>
+                    <th scope="col">Revisión</th>
+                    <th scope="col">Motivo</th>
+                    <th scope="col">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.factRevisions.map((revision) => (
+                    <tr key={revision.id}>
+                      <td>
+                        {filenames.get(revision.documentId) ??
+                          'Documento vinculado'}
+                      </td>
+                      <td>{revision.ordinal}</td>
+                      <td>{revision.reason}</td>
+                      <td>{timestampLabel(revision.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableRegion>
+          </section>
+        )}
+      </details>
     </section>
   );
 }
@@ -651,6 +758,24 @@ function FactSummary({ fact }: { fact: OperationDetail['facts'][number] }) {
     </div>
   );
 }
+function ResultSummary({ run }: { run: AnalysisRun }) {
+  if (!run.result) return null;
+  const counts = findingCounts(run.result.findings);
+  return (
+    <div
+      className="result-counts"
+      aria-label="Resumen de controles del análisis seleccionado"
+    >
+      <span className="metadata">Controles del análisis:</span>
+      {(Object.keys(counts) as (keyof typeof counts)[]).map((status) => (
+        <span className={`result-status result-${status}`} key={status}>
+          <span aria-hidden="true">{outcomeIcons[status]}</span>
+          <strong>{counts[status]}</strong> {outcomeLabels[status]}
+        </span>
+      ))}
+    </div>
+  );
+}
 function ResultTable({
   run,
   operation,
@@ -663,71 +788,98 @@ function ResultTable({
   organizationId: string;
 }) {
   if (!run.result) return null;
-  return run.result.findings.length === 0 ? (
-    <p>
-      No se encontraron partidas analizables. Revisá los datos y la evidencia
-      disponible.
-    </p>
-  ) : (
-    <TableRegion label="Comparación de partidas">
-      <table>
-        <caption className="sr-only">
-          Importes esperados, facturados y diferencias con sus motivos
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Proveedor / servicio</th>
-            <th scope="col">Esperado</th>
-            <th scope="col">Facturado</th>
-            <th scope="col">Diferencia</th>
-            <th scope="col">Moneda</th>
-            <th scope="col">Resultado y motivo</th>
-            <th scope="col">Evidencia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {run.result.findings.map((finding, index) => (
-            <tr key={index}>
-              <td>
-                {run.snapshot.documents.find(
-                  (document) => document.documentId === finding.documentId,
-                )?.provider ?? 'Proveedor sin dato'}
-                <small className="file-size">
-                  {serviceLabels[finding.service] ?? finding.service}
-                </small>
-              </td>
-              <td>{finding.expected ?? 'Sin dato'}</td>
-              <td>{finding.invoiced ?? 'Sin dato'}</td>
-              <td>{finding.difference ?? 'Sin dato'}</td>
-              <td>{finding.currency ?? 'Sin dato'}</td>
-              <td>
-                <strong>{outcomeLabels[finding.status]}</strong>
-                <p className="finding-reason">{finding.explanation}</p>
-              </td>
-              <td>
-                {!finding.evidence.length ? (
-                  'Sin evidencia disponible'
-                ) : (
-                  <details>
-                    <summary>Ver evidencia ({finding.evidence.length})</summary>
-                    {finding.evidence.map((item, position) => (
-                      <div className="source-evidence" key={position}>
-                        <a href={documentPath(organizationId, item.documentId)}>
-                          {filenames.get(item.documentId) ??
-                            'Documento original'}
-                        </a>
-                        <strong> · Página {item.page}</strong>
-                        <blockquote>{item.snippet}</blockquote>
-                      </div>
-                    ))}
-                  </details>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="sr-only">{operation.reference}</p>
-    </TableRegion>
+  if (!run.result.findings.length)
+    return (
+      <p>
+        No se encontraron partidas analizables. Revisá los datos y la evidencia
+        disponible.
+      </p>
+    );
+  return (
+    <>
+      {(['arithmetic', 'service'] as const).map((group) => {
+        const findings =
+          run.result?.findings.filter(
+            (finding) => findingGroup(finding.code) === group,
+          ) ?? [];
+        if (!findings.length) return null;
+        return (
+          <section className="result-group" key={group}>
+            <h4>
+              {group === 'arithmetic'
+                ? 'Control aritmético de partidas'
+                : 'Comparación de servicios y acuerdos'}
+            </h4>
+            <TableRegion
+              label={
+                group === 'arithmetic'
+                  ? 'Control aritmético de partidas'
+                  : 'Comparación de partidas'
+              }
+            >
+              <table>
+                <caption className="sr-only">
+                  Importes esperados, facturados y diferencias con sus motivos ·{' '}
+                  {operation.reference}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Proveedor / servicio</th>
+                    <th scope="col">Esperado</th>
+                    <th scope="col">Facturado</th>
+                    <th scope="col">Diferencia</th>
+                    <th scope="col">Moneda</th>
+                    <th scope="col">Resultado y motivo</th>
+                    <th scope="col">Evidencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findings.map((finding, index) => (
+                    <tr key={index}>
+                      <td>
+                        {run.snapshot.documents.find(
+                          (document) =>
+                            document.documentId === finding.documentId,
+                        )?.provider ?? 'Proveedor sin dato'}
+                        <small className="file-size">
+                          {serviceLabels[finding.service] ?? finding.service}
+                        </small>
+                      </td>
+                      <td>{finding.expected ?? 'Sin dato'}</td>
+                      <td>{finding.invoiced ?? 'Sin dato'}</td>
+                      <td>{finding.difference ?? 'Sin dato'}</td>
+                      <td>{finding.currency ?? 'Sin dato'}</td>
+                      <td>
+                        <span
+                          className={`result-status result-${finding.status}`}
+                        >
+                          <span aria-hidden="true">
+                            {outcomeIcons[finding.status]}
+                          </span>
+                          {outcomeLabels[finding.status]}
+                        </span>
+                        <p className="finding-reason">{finding.explanation}</p>
+                        {observedMissingFacts(finding, run).map((note) => (
+                          <p className="finding-reason" key={note}>
+                            <strong>Dato ausente:</strong> {note}
+                          </p>
+                        ))}
+                      </td>
+                      <td>
+                        <EvidenceList
+                          evidence={finding.evidence}
+                          filenames={filenames}
+                          organizationId={organizationId}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableRegion>
+          </section>
+        );
+      })}
+    </>
   );
 }

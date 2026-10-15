@@ -123,6 +123,11 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     actor: Browser,
     documentIds: string[],
   ) {
+    const current = await request(base(org, operation), actor);
+    const expectedFingerprint =
+      current.statusCode === 200
+        ? operationDetailSchema.parse(body(current)).fingerprint
+        : '0'.repeat(64);
     return fixture.app.inject({
       method: 'PUT',
       url: `${base(org, operation)}/documents`,
@@ -133,7 +138,7 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
           .map(([key, value]) => `${key}=${value}`)
           .join('; '),
       },
-      payload: { documentIds },
+      payload: { documentIds, expectedFingerprint },
     });
   }
   async function detail(org: string, operation: string, actor: Browser) {
@@ -954,5 +959,251 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     } finally {
       await analyses.worker.pause(true);
     }
+  });
+  it('edits the same operation, protects optimistic writes and records before/after without changing snapshots', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const op = await dossier(org, owner);
+    const old = await completed(org, op.id, owner);
+    async function patch(
+      actor: Browser,
+      input: Record<string, unknown>,
+      origin = fixture.origin,
+      organizationId = org,
+      operationId = op.id,
+    ) {
+      return fixture.app.inject({
+        method: 'PATCH',
+        url: base(organizationId, operationId),
+        remoteAddress: actor.address,
+        headers: {
+          origin,
+          cookie: [...actor.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+        },
+        payload: input,
+      });
+    }
+    const edited = await patch(owner, {
+      name: 'Expediente corregido',
+      reference: 'OP-UPDATED',
+      expectedFingerprint: op.fingerprint,
+    });
+    expect(edited.statusCode, edited.body).toBe(200);
+    const next = operationDetailSchema.parse(body(edited));
+    expect(next.id).toBe(op.id);
+    expect(next.documentIds).toEqual(op.documentIds);
+    expect(next.reference).toBe('OP-UPDATED');
+    expect(next.analyses[0]?.stale).toBe(true);
+    expect(next.analyses[0]?.snapshot).toEqual(old.snapshot);
+    const event = await prisma.identityAuditEvent.findFirstOrThrow({
+      where: { organizationId: org, action: 'operation.updated' },
+    });
+    expect(event.details).toMatchObject({
+      operationId: op.id,
+      before: { name: op.name, reference: op.reference },
+      after: { name: next.name, reference: next.reference },
+      revision: next.revision,
+    });
+    expect(
+      (
+        await patch(owner, {
+          name: 'Lost draft',
+          reference: 'STALE',
+          expectedFingerprint: op.fingerprint,
+        })
+      ).statusCode,
+    ).toBe(409);
+    const staleLinks = await fixture.app.inject({
+      method: 'PUT',
+      url: base(org, op.id) + '/documents',
+      headers: {
+        origin: fixture.origin,
+        cookie: [...owner.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+      },
+      payload: { documentIds: [], expectedFingerprint: op.fingerprint },
+    });
+    expect(staleLinks.statusCode).toBe(409);
+    expect((await detail(org, op.id, owner)).documentIds).toEqual(
+      op.documentIds,
+    );
+    const noOp = await patch(owner, {
+      name: next.name,
+      reference: next.reference,
+      expectedFingerprint: next.fingerprint,
+    });
+    expect(operationDetailSchema.parse(body(noOp)).revision).toBe(
+      next.revision,
+    );
+    expect(
+      await prisma.identityAuditEvent.count({
+        where: { organizationId: org, action: 'operation.updated' },
+      }),
+    ).toBe(1);
+    const other = await operationWith(org, owner, [], 'OCCUPIED');
+    const duplicate = await patch(owner, {
+      name: next.name,
+      reference: other.reference,
+      expectedFingerprint: next.fingerprint,
+    });
+    expect(duplicate.statusCode).toBe(409);
+    expect(body(duplicate).code).toBe('REFERENCE_EXISTS');
+    const restored = await patch(owner, {
+      name: next.name,
+      reference: 'OP-DEMO-062',
+      expectedFingerprint: next.fingerprint,
+    });
+    expect(restored.statusCode).toBe(200);
+    const restoredOp = operationDetailSchema.parse(body(restored));
+    expect(
+      (await completed(org, op.id, owner)).result?.findings.some(
+        (f) =>
+          f.code === 'EXCLUDED_SERVICE_OTHER_PROVIDER' && f.difference === '62',
+      ),
+    ).toBe(true);
+    const originalId = op.documentIds[0];
+    if (!originalId) throw new Error('Original document required');
+    const beforeUnlink = await request(
+      `/api/v1/organizations/${org}/documents/${originalId}/download`,
+      owner,
+    );
+    expect(beforeUnlink.statusCode).toBe(200);
+    const removed = await putDocuments(org, op.id, owner, []);
+    expect(removed.statusCode).toBe(200);
+    const empty = operationDetailSchema.parse(body(removed));
+    expect(empty.documentIds).toEqual([]);
+    const afterUnlink = await request(
+      `/api/v1/organizations/${org}/documents/${originalId}/download`,
+      owner,
+    );
+    expect(afterUnlink.statusCode).toBe(200);
+    expect(afterUnlink.rawPayload).toEqual(beforeUnlink.rawPayload);
+    const immutableAfterUnlink = analysisRunSchema.parse(
+      body(await request(`${base(org, op.id)}/analyses/${old.id}`, owner)),
+    );
+    expect(immutableAfterUnlink.snapshot).toEqual(old.snapshot);
+    expect(immutableAfterUnlink.result).toEqual(old.result);
+    expect(
+      await prisma.document.count({
+        where: { organizationId: org, id: { in: op.documentIds } },
+      }),
+    ).toBe(4);
+    expect(
+      (await putDocuments(org, op.id, owner, op.documentIds)).statusCode,
+    ).toBe(200);
+    const audit = await prisma.identityAuditEvent.findFirstOrThrow({
+      where: { organizationId: org, action: 'operation.documents.updated' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit.details).toHaveProperty('operationId', op.id);
+    const live = await detail(org, op.id, owner);
+    const viewer = await verifiedUser();
+    expect(
+      (await accept(viewer, await invite(owner, org, viewer))).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await patch(viewer, {
+          name: 'Denied',
+          reference: live.reference,
+          expectedFingerprint: live.fingerprint,
+        })
+      ).statusCode,
+    ).toBe(403);
+    const foreign = await verifiedUser();
+    const foreignOrg = await organization(foreign);
+    expect(
+      (
+        await request(base(foreignOrg), foreign, {
+          name: 'Other tenant same reference',
+          reference: live.reference,
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await patch(
+          foreign,
+          {
+            name: 'Denied',
+            reference: live.reference,
+            expectedFingerprint: live.fingerprint,
+          },
+          fixture.origin,
+          foreignOrg,
+        )
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await patch(
+          owner,
+          {
+            name: 'Denied',
+            reference: live.reference,
+            expectedFingerprint: live.fingerprint,
+          },
+          'https://hostile.invalid',
+        )
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await patch(owner, {
+          name: '',
+          reference: live.reference,
+          expectedFingerprint: live.fingerprint,
+        })
+      ).statusCode,
+    ).toBe(400);
+    const named = await patch(owner, {
+      name: 'Solo nombre corregido',
+      reference: live.reference,
+      expectedFingerprint: live.fingerprint,
+    });
+    expect(named.statusCode).toBe(200);
+    const nameOnly = operationDetailSchema.parse(body(named));
+    expect(nameOnly.reference).toBe(live.reference);
+    expect(nameOnly.analyses.every((r) => r.stale)).toBe(true);
+    expect(nameOnly.analyses[0]?.snapshot).toEqual(live.analyses[0]?.snapshot);
+    const queued = await enqueue(org, op.id, owner);
+    const blocked = await patch(owner, {
+      name: 'During analysis',
+      reference: nameOnly.reference,
+      expectedFingerprint: nameOnly.fingerprint,
+    });
+    expect(blocked.statusCode).toBe(409);
+    expect(body(blocked).code).toBe('ANALYSIS_ACTIVE');
+    expect((await putDocuments(org, op.id, owner, [])).statusCode).toBe(409);
+    await completed(org, op.id, owner, queued.id);
+    const raceBefore = await detail(org, op.id, owner);
+    const raceResponses = await Promise.all([
+      patch(owner, {
+        name: 'Concurrent metadata edit',
+        reference: raceBefore.reference,
+        expectedFingerprint: raceBefore.fingerprint,
+      }),
+      fixture.app.inject({
+        method: 'PUT',
+        url: base(org, op.id) + '/documents',
+        remoteAddress: owner.address,
+        headers: {
+          origin: fixture.origin,
+          cookie: [...owner.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+        },
+        payload: {
+          documentIds: [],
+          expectedFingerprint: raceBefore.fingerprint,
+        },
+      }),
+    ]);
+    expect(raceResponses.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    const raceAfter = await detail(org, op.id, owner);
+    expect(raceAfter.revision).toBe(raceBefore.revision + 1);
+    const immutableAfterRace = analysisRunSchema.parse(
+      body(await request(`${base(org, op.id)}/analyses/${old.id}`, owner)),
+    );
+    expect(immutableAfterRace.snapshot).toEqual(old.snapshot);
+    expect(immutableAfterRace.result).toEqual(old.result);
+    expect(restoredOp.id).toBe(op.id);
   });
 });

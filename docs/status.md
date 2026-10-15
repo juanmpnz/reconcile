@@ -8,8 +8,9 @@ At phase0closure only the platform ping job existed; document processing and fin
 
 ## Next
 
-1. Phase4: human finding decisions, reviewed claim drafts and export; no automatic email/accounting writes.
-2. Phase5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
+1. Close the operation usability verification described below before Phase4.
+2. Phase4: human finding decisions, reviewed claim drafts and export; no automatic email/accounting writes.
+3. Phase5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
 ## Expert harness
 
@@ -44,3 +45,11 @@ This is a bounded text/label extractor, not universal invoice/table recognition.
 Implemented organization-owned operations, explicit document association, structured facts from existing actual PDF page text, review revisions/reasons/provenance, versioned deterministic logistics rules and immutable asynchronous analysis snapshots. UI exposes per-line expected/invoiced/difference/currency/reason/evidence, current versus historical runs and stale-input warning. Durable PostgreSQL outbox, current actor permissions, bounded attempts/fenced leases and lost-job reconciliation extend the document foundation. Details/capacity limits: ADR0005; current flow: docs/user-guide.md.
 
 The original fourPDF demo supports pickup62 from explicit exclusion plus matching operation/service/date/route and transport invoice/performance. Missing ocean-handling scope remains no-verifiable until source review; no scope or exchange/tax condition is invented. There are no financial approval, finding decision, claim or send actions; those remain phase4. For source793afc70a715724f59882193bed764692e55d313, run38714946560 passed frozeninstall/fullcheck55unit+8harness, migration,43/43realHTTP(12analysis+31baseline) and completeAPI/PG/Redis/privatebucket/worker smoke. TestedPRmerge24d9827c72c4a03b79837dd16f55f51868070a05 has the identicaltree. Onlypendingverifiedtaskgate failed in that evidencecollection run. FinalUX-A4warningpresentation adds two targetedprivacytests(types/lintpassed); independentlyrebuiltReactbrowser17/17groups passed finalUIwith explicitAPIfixtures. Finalclosure changes presentation/task/docs, with API/domain/schema/jobs/tests unchanged since actualserviceacceptance. FinalCIchecks the completecandidate. Exactscope/limits in .agents/tasks/2026-10-15-explainable-analysis.json. No production, arbitraryPDF, ERP or realcustomer accuracy claim.
+
+## Operation usability — before Phase 4
+
+Source implementation adds operation name/reference editing on the same operation, explicit document association management, optimistic conflict protection and atomic before/after audit through an additive nullable JSONB migration. Originals and historical analysis snapshots/results remain unchanged. Material edits advance the existing operation revision, making prior results stale without changing fingerprints for untouched prior operations. Metadata/association edits wait while an analysis is queued or processing.
+
+The operation screen puts results first, uses semantic status colors with icons/text and counts controls without summing money. Native accordions collapse documents, review data and history. Reference warnings show expected/found values before analysis; missing references remain unknown. Evidence is grouped and exactly deduplicated only within the same document/extraction/review/page/snippet, with compact expandable excerpts and access to all unique citations. Existing correction reasons/history and source extraction remain available. Financial rule, parser, queue and external integration behavior is unchanged.
+
+Independent architecture/security/data source review is complete. Full checks, independent UX/browser checks and actual PostgreSQL/Redis/S3 HTTP/migration/smoke execution are being collected for this change; earlier-phase results do not verify it. See `.agents/tasks/2026-10-15-operation-usability.json` and `docs/design/operation-usability.md`. No server deployment or new environment variables are included.

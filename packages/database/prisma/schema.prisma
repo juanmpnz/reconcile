@@ -118,6 +118,7 @@ model IdentityAuditEvent {
   action String @db.VarChar(64)
   outcome String @db.VarChar(16)
   requestId String? @db.VarChar(64)
+  details Json?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   @@index([organizationId,createdAt])
   @@index([actorId,createdAt])

@@ -1,0 +1,73 @@
+{
+  "id": "2026-10-15-operation-usability",
+  "summary": "Make operation review brief, clear and editable while preserving evidence, originals and immutable analysis history.",
+  "state": "implementing",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
+  "scope": [
+    "apps/web/src/features/operations/",
+    "apps/web/src/styles.css",
+    "apps/api/src/analysis.routes.ts",
+    "apps/api/test/analysis.integration.test.ts",
+    "packages/application/src/analysis.ts",
+    "packages/contracts/src/analysis.ts",
+    "packages/database/prisma/",
+    "docs/design/operation-usability.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    ".agents/tasks/2026-10-15-operation-usability.json",
+    ".agents/reviews/operation-usability"
+  ],
+  "acceptance": [
+    "Edit operation name/reference on same ID with tenant/role verification, expected fingerprint, bounded before/after audit and no alteration of historical snapshots.",
+    "Manage linked documents with explicit removal semantics; originals and previous analyses retained; stale writes fail without losing form drafts.",
+    "Results before support panels; semantic red/green/amber with icon/text, faithful counts and no monetary aggregation.",
+    "Accessible document/fact/history accordions reduce scrolling while keeping important reference/stale warnings visible.",
+    "Group and exactly deduplicate evidence by original document/page/snippet, show concise preview and all unique citations on demand.",
+    "Reference preflight displays operation and extracted values; missing reference distinguished from mismatch. Existing rules and uncertainty preserved.",
+    "Corrections retain original, reason, author/time and history; changed input warns to reanalyse.",
+    "Independent architecture/security/UX/QA/browser evidence, full checks and actual HTTP CI acceptance before verification."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "New operation editing and association concurrency affect contracts, tenant authorization, audit and immutable analysis inputs. Existing deterministic financial rules/parser remain unchanged. Product/domain and UX preimplementation blueprint, architecture preimplementation contract, independent source and browser reviews required.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No external connector, import transport, queue or adapter change; editing existing operation associations only."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No extraction/parser/model or fact derivation change; existing extracted facts and revisions presented without changing provenance."
+    }
+  ],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [
+    "No deployment, claims or accounting approval added.",
+    "Local environment has no Docker; actual service acceptance requires CI; browser fixture checks explicitly separate."
+  ],
+  "evidence": [
+    "docs/design/operation-usability.md",
+    ".agents/reviews/operation-usability-architecture.md"
+  ],
+  "changeClass": "backend",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Operation metadata and document association writes affect financial context and tenant data. Independent architecture/security/data review and independent UX/browser/QA are required."
+}

@@ -48,10 +48,24 @@ Para corregir un dato, abrí Corregir, escribí el valor y el motivo. Si no hay 
 
 1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
 2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. La referencia debe coincidir con la de las fuentes; no es una referencia inventada de CargoWise.
-3. Abrí la operación, pulsá **Vincular documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta 20 documentos de tu organización. Si un documento seguía procesándose, usá Actualizar datos cuando termine.
+3. Abrí el bloque **Documentos**, pulsá **Gestionar documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta 20 documentos de tu organización. Desmarcar un documento quita su vínculo con esta operación; no borra el original ni los análisis históricos. Si un documento seguía procesándose, usá **Recargar datos** cuando termine.
 4. En **Datos para comparar**, abrí **Ver datos y evidencia**. Se obtienen las partidas, exclusiones, vigencia y prestación desde el texto real del PDF. Los campos ausentes siguen ausentes. Revisar datos permite corregirlos con un motivo; conserva documento original, autor y revisión. El tipo de fuente no se cambia desde esta revisión.
 5. Pulsá **Analizar operación**. El worker pasa de En espera a Analizando y al resultado. Podés salir y volver; no necesita mantener el diálogo abierto.
 6. Inspeccioná cada hallazgo y su evidencia: documento, página y fragmento, importe esperado, facturado, diferencia y moneda. Una fila sin diferencia de precio no aprueba una factura ni acredita prestación.
+
+### Leer el resultado rápidamente
+
+El resultado aparece antes de los bloques extensos. Rojo indica una diferencia respaldada por evidencia; verde, que no se detectó diferencia de precio dentro del alcance comprobado; ámbar, una posible diferencia o datos no verificables. Cada estado incluye texto e icono. Los contadores describen hallazgos del análisis seleccionado, no importes recuperables. Un error de suma y un cargo duplicado pueden solaparse: no se suman automáticamente.
+
+La evidencia se agrupa por documento, con página y fragmento. Las citas idénticas de la misma extracción y revisión se muestran una sola vez; podés expandir el resto. Documentos, datos para comparar e historial son plegables. Los avisos de referencias incompatibles y resultados con datos previos permanecen visibles.
+
+### Corregir la operación sin empezar de nuevo
+
+Usá **Editar operación** para cambiar nombre y referencia. Por ejemplo, si pusiste `test` en la referencia y los PDF dicen `OP-DEMO-062`, corregí la operación; no cambies los documentos para forzar su coincidencia. Los avisos muestran la referencia esperada y la encontrada. Una referencia ausente no demuestra pertenencia a la operación.
+
+Después de guardar cambios en la operación, sus documentos o los datos revisados, el resultado anterior queda conservado y puede aparecer como desactualizado. Pulsá **Volver a analizar** para generar uno nuevo. Mientras hay un análisis en espera o en curso, esperá a que termine para editar la operación o sus vínculos. Si otra persona cambió los datos mientras editabas, la aplicación rechaza la versión antigua y conserva tu borrador para revisarlo; no sobrescribe sus cambios silenciosamente.
+
+**Revisar datos** conserva la extracción original, el motivo y el historial. El enlace al documento permite contrastar el PDF y la extracción originales. Editar o revisar no aprueba facturas ni valida por sí mismo la prestación.
 
 En el expediente original, el pickup del carrier muestra 62 USD excluidos por el acuerdo y evidencia de la misma recogida por el transportista. La factura del transportista por sí sola no tiene un acuerdo tarifario propio, así que no se presenta como globalmente validada. La partida de servicio base marítimo de 150 USD no declara su ámbito en la factura: queda no verificable hasta revisar ese dato con respaldo. No se deduce su puerto a partir de la ruta de la recogida.
 

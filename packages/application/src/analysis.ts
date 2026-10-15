@@ -16,6 +16,7 @@ import {
   operationDetailSchema,
   operationListSchema,
   operationCreateSchema,
+  operationUpdateSchema,
   operationDocumentsSchema,
   factRevisionInputSchema,
   extractionResultSchema,
@@ -285,36 +286,140 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       });
       return detail(organizationId, op.id, actorId);
     },
+    async update(
+      organizationId: string,
+      operationId: string,
+      actorId: string,
+      input: unknown,
+    ) {
+      const data = operationUpdateSchema.parse(input);
+      try {
+        await prisma.$transaction(
+          async (tx) => {
+            await authorizeDocuments(tx, organizationId, actorId, true);
+            await operation(tx, organizationId, operationId);
+            await tx.$queryRaw`SELECT id FROM operations WHERE id = ${operationId}::uuid AND "organizationId" = ${organizationId}::uuid FOR UPDATE`;
+            const current = await collect(tx, organizationId, operationId);
+            if (current.fingerprint !== data.expectedFingerprint)
+              throw new DocumentError(409, 'STALE_OPERATION');
+            if (
+              current.op.name === data.name &&
+              current.op.reference === data.reference
+            )
+              return;
+            if (
+              await tx.analysisRun.count({
+                where: {
+                  organizationId,
+                  operationId,
+                  status: { in: ['queued', 'processing'] },
+                },
+              })
+            )
+              throw new DocumentError(409, 'ANALYSIS_ACTIVE');
+            const changed = await tx.operation.update({
+              where: { id: operationId },
+              data: {
+                name: data.name,
+                reference: data.reference,
+                revision: { increment: 1 },
+              },
+            });
+            await tx.identityAuditEvent.create({
+              data: {
+                organizationId,
+                actorId,
+                action: 'operation.updated',
+                outcome: 'success',
+                details: {
+                  operationId,
+                  revision: changed.revision,
+                  before: {
+                    name: current.op.name,
+                    reference: current.op.reference,
+                  },
+                  after: { name: changed.name, reference: changed.reference },
+                },
+              },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+        );
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        )
+          throw new DocumentError(409, 'REFERENCE_EXISTS');
+        throw error;
+      }
+      return detail(organizationId, operationId, actorId);
+    },
     async link(
       organizationId: string,
       operationId: string,
       actorId: string,
       input: unknown,
     ) {
-      const { documentIds } = operationDocumentsSchema.parse(input);
-      await prisma.$transaction(async (tx) => {
-        await authorizeDocuments(tx, organizationId, actorId, true);
-        await operation(tx, organizationId, operationId);
-        const count = await tx.document.count({
-          where: { organizationId, id: { in: documentIds } },
-        });
-        if (count !== documentIds.length)
-          throw new DocumentError(404, 'NOT_FOUND');
-        await tx.operation.update({
-          where: { id: operationId },
-          data: { revision: { increment: 1 } },
-        });
-        await tx.operationDocument.deleteMany({
-          where: { organizationId, operationId },
-        });
-        await tx.operationDocument.createMany({
-          data: documentIds.map((documentId) => ({
-            organizationId,
-            operationId,
-            documentId,
-          })),
-        });
-      });
+      const { documentIds, expectedFingerprint } =
+        operationDocumentsSchema.parse(input);
+      await prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId, true);
+          await operation(tx, organizationId, operationId);
+          await tx.$queryRaw`SELECT id FROM operations WHERE id = ${operationId}::uuid AND "organizationId" = ${organizationId}::uuid FOR UPDATE`;
+          const current = await collect(tx, organizationId, operationId);
+          if (current.fingerprint !== expectedFingerprint)
+            throw new DocumentError(409, 'STALE_OPERATION');
+          const count = await tx.document.count({
+            where: { organizationId, id: { in: documentIds } },
+          });
+          if (count !== documentIds.length)
+            throw new DocumentError(404, 'NOT_FOUND');
+          const before = current.links.map((l) => l.documentId).sort(),
+            after = [...documentIds].sort();
+          if (JSON.stringify(before) === JSON.stringify(after)) return;
+          if (
+            await tx.analysisRun.count({
+              where: {
+                organizationId,
+                operationId,
+                status: { in: ['queued', 'processing'] },
+              },
+            })
+          )
+            throw new DocumentError(409, 'ANALYSIS_ACTIVE');
+          const changed = await tx.operation.update({
+            where: { id: operationId },
+            data: { revision: { increment: 1 } },
+          });
+          await tx.operationDocument.deleteMany({
+            where: { organizationId, operationId },
+          });
+          await tx.operationDocument.createMany({
+            data: documentIds.map((documentId) => ({
+              organizationId,
+              operationId,
+              documentId,
+            })),
+          });
+          await tx.identityAuditEvent.create({
+            data: {
+              organizationId,
+              actorId,
+              action: 'operation.documents.updated',
+              outcome: 'success',
+              details: {
+                operationId,
+                revision: changed.revision,
+                before: { documentIds: before },
+                after: { documentIds: after },
+              },
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
       return detail(organizationId, operationId, actorId);
     },
     async revise(
