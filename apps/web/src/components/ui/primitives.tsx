@@ -1,12 +1,27 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
+import { Spinner } from './loading';
 export function Button({
   variant = 'default',
   className = '',
+  pending = false,
+  children,
+  disabled,
   ...props
-}: ComponentProps<'button'> & { variant?: 'default' | 'outline' | 'ghost' }) {
+}: ComponentProps<'button'> & {
+  variant?: 'default' | 'outline' | 'ghost';
+  pending?: boolean;
+}) {
   return (
-    <button {...props} className={`button button-${variant} ${className}`} />
+    <button
+      {...props}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      className={`button button-${variant} ${className}`}
+    >
+      {pending && <Spinner />}
+      {children}
+    </button>
   );
 }
 export function Field({

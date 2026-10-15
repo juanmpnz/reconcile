@@ -35,6 +35,7 @@ export function Invitation({
         </p>
       ) : (
         <Button
+          pending={busy}
           disabled={busy}
           onClick={() => {
             if (busy) return;

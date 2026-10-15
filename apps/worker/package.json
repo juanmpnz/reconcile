@@ -15,9 +15,17 @@
     "@reconcile/contracts": "workspace:*",
     "@reconcile/database": "workspace:*",
     "ioredis": "^5.8.1",
-    "bullmq": "^5.61.0"
+    "bullmq": "^5.61.0",
+    "@reconcile/application": "workspace:*",
+    "@reconcile/document-processing": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6"
+  },
+  "exports": {
+    "./documents": {
+      "types": "./dist/documents.d.ts",
+      "import": "./dist/documents.js"
+    }
   }
 }

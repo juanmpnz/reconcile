@@ -8,9 +8,9 @@ Only the platform ping job exists. Invoice extraction, financial analysis, claim
 
 ## Next
 
-1. Research public shipping document structures and generate clearly marked synthetic fixtures (phase 2).
-2. Add authorized private document upload, processing states and actual PDF extraction.
-3. Implement the 62 USD end-to-end flow with actual extraction and evidence.
+1. Finish phase 2 document ingestion verification and close its review record.
+2. Phase 3: compare actual extracted/documented charges, tariff conditions and performed services with evidence, including the62USD case and negative cases.
+3. Phase 4: reviewed claim drafts and export; no automatic email/accounting writes.
 
 ## Expert harness
 
@@ -33,3 +33,9 @@ Local pnpm dev defaults to API 3001 and Vite proxies to that same validated DEV_
 ## Identity interface redesign
 
 Implemented compact monochrome identity UI, reusable controls/Radix dialogs, organization search/table, native paginated members and invitation state/invite/cancel views. Account/recovery/verification/invitation flows are preserved. The design specification is docs/design/identity-interface.md and the current-scope guide is docs/user-guide.md. Independent source/accessibility/security review and14/14 browser UI fixture groups passed; fixtures are not real-auth browser E2E. Real PostgreSQL HTTP acceptance21/21,23 unit tests,8 harness regressions, migrations and full service smoke passed for source999e4c76127beaecf95cdaa968987579849e8e73 in https://github.com/juanmpnz/reconcile/actions/runs/38700626741. That evidence-collection run remained blocked only by the unverified task gate; its final documentation closure does not change executable source. See .agents/tasks/2026-10-15-identity-interface.json for exact scope and limits. No invoice capability, pixel-fidelity or production-readiness claim.
+
+## Phase 2 — document implementation and loading feedback
+
+Implemented scoped accessible loading components in current identity/document flows, compact document table/upload/detail, private authorized PDF originals, real PDF.js text extraction, six labeled candidate fields with page/snippet evidence, explicit missing/OCR/error states and append-only corrections. PostgreSQL records versioned extraction runs and durable outbox intent; worker processing uses current actor authorization, fenced claims, bounded attempts and lost-job reconciliation. Architecture/limits: ADR0004 and docs/runbooks/document-processing.md. Four marked synthetic PDF inputs and isolated evaluation expectations live in fixtures/logistics; public structure references documented, no copied brands or confidential data.
+
+This is a bounded text/label extractor, not universal invoice/table recognition. No OCR, external AI, JSON operational importer, CargoWise connection, comparison motor, claim or payment action is included. The application service currently couples to Prisma and the concrete extraction adapter; the pure domain remains separate. Source implementation, real-service acceptance and browser evidence are tracked independently in .agents/tasks/2026-10-15-document-foundation.json. Verification is pending; this section does not close the phase or claim production readiness.

@@ -7,6 +7,7 @@ import { Invitation } from '../features/auth/invitation';
 import { OrganizationList } from '../features/organizations/organization-list';
 import { OrganizationDetail } from '../features/organizations/organization-detail';
 import { AppShell } from '../components/app-shell';
+import { Loading } from '../components/ui/loading';
 import { Button, Feedback } from '../components/ui/primitives';
 const publicPaths = [
   '/login',
@@ -32,10 +33,14 @@ export function App() {
   const [logoutError, setLogoutError] = useState('');
   const invitationId =
     route.searchParams.get('invitationId') ?? route.searchParams.get('id');
-  const orgMatch = /^\/organizations\/([^/]+)$/.exec(route.pathname);
+  const orgMatch = /^\/organizations\/([^/]+)(?:\/documents\/([^/]+))?$/.exec(
+    route.pathname,
+  );
   let organizationId = '';
+  let documentId = '';
   try {
     organizationId = orgMatch?.[1] ? decodeURIComponent(orgMatch[1]) : '';
+    documentId = orgMatch?.[2] ? decodeURIComponent(orgMatch[2]) : '';
   } catch {
     /* Invalid paths render not-found below. */
   }
@@ -45,7 +50,11 @@ export function App() {
       ? pageValue
       : 0;
   const tab =
-    route.searchParams.get('tab') === 'invitations' ? 'invitations' : 'members';
+    documentId || route.searchParams.get('tab') === 'documents'
+      ? 'documents'
+      : route.searchParams.get('tab') === 'invitations'
+        ? 'invitations'
+        : 'members';
   async function logout() {
     if (busy) return;
     setBusy(true);
@@ -66,7 +75,7 @@ export function App() {
   if (session.isPending)
     return (
       <main tabIndex={-1} id="main" className="session-state">
-        <p role="status">Cargando tu sesión…</p>
+        <Loading label="Cargando tu sesión…" />
       </main>
     );
   if (session.error)
@@ -89,6 +98,8 @@ export function App() {
     <AppShell
       userId={user.id}
       organizationId={organizationId || undefined}
+      documentsActive={tab === 'documents'}
+      documentId={documentId || undefined}
       name={user.name}
       email={user.email}
       busy={busy}
@@ -128,6 +139,7 @@ export function App() {
           organizationId={organizationId}
           tab={tab}
           page={page}
+          documentId={documentId || undefined}
         />
       ) : route.pathname === '/' || route.pathname === '/organizations' ? (
         <OrganizationList key={user.id} userId={user.id} />

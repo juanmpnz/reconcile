@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { DocumentList } from '../documents/document-list';
+import { DocumentDetailView } from '../documents/document-detail';
+import { Loading } from '../../components/ui/loading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authClient } from '../../lib/auth';
 import { errorMessage } from '../../lib/forms';
@@ -29,10 +32,12 @@ export function OrganizationDetail({
   organizationId,
   tab,
   page,
+  documentId,
 }: {
   userId: string;
   organizationId: string;
-  tab: 'members' | 'invitations';
+  tab: 'members' | 'invitations' | 'documents';
+  documentId?: string | undefined;
   page: number;
 }) {
   const queryClient = useQueryClient();
@@ -82,7 +87,7 @@ export function OrganizationDetail({
     }
   }
   if (context.isPending)
-    return <p role="status">Comprobando acceso a la organización…</p>;
+    return <Loading label="Comprobando acceso a la organización…" />;
   if (context.isError)
     return (
       <>
@@ -118,7 +123,7 @@ export function OrganizationDetail({
             <Badge>{roleLabel(context.data.membership.role)}</Badge>
           </p>
         </div>
-        {context.data.capabilities.canInviteMembers && (
+        {tab !== 'documents' && context.data.capabilities.canInviteMembers && (
           <InviteDialog
             userId={userId}
             organizationId={organizationId}
@@ -133,9 +138,7 @@ export function OrganizationDetail({
       </div>
       <Feedback message={message} error={failed} />
       {context.isFetching && (
-        <p className="metadata" role="status">
-          Actualizando permisos de acceso…
-        </p>
+        <Loading inline label="Actualizando permisos de acceso…" />
       )}
       <nav className="tabs" aria-label="Secciones de la organización">
         <a
@@ -161,14 +164,52 @@ export function OrganizationDetail({
           }}
         >
           Invitaciones
+        </a>{' '}
+        <a
+          href={organizationPath(organizationId, 'documents')}
+          aria-current={tab === 'documents' ? 'page' : undefined}
+          onClick={(event) => {
+            if (!event.metaKey && !event.ctrlKey) {
+              event.preventDefault();
+              navigate(organizationPath(organizationId, 'documents'));
+            }
+          }}
+        >
+          Documentos
         </a>
       </nav>
-      {!canRead ? (
-        <p role="status">Comprobando permisos antes de mostrar los datos…</p>
+      {tab === 'documents' ? (
+        <>
+          {!canRead && (
+            <Loading label="Comprobando permisos antes de mostrar los documentos…" />
+          )}
+          <div hidden={!canRead}>
+            {documentId ? (
+              <DocumentDetailView
+                key={documentId}
+                userId={userId}
+                organizationId={organizationId}
+                documentId={documentId}
+                authorizationPending={!canRead}
+              />
+            ) : (
+              <DocumentList
+                key={`${organizationId}:${page}`}
+                userId={userId}
+                organizationId={organizationId}
+                page={page}
+                canWrite={context.data.capabilities.canWriteDocuments}
+                disabled={!canRead}
+              />
+            )}
+          </div>
+        </>
+      ) : !canRead ? (
+        <Loading label="Comprobando permisos antes de mostrar los datos…" />
       ) : tab === 'members' ? (
         <section aria-label="Miembros de la organización">
           {members.isPending ? (
-            <p role="status">Cargando miembros…</p>
+            <Loading label="Cargando miembros…" rows={4} />
           ) : members.isError ? (
             <RequestError
               error={members.error}
@@ -266,9 +307,7 @@ export function OrganizationDetail({
             </>
           )}
           {members.isFetching && !members.isPending && (
-            <p className="metadata" role="status">
-              Actualizando miembros…
-            </p>
+            <Loading inline label="Actualizando miembros…" />
           )}
         </section>
       ) : (
@@ -280,7 +319,7 @@ export function OrganizationDetail({
             </p>
           )}
           {invitations.isPending ? (
-            <p role="status">Cargando invitaciones…</p>
+            <Loading label="Cargando invitaciones…" rows={4} />
           ) : invitations.isError ? (
             <RequestError
               error={invitations.error}
@@ -341,6 +380,7 @@ export function OrganizationDetail({
                           <td className="table-action">
                             {invitation.status === 'pending' && !expired ? (
                               <Button
+                                pending={cancelling === invitation.id}
                                 variant="outline"
                                 disabled={
                                   Boolean(cancelling) ||
@@ -369,9 +409,7 @@ export function OrganizationDetail({
             </TableRegion>
           )}
           {invitations.isFetching && !invitations.isPending && (
-            <p className="metadata" role="status">
-              Actualizando invitaciones…
-            </p>
+            <Loading inline label="Actualizando invitaciones…" />
           )}
         </section>
       )}

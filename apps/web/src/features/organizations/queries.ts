@@ -11,6 +11,7 @@ export const contextSchema = z.object({
   membership: z.object({ role: z.string() }),
   capabilities: z.object({
     canInviteMembers: z.boolean(),
+    canWriteDocuments: z.boolean(),
     canManageMembers: z.boolean(),
     canManageOrganization: z.boolean(),
   }),

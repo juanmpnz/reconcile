@@ -1,0 +1,75 @@
+{
+  "id": "2026-10-15-document-foundation",
+  "summary": "Accessible loading feedback and phase2 private PDF document ingestion, real extraction and review",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root, /root/identity_backend, /root/identity_frontend and /root/harness_qa",
+  "changeClass": "backend",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "New private file ingestion, parsing and tenant-bound corrections require independent architecture/security and QA review.",
+  "scope": [
+    "apps/",
+    "packages/",
+    "fixtures/logistics/",
+    "scripts/",
+    "docs/",
+    "package.json",
+    "pnpm-lock.yaml",
+    ".github/workflows/",
+    ".agents/tasks/2026-10-15-document-foundation.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Accessible scoped loaders distinguish initial, background and mutation waits without false progress or hiding readable rows.",
+    "Verified current members can list/download only organization-owned PDF documents; owner/admin/analyst can upload/correct; viewer cannot mutate.",
+    "Private upload validates size/type/checksum; errors and unsupported scanned documents remain explicit without fabricated extraction.",
+    "Actual PDF bytes yield versioned extraction with page/snippet evidence and uncertain/missing data; human corrections preserve original provenance.",
+    "Synthetic pickup62 USD carrier/transport/tariff/operational sources have explicit demo markings and isolated expected results; no financial verdict in phase2.",
+    "Any business jobs use durable PostgreSQL intent, idempotency and bounded retries with recovery evidence.",
+    "User guide and status describe actual implemented scope and reproducible checks."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "integration-engineer",
+    "document-ai-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "All16 roles apply: new document product scope, logistics fixtures, UX/loaders, tenant-bound storage/schema/extraction/jobs, platform dependencies and real acceptance tests. Root product/domain acceptance precedes business implementation; independent architecture and design precede dependent work.",
+  "excludedRoles": [],
+  "reviews": [],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Local full check passed 26 unit and8harness regressions, strict source/test types, lint, formatting and builds. Subsequent lease-fencing correction checked separately; CI must verify final source."
+    },
+    {
+      "command": "Actual PDF extraction / rendering",
+      "status": "passed",
+      "result": "Four actual synthetic PDFs rendered/inspected; production extraction found212/62/150USD and operationalmissingtotal. Actual negatives: conflicting provider candidates ambiguous, textlessPDF OCR unsupported, malformedPDF failure."
+    },
+    {
+      "command": "Real PostgreSQL/S3/Redis HTTP acceptance and browser checks",
+      "status": "not-run",
+      "result": "New7case real-service suite ready; CI and independent browser execution pending."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Phase3 financial comparison and real CargoWise integrations remain outside this step."
+  ],
+  "evidence": ["docs/design/document-workspace.md"]
+}

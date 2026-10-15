@@ -4,7 +4,7 @@ import type { FormEvent } from 'react';
 import { authClient } from '../../lib/auth';
 import { callback, navigate, useRoute } from '../../app/router';
 import { value, password } from '../../lib/forms';
-import { Field, Feedback } from '../../components/ui/primitives';
+import { Button, Field, Feedback } from '../../components/ui/primitives';
 export function Account() {
   const route = useRoute();
   const mounted = useMounted();
@@ -162,7 +162,8 @@ export function Account() {
                 hint={registering ? 'Mínimo 12 caracteres.' : undefined}
               />
             )}
-            <button
+            <Button
+              pending={busy}
               className="primary"
               disabled={busy || (reset && !params.get('token'))}
             >
@@ -177,7 +178,7 @@ export function Account() {
                       : verify
                         ? 'Reenviar verificación'
                         : 'Iniciar sesión'}
-            </button>
+            </Button>
             {reset && !params.get('token') && (
               <p role="alert">
                 Falta el enlace de recuperación.{' '}

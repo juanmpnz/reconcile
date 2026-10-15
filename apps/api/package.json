@@ -22,9 +22,12 @@
     "rxjs": "^7.8.2",
     "@reconcile/auth": "workspace:*",
     "better-auth": "1.7.8",
-    "fastify": "^5.6.1"
+    "fastify": "^5.6.1",
+    "@reconcile/application": "workspace:*",
+    "@reconcile/document-processing": "workspace:*"
   },
   "devDependencies": {
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "@reconcile/worker": "workspace:*"
   }
 }

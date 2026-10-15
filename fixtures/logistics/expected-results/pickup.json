@@ -1,0 +1,23 @@
+{
+  "evaluationOnly": true,
+  "phase2": {
+    "carrierDocumentNumber": "CAR-DEMO-001",
+    "carrierTotal": "212.00",
+    "transportTotal": "62.00",
+    "currency": "USD",
+    "operationReference": "OP-DEMO-062",
+    "operationalMissingFields": ["total"]
+  },
+  "phase3Planned": {
+    "questionedAmount": "62.00",
+    "currency": "USD",
+    "reason": "Same pickup route and service reference assigned and recorded performed by transport provider; carrier agreement excludes pickup.",
+    "requiredEvidence": [
+      "carrier-invoice.pdf",
+      "transport-invoice.pdf",
+      "carrier-agreement.pdf",
+      "pickup-record.pdf"
+    ],
+    "negativeCase": "A different pickup route or service reference cannot be declared duplicate merely by its label."
+  }
+}

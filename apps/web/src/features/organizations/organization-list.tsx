@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Loading } from '../../components/ui/loading';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
@@ -48,7 +49,7 @@ export function OrganizationList({ userId }: { userId: string }) {
         </p>
       </div>
       {organizations.isPending ? (
-        <p role="status">Cargando organizaciones…</p>
+        <Loading label="Cargando organizaciones…" rows={4} />
       ) : organizations.isError ? (
         <RequestError
           error={organizations.error}
@@ -115,9 +116,7 @@ export function OrganizationList({ userId }: { userId: string }) {
         </TableRegion>
       )}
       {organizations.isFetching && !organizations.isPending && (
-        <p role="status" className="metadata">
-          Actualizando organizaciones…
-        </p>
+        <Loading inline label="Actualizando organizaciones…" />
       )}
     </>
   );

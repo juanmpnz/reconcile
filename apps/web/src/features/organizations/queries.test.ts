@@ -12,6 +12,7 @@ describe('organization response boundaries', () => {
             membership: { role: 'owner' },
             capabilities: {
               canInviteMembers: true,
+              canWriteDocuments: true,
               canManageMembers: true,
               canManageOrganization: true,
             },

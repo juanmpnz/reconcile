@@ -1,0 +1,21 @@
+{
+  "name": "@reconcile/document-processing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@reconcile/contracts": "workspace:*",
+    "@aws-sdk/client-s3": "^3.910.0",
+    "pdfjs-dist": "6.4.299"
+  }
+}

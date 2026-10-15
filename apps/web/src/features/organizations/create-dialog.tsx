@@ -86,7 +86,7 @@ export function CreateOrganizationDialog({ userId }: { userId: string }) {
           >
             Cancelar
           </Button>
-          <Button disabled={busy}>
+          <Button pending={busy} disabled={busy}>
             {busy ? 'Creando…' : 'Crear organización'}
           </Button>
         </div>

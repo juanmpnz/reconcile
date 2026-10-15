@@ -1,8 +1,18 @@
 import { Worker } from 'bullmq';
+import { PrismaClient } from '@reconcile/database';
+import { createPrivateDocumentStorage } from '@reconcile/document-processing';
+import { startDocumentProcessing } from './documents.js';
 import { Redis } from 'ioredis';
 import { parseServiceConfig } from '@reconcile/config';
 import { PLATFORM_QUEUE, platformJobSchema } from '@reconcile/contracts';
 const config = parseServiceConfig(process.env);
+const prisma = new PrismaClient();
+const documentStorage = createPrivateDocumentStorage(config);
+const documentRuntime = startDocumentProcessing({
+  prisma,
+  storage: documentStorage,
+  redisUrl: config.REDIS_URL,
+});
 const connection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
 connection.on('error', () =>
   console.error('Worker Redis connection unavailable'),
@@ -27,14 +37,15 @@ worker.on('failed', (job) =>
   console.error(JSON.stringify({ event: 'job.failed', jobId: job?.id })),
 );
 worker.on('ready', () =>
-  console.info(
-    'Platform worker ready; business processing is not implemented yet.',
-  ),
+  console.info('Platform and private document workers ready.'),
 );
 let closing = false;
 async function shutdown(): Promise<void> {
   if (closing) return;
   closing = true;
+  await documentRuntime.close();
+  documentStorage.close();
+  await prisma.$disconnect();
   await worker.close();
   await connection.quit();
 }

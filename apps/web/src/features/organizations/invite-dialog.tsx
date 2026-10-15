@@ -94,7 +94,7 @@ export function InviteDialog({
           >
             Cancelar
           </Button>
-          <Button disabled={busy || disabled}>
+          <Button pending={busy} disabled={busy || disabled}>
             {busy ? 'Enviando…' : 'Enviar invitación'}
           </Button>
         </div>

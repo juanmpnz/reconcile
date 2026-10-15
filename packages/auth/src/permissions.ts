@@ -21,6 +21,8 @@ export function isOrganizationRole(value: string): value is OrganizationRole {
 }
 export function capabilities(role: OrganizationRole) {
   return {
+    canWriteDocuments:
+      role === 'owner' || role === 'admin' || role === 'analyst',
     canInviteMembers: role === 'owner' || role === 'admin',
     canManageMembers: role === 'owner' || role === 'admin',
     canManageOrganization: role === 'owner' || role === 'admin',
