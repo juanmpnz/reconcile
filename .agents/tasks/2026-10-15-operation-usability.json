@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-operation-usability",
   "summary": "Make operation review brief, clear and editable while preserving evidence, originals and immutable analysis history.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend and /root/analysis_frontend",
   "scope": [
@@ -70,7 +70,7 @@
       "reviewer": "/root",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Coordination, source scope, additive migration, unchanged dependencies/workflow and independent evidence collection.",
+      "examined": "Additive migration and unchanged workflow/dependency review; directly inspected decoded corrected CI38720562507 logs:61unit,44HTTP and API/PG/Redis/privatebucket/worker smoke all pass. No deployment claim.",
       "evidence": [".agents/reviews/operation-usability-main.md"]
     },
     {
@@ -166,8 +166,11 @@
       "reviewer": "/root/analysis_qa",
       "mode": "independent",
       "status": "passed",
-      "examined": "Full local pnpm check: 61 unit plus eight harness regressions, strict types/lint/format/builds; independent backend test source review including real concurrency and original bytes checks. Actual service execution pending CI.",
-      "evidence": [".agents/reviews/operation-usability-qa.md"]
+      "examined": "Full local and actual CI acceptance for source2f8c722c:61unit+8harness,44HTTP,migration and service smoke; independent new-test source review and regression closure. Browser10groups independently executed by /root/analysis_product_domain, not attributed to this reviewer.",
+      "evidence": [
+        ".agents/reviews/operation-usability-qa.md",
+        ".agents/reviews/operation-usability-browser.md"
+      ]
     }
   ],
   "checks": [
@@ -179,12 +182,22 @@
     {
       "command": "Independent Chromium operation usability acceptance",
       "status": "passed",
-      "result": "10/10 UI fixture groups passed final production preview, including editing/conflicts, preserved draft/source facts/history, accordion keyboard focus, semantic status contrast, 320/390 and zoom. Browser report being recorded; actual services separate."
+      "result": "10/10 actual Chromium production-preview groups passed: reference edits/conflicts, original/source/history preservation, statuses/contrast, evidence version-safe deduplication, keyboard accordions/focus and320/390px/200%zoom. Explicit UI API fixtures, separate from actual44HTTP. Source unchanged since tested UI; report .agents/reviews/operation-usability-browser.md."
     },
     {
-      "command": "CI run38719968438 actual migration/HTTP",
-      "status": "failed",
-      "result": "Source3eddfea099bdae07eeffa7d8206416ff324ca2d1: pnpm check61+8 and additive migration passed; 42/44 HTTP groups passed, concurrent raw SQL serialization incorrectly returned503 instead of409 and baseline identity audit exact-key assertion did not account for nullable details. Smoke skipped; corrections independently source-reviewed, rerun required."
+      "command": "Actual CI service acceptance for corrected source2f8c722c4d54d3398c554d1fbda703cefa3c9fe9",
+      "status": "passed",
+      "result": "Run38720562507 job116373789035: frozen install, fullcheck61unit+8harness, real migrations,44/44HTTP groups (13analysis+10documents+21identity) and complete API/PG/Redis/privatebucket/worker smoke passed. Tested PR merge56d2bbd027c5ae55e123d24eb79d56a88ddfc297 and source share tree3d457fe396299755c706974260c73ccc2012bdb2. Only final task-not-verified gate failed before this evidence closure; the workflow itself is not described as green."
+    },
+    {
+      "command": "Concurrency and audit regression resolution",
+      "status": "passed",
+      "result": "First source3eddfea CI38719968438 failed2/44HTTP; evidence retained in QA review. Corrected production boundary classifies known raw PostgreSQL serialization40001 as409 without exposing SQL. Identity audit checks retain exact schema/secrecy assertions and require details null. Independent architecture/QA source review plus unchanged concurrency200/409 and all44actualHTTP now passed; no assertions weakened."
+    },
+    {
+      "command": "pnpm harness:gate -- --base d6bac070dd7131ad83dc8a0e3bff2c0da6c378da",
+      "status": "passed",
+      "result": "Verified task record covers all27changed paths with14applicable roles and explicit exclusions for unchanged integrations/document AI. Catalog and declared review evidence validated; no assertion that static gate proves runtime expertise."
     }
   ],
   "findings": [
@@ -220,8 +233,8 @@
       "id": "QA-U1",
       "severity": "medium",
       "summary": "Raw SQL transaction serialization returned generic service error during concurrent operation edits",
-      "status": "open",
-      "resolution": "Map only Prisma P2010 meta.code40001 to409 CONCURRENT_UPDATE alongside existing P2034. Backend corrected, independent architecture reexamined; actual unchanged race assertion must pass next CI."
+      "status": "resolved",
+      "resolution": "Narrow P2010 SQLSTATE40001 conflict classification independently reexamined by architecture/QA; unchanged simultaneous PATCH/PUT assertion now200/409 in actual correctedCI38720562507, single revision and immutable history preserved. No error prose/SQL reflected."
     },
     {
       "id": "QA-U2",
@@ -232,8 +245,10 @@
     }
   ],
   "limitations": [
-    "No deployment, claims or accounting approval added.",
-    "Local environment has no Docker; actual service acceptance requires CI; browser fixture checks explicitly separate."
+    "Browser behavior tested using explicitly synthetic API fixtures; actual HTTP/service acceptance tested separately in CI. No complete deployed real-auth browser E2E or screen-reader certification.",
+    "Evidence preview preserves stable source ordering; it does not invent a decisive ranking absent from the rules contract. Aggregate missing-agreement explanations are preserved, with a specific observed missing-route note where applicable.",
+    "No financial rule, extraction grammar, claim, accounting approval or external connector change. Reference preflight is advisory; existing mismatch analysis remains non-verifiable.",
+    "Upgrade requires pnpm db:migrate for nullable audit details; no new environment variables. Server deployment and phase4 remain separate."
   ],
   "evidence": [
     "docs/design/operation-usability.md",
@@ -245,7 +260,8 @@
     ".agents/reviews/operation-usability-frontend.md",
     ".agents/reviews/operation-usability-qa.md",
     ".agents/reviews/operation-usability-browser.md",
-    "https://github.com/juanmpnz/reconcile/actions/runs/38719968438"
+    "https://github.com/juanmpnz/reconcile/actions/runs/38719968438",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38720562507"
   ],
   "changeClass": "backend",
   "risk": "medium",

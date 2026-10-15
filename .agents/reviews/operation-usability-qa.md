@@ -52,3 +52,23 @@ Findings sent to the backend owner and principal:
 - **Low, baseline audit shape regression:** the existing identity test at line 124 asserts exact audit-event keys and does not include the newly introduced nullable `details` column. Update the expected schema shape and assert existing identity events retain null details; do not remove its bounded audit checks.
 
 Status: source review passed earlier, actual-service runtime **not yet passed**. Await production/test correction and a new actual CI run. The failing collection run is retained here as evidence and is not relabeled green after later fixes.
+
+## Incremental corrective source review
+
+Independently reexamined the two-file corrective diff at `2f8c722c4d54d3398c554d1fbda703cefa3c9fe9`: the API boundary maps only known Prisma `P2010` with a string SQLSTATE exactly `40001` to the existing safe `409 CONCURRENT_UPDATE`, alongside its existing `P2034` mapping. It does not match SQL error prose, expose raw errors or hide unrelated infrastructure failures. The identity test now includes the additive `details` key, explicitly asserts it is null for the existing identity audit events and retains email/token leakage checks. The concurrent-write acceptance still requires `[200,409]`.
+
+Incremental source review: passed; both earlier runtime findings await confirmation by the new actual-service CI [run 38720562507](https://github.com/juanmpnz/reconcile/actions/runs/38720562507). Frontend source did not change; its separately attributed production-browser evidence remains applicable.
+
+## Corrected actual-service acceptance — findings resolved
+
+Independently fetched job summaries, decoded logs and Git commit-tree metadata for [run 38720562507](https://github.com/juanmpnz/reconcile/actions/runs/38720562507), job 116373789035. Source `2f8c722c4d54d3398c554d1fbda703cefa3c9fe9` and actual PR merge checkout `56d2bbd027c5ae55e123d24eb79d56a88ddfc297` both have tree **`3d457fe396299755c706974260c73ccc2012bdb2`**, confirmed through both Git commit endpoints.
+
+- Frozen install and full `pnpm check`: passed, **61 unit tests**; existing harness regressions, lint, format, strict types and builds retained.
+- Real Compose infrastructure and all migrations: passed, including `20261016090000_operation_audit`.
+- Real-service HTTP acceptance: **44/44 groups passed**: **13 analysis**, 10 document and 21 identity groups. The unchanged concurrent PATCH/PUT assertion now succeeds, preserving exactly one successful mutation and a 409 conflict. The new identity details shape/null checks also pass.
+- Service smoke: passed; readiness reports PostgreSQL, Redis and private S3 up; API and worker smoke complete.
+- The complete collection job remains **failure only at the final harness gate**, with `Task is not verified: 2026-10-15-operation-usability`. This run intentionally collects runtime evidence before task closure; it is not described as globally green.
+
+Both findings from the first actual-service run are **resolved by the examined production/test correction and this actual runtime evidence**. Earlier failure evidence remains intact above. Independent QA acceptance status: passed for this pinned source/tree, with separately authored browser evidence in `operation-usability-browser.md` (10/10 fixture-based interaction groups). No production frontend changes occurred after that browser build.
+
+A subsequent documentation/task-closure commit needs its own final CI gate result. Synthetic PDFs and UI fixtures do not establish accuracy on real company documents; no deployed-server, backup restore, full-auth browser E2E or screen-reader certification is claimed.

@@ -8,9 +8,8 @@ At phase0closure only the platform ping job existed; document processing and fin
 
 ## Next
 
-1. Close the operation usability verification described below before Phase4.
-2. Phase4: human finding decisions, reviewed claim drafts and export; no automatic email/accounting writes.
-3. Phase5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
+1. Phase4: human finding decisions, reviewed claim drafts and export; no automatic email/accounting writes.
+2. Phase5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
 ## Expert harness
 
@@ -52,4 +51,6 @@ Source implementation adds operation name/reference editing on the same operatio
 
 The operation screen puts results first, uses semantic status colors with icons/text and counts controls without summing money. Native accordions collapse documents, review data and history. Reference warnings show expected/found values before analysis; missing references remain unknown. Evidence is grouped and exactly deduplicated only within the same document/extraction/review/page/snippet, with compact expandable excerpts and access to all unique citations. Existing correction reasons/history and source extraction remain available. Financial rule, parser, queue and external integration behavior is unchanged.
 
-Independent architecture/security/data source review is complete. Full checks, independent UX/browser checks and actual PostgreSQL/Redis/S3 HTTP/migration/smoke execution are being collected for this change; earlier-phase results do not verify it. See `.agents/tasks/2026-10-15-operation-usability.json` and `docs/design/operation-usability.md`. No server deployment or new environment variables are included.
+Independent architecture/security/data and UX source reviews passed. Full local check passed 61 unit tests, eight harness regressions, types, lint, format and builds. Independent Chromium acceptance passed 10/10 groups with explicitly synthetic API responses. Actual service acceptance for source `2f8c722c4d54d3398c554d1fbda703cefa3c9fe9` passed all 44 HTTP groups (13 analysis, 10 documents, 21 identity), the additive migration and API/PostgreSQL/Redis/private-bucket/worker smoke in run https://github.com/juanmpnz/reconcile/actions/runs/38720562507. Tested PR merge `56d2bbd027c5ae55e123d24eb79d56a88ddfc297` has the same tree `3d457fe396299755c706974260c73ccc2012bdb2` as the source. Only the task-not-verified evidence gate remained blocked before this documentation closure; final CI checks the complete candidate.
+
+The first actual run found a raw PostgreSQL serialization error incorrectly returned as 503 and an identity audit test expecting the previous schema. Both were corrected and independently reexamined; the simultaneous-edit assertion still requires one success and one 409, and identity audit still checks exact fields plus absence of sensitive data. That earlier failed run is retained in the QA review. See `.agents/tasks/2026-10-15-operation-usability.json` and `docs/design/operation-usability.md` for exact scope and limitations. No server deployment or new environment variables are included; upgrade requires `pnpm db:migrate`.
