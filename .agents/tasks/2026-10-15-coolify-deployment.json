@@ -1,0 +1,94 @@
+{
+  "id": "2026-10-15-coolify-deployment",
+  "summary": "Prepare a verified Coolify Compose deployment using existing application Docker targets, without changing React, API, worker or business logic.",
+  "state": "implementing",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend as platform-engineer",
+  "scope": [
+    "infra/docker/compose.production.yaml",
+    "infra/docker/nginx.conf",
+    "infra/coolify/",
+    ".github/workflows/",
+    "docs/runbooks/coolify-deployment.md",
+    "docs/status.md",
+    "README.md",
+    ".agents/tasks/2026-10-15-coolify-deployment.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Existing web/api/worker image targets build from the repository root with no application-source or Dockerfile changes.",
+    "Production Compose starts all three processes and private PostgreSQL/Redis/S3 with stable generated credentials, persistent named volumes, healthchecks and fail-closed required environment.",
+    "Web routes /api to api:3000 on the shared resource network; only web receives the public HTTPS domain on internal8080, with application auth URLs using public origin without8080.",
+    "Database migrations complete before API is healthy and before worker starts; restarts retain schema/data/bucket and do not rotate secrets.",
+    "Actual image builds and production-container smoke prove web/API proxy, database migrations/readiness, authenticated queue worker and private S3. Existing quality and48HTTP regressions remain enabled.",
+    "User guide names the real existing Compose path, exact Coolify fields, short APP_URL/SMTP inputs and generated service credentials, distinguishing prepared config from actual server/TLS/SMTP/backups acceptance.",
+    "Proxy accepts valid uploaded PDFs above1MiB while application retains its10MiB authority; configuration change only, original application source unchanged.",
+    "Nginx resolves the API service after independent API recreation without requiring a frontend code/image change; startup DNS is not treated as permanent."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "solution-architect",
+    "platform-engineer",
+    "security-engineer",
+    "data-engineer",
+    "qa-engineer"
+  ],
+  "semanticRouting": "Deployment-only scope changes service orchestration, secrets, networking, persistent storage, migration ordering and CI. Existing business rules, document processing, application auth/roles and UI are preserved. Architecture/security consult precedes implementation; platform implements and independent architecture/QA review actual config and CI.",
+  "excludedRoles": [
+    {
+      "role": "product-manager",
+      "reason": "No business acceptance or product feature change; deploy the existing reviewed MVP."
+    },
+    {
+      "role": "logistics-domain",
+      "reason": "No logistics rule, evidence or money behavior changes."
+    },
+    {
+      "role": "ux-designer",
+      "reason": "No application user-flow change; operator deployment instructions only."
+    },
+    {
+      "role": "visual-designer",
+      "reason": "No visual or design-token change."
+    },
+    {
+      "role": "ui-engineer",
+      "reason": "No HTML/CSS/components change."
+    },
+    {
+      "role": "frontend-engineer",
+      "reason": "Reuse existing web Docker target unchanged."
+    },
+    {
+      "role": "backend-engineer",
+      "reason": "Existing API/worker application sources unchanged; platform author uses existing migration command."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "Existing SMTP adapter unchanged; only user-provided SMTP configuration, no business-mail or ERP connector."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "Existing parser/extraction/model unchanged."
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reason": "No rendered UI change."
+    }
+  ],
+  "reviews": [],
+  "checks": [],
+  "findings": [],
+  "limitations": [
+    "No live server MCP tools are exposed; cannot claim remote deployment, provisioned TLS, verified real SMTP, backup or restore.",
+    "This closes production configuration readiness only; full Phase5 requires actual server deployment and operational acceptance."
+  ],
+  "evidence": [
+    "https://coolify.io/docs/applications/builds/docker-compose",
+    "https://coolify.io/docs/applications/configuration/environment-variables"
+  ],
+  "changeClass": "platform",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Production secrets, persistent commercial data, migration sequencing and public ingress require independent security/architecture and actual-service QA before readiness is verified."
+}

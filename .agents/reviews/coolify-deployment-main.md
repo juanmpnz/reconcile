@@ -1,0 +1,11 @@
+# Coolify deployment — coordination and verification
+
+Execution `/root`, principal-engineer and sequential coordinator/platform inspection. Platform implementation is `/root/analysis_backend`; independent architecture/security/data review is `/root/analysis_architecture`; independent QA/platform review is `/root/analysis_qa`. Actual executions were reused under the mandatory harness. Application source, financial rules, authentication behavior and Dockerfile are unchanged.
+
+Read governing workflow/manifest, principal/platform and applicable profiles, current product/architecture/plan, existing deployment targets, Compose, proxy, migration commands and official Coolify build/environment guidance. Architecture decisions preceded dependent configuration. Root owns task/runbook/status/README and this record; its checks are not called independent.
+
+Scope is production configuration readiness: six services using existing targets, private PostgreSQL/Redis/S3, stable Coolify-generated alphanumeric secrets, API migrations before readiness/worker, HTTPS application origin and externally configured authenticated SMTP465. No actual server MCP capability is exposed. No user credential or confidential document is included in Git.
+
+Root inspected service networking, migration command, source paths, existing API upload/download routes and same-origin auth. Confirmed web does not depend on public health endpoints before making them private. A 1MiB proxy cap would reject supported PDFs; 11m now accommodates the existing 10MiB application boundary. Root identified stale startup DNS after independent API image replacement; dynamic Docker DNS and an API-only recreation regression were added and independently reviewed. Full down/up persistence checks remain distinct from backup/restore.
+
+Independent reviews and proportional local checks are recorded in separately authored architecture/QA reports. Actual three-target Docker builds and production-stack smoke remain pending CI. Existing quality/unit/48HTTP checks are preserved. This task does not close full Phase5 or claim live TLS, actual SMTP delivery, offsite backups, restoration, high availability or confidential real-data readiness.

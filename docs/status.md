@@ -10,6 +10,8 @@ At phase0closure only the platform ping job existed; document processing, financ
 
 Phase 5: server deployment with HTTPS/private storage, backups, restore and deployed end-to-end verification.
 
+Production configuration is being verified separately in `.agents/tasks/2026-10-15-coolify-deployment.json`: the Coolify Compose reuses the existing application targets, with private stateful services and stable generated credentials. Instructions: `docs/runbooks/coolify-deployment.md`. Preparation does not mean the user's server, TLS, real mail or backups have been configured.
+
 ## Expert harness
 
 Implemented sixteen canonical roles, shared workflow, generated Codex/Claude adapters, task/review records and additive CI validation. Independent architecture and QA reviews completed; eight negative/positive harness regressions passed. See .agents/tasks/2026-10-14-expert-harness.json for evidence and scope. Native client discovery is not verified in this cloud runtime. The harness does not implement future business phases.
