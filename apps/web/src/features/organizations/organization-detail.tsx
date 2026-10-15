@@ -1,3 +1,5 @@
+import { OperationList } from '../operations/operation-list';
+import { OperationDetailView } from '../operations/operation-detail';
 import { useState } from 'react';
 import { DocumentList } from '../documents/document-list';
 import { DocumentDetailView } from '../documents/document-detail';
@@ -33,10 +35,12 @@ export function OrganizationDetail({
   tab,
   page,
   documentId,
+  operationId,
 }: {
   userId: string;
   organizationId: string;
-  tab: 'members' | 'invitations' | 'documents';
+  tab: 'members' | 'invitations' | 'documents' | 'operations';
+  operationId?: string | undefined;
   documentId?: string | undefined;
   page: number;
 }) {
@@ -123,18 +127,20 @@ export function OrganizationDetail({
             <Badge>{roleLabel(context.data.membership.role)}</Badge>
           </p>
         </div>
-        {tab !== 'documents' && context.data.capabilities.canInviteMembers && (
-          <InviteDialog
-            userId={userId}
-            organizationId={organizationId}
-            organizationName={organization.name}
-            disabled={context.isFetching}
-            onSuccess={(message) => {
-              setFailed(false);
-              setMessage(message);
-            }}
-          />
-        )}
+        {tab !== 'documents' &&
+          tab !== 'operations' &&
+          context.data.capabilities.canInviteMembers && (
+            <InviteDialog
+              userId={userId}
+              organizationId={organizationId}
+              organizationName={organization.name}
+              disabled={context.isFetching}
+              onSuccess={(message) => {
+                setFailed(false);
+                setMessage(message);
+              }}
+            />
+          )}
       </div>
       <Feedback message={message} error={failed} />
       {context.isFetching && (
@@ -177,8 +183,46 @@ export function OrganizationDetail({
         >
           Documentos
         </a>
+        <a
+          href={organizationPath(organizationId, 'operations')}
+          aria-current={tab === 'operations' ? 'page' : undefined}
+          onClick={(event) => {
+            if (!event.metaKey && !event.ctrlKey) {
+              event.preventDefault();
+              navigate(organizationPath(organizationId, 'operations'));
+            }
+          }}
+        >
+          Operaciones
+        </a>
       </nav>
-      {tab === 'documents' ? (
+      {tab === 'operations' ? (
+        <>
+          {!canRead && (
+            <Loading label="Comprobando permisos antes de mostrar las operaciones…" />
+          )}
+          <div hidden={!canRead}>
+            {operationId ? (
+              <OperationDetailView
+                key={operationId}
+                userId={userId}
+                organizationId={organizationId}
+                operationId={operationId}
+                authorizationPending={!canRead}
+              />
+            ) : (
+              <OperationList
+                key={`${organizationId}:${page}`}
+                userId={userId}
+                organizationId={organizationId}
+                page={page}
+                canWrite={context.data.capabilities.canWriteDocuments}
+                disabled={!canRead}
+              />
+            )}
+          </div>
+        </>
+      ) : tab === 'documents' ? (
         <>
           {!canRead && (
             <Loading label="Comprobando permisos antes de mostrar los documentos…" />

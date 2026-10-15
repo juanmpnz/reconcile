@@ -4,6 +4,7 @@ import {
   createPrivateDocumentStorage,
   type PrivateDocumentStorage,
 } from '@reconcile/document-processing';
+import { registerAnalysisRoutes } from './analysis.routes.js';
 import { registerDocumentRoutes } from './document.routes.js';
 import { closeAfterStartupFailure } from './startup-diagnostics.js';
 import { Module } from '@nestjs/common';
@@ -171,6 +172,7 @@ export async function createApplication({
     documentStorage ??
     createPrivateDocumentStorage(parseServiceConfig(process.env));
   registerDocumentRoutes(server, { auth, prisma, storage });
+  registerAnalysisRoutes(server, { auth, prisma });
   server.addHook('onClose', async () => {
     if (!documentStorage) storage.close();
     await prisma.$disconnect();

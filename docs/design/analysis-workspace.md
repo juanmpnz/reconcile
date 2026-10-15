@@ -1,0 +1,41 @@
+# Operation comparison workspace
+
+Date: 2026-10-15. Pre-implementation UX/visual/UI/accessibility blueprint by analysis_ux. Applies AGENTS.md, .agents/WORKFLOW.md, pilot-requirements and the accepted identity/document workspace design. This document specifies behavior; it is not evidence that endpoints or screens already exist. Contracts and domain policy must be agreed before dependent implementation.
+
+## Scope and hierarchy
+
+Add Operaciones alongside Documentos within the selected organization. Reuse the existing compact monochrome shell, Arial/system 14px, 22px heading, full available content width and local loading primitives. No new dashboard, hero, colored financial success badges or invented metrics. Breadcrumb Organizaciones > organization > Operaciones > operation reference. Operations list contains reference (real detail link), service date if supported, current analysis status, last update and open action. Show no-analysis, waiting, processing, completed and failed as distinct states from returned data; completed is not approval.
+
+Create dialog requests a human operation reference and the bounded context required by the actual contract. Explain required fields before submit. Do not ask users to enter internal IDs, JSON, rule codes or storage keys. Server errors preserve entered values. Changing organization clears selected documents, operation and pending form state. Viewer sees the same evidence with no mutation actions, based on fresh backend capability.
+
+## Document association and comparison facts
+
+Operation detail has small labeled sections: Documentos, Datos para comparar, Análisis. Use ordinary links/buttons unless true tab keyboard behavior is implemented. Document section lists actual organization documents and links selected documents to the operation; display filename, kind and extraction state. No example invoice is silently preselected. A missing agreement or operational evidence remains visible; it must not manufacture a valid comparison. A document still processing explains when it can be used.
+
+Normalized facts are reviewable records, not a second untraceable invoice. Every fact shows its source document, page and literal excerpt when available. Distinguish extracted candidate, saved user correction and explicitly missing value. No arbitrary confidence percentage. Users must be able to inspect supplier, service identity/scope, service date, route or leg when applicable, currency, quantity, unit, net price, tax and applicable agreement conditions. Only expose fields supported by current contracts. Explain unsupported formats or missing facts rather than silently using defaults. Never infer zero from missing amount, never equate service names across different legs, never call an internal estimate a supplier agreement.
+
+Editing uses labeled semantic inputs, selects and repeatable line rows as required by supported schema. Monetary strings remain decimal strings; blank is absent, zero is explicit. Visible help explains decimal format. A save records provenance and leaves original PDF/extraction intact. Long evidence text wraps and preserves access to its source; download/open original uses the existing authorized API, not an extracted external link. Facts unavailable to this MVP must be acknowledged explicitly in result limitations.
+
+## Execution and result
+
+Primary action Analizar operación begins an asynchronous persisted run, then closes any action dialog promptly. It does not hold a blocking overlay for processing. Pending states retain operation context and show En espera or Analizando with a local status loader; prevent duplicate launches while a current run is active. No fabricated percentage or completion estimate. Users may leave and reopen. Failed state offers a real retry/new-run action only when supported, with a readable error and preserved prior successful result. Historical results remain available during a new run and are labeled with their run date.
+
+The result begins with plain-language status and relevant missing evidence, then a semantic per-charge table: supplier/service, expected amount, billed amount, difference with currency, result/reason and Evidencia action. Keep expected/billed/difference distinct; absent expected value is Sin dato, not 0.00. Where currency, quantity, unit, tax or scope prevents comparison, explain No verificable and name the missing/mismatched fact. Do not aggregate currencies or unrelated findings into a misleading total. A matching amount says Sin diferencia de precio detectada, never Factura correcta or Pago aprobado. There is no approved/recovered money metric.
+
+Reason and source evidence belong in the same context as their charge. Evidence expands inline or in an accessible dialog with source filename, page, excerpt and original download. Show why a selected agreement applies or cannot apply: relevant date, supplier, scope and rule explanation, using friendly labels instead of internal rule IDs. The 62 USD case is a potential disputed pickup supported by agreement exclusion plus the same service's assignment/performance evidence; similarity of names or 212 minus 150 alone is insufficient. Product/domain policy determines final certainty vocabulary; UI must preserve the distinction between evidence-backed difference, possible issue and insufficient evidence.
+
+Historical run selector/list displays actual run time and status. Each completed run retains its own snapshot and explanations. If documents/facts changed since the selected run, display Datos modificados desde este análisis and a real Reanalizar action; never silently repaint an old result as current. Date display uses user locale; machine versions can remain in technical metadata, not primary task copy.
+
+## Human review and accounting boundary
+
+This phase supports review and correction of source facts. Computed findings remain read-only with their evidence and history. Confirming, discarding or accepting a finding is reserved for phase 4; do not add decision actions, decision endpoints or placeholder controls now. Future finding decisions will require their own actor, timestamp, reason and history, separate from the computed result. No result changes accounting status or implies approved, posted or paid. No send/payment button and no claim draft advertised before its implementation. Evidence dialogs return focus to the exact source action.
+
+## Loading, recovery and accessibility
+
+Reuse Loader/LoadingState and button pending behavior. Initial list/detail request uses one visible status and aria-busy, no empty-state flash. Safe cached content stays during background refresh, except fresh-authorization checks hide protected content and mutations. Scope all caches and mutations by user plus organization plus operation/run. Late completion after navigation must not redirect users into an old operation or expose another tenant's result.
+
+Use native table/caption/scoped headers in a named keyboard-focusable horizontal region. At 390/320px and 200% zoom, only the table region may scroll horizontally; headings, forms, evidence excerpts and actions wrap within the page. Modal focus traps and returns; Escape/cancel work when safe, submit prevents duplicate requests, errors retain input and focus their summary. One polite live status per active region; no live-announcement every polling tick. Reduced motion leaves readable static status. Status is always text, never color alone.
+
+## Acceptance for subsequent review
+
+Verify creation, document linking/unlinking if supported, missing/ambiguous facts, normalized-fact save errors, 62 USD evidence-backed finding, no-agreement uncertainty, distinct-leg non-duplicate, currency mismatch, active async run, retry, historical runs/stale-input notice and source-fact correction provenance. Finding decisions and claims remain explicitly outside this phase. Cover viewer, revoked membership, cross-organization navigation, late mutations, long filenames, keyboard dialogs, mobile width and zoom. Browser fixtures are UI evidence only; tenant authorization, financial rules and real queues require separate service/domain evidence. No pixel fidelity or accessibility certification claimed from this blueprint.

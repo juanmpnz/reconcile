@@ -2,7 +2,7 @@
 
 Kershell product foundation for comparing supplier invoices with agreed costs and evidence of performed services. Common core, sector-specific rules, logistics as first pilot.
 
-This repository provides infrastructure, account/organization access and the phase 2 PDF document intake implementation. It does not compare or approve invoices yet. See docs/status.md for verification evidence and current limits.
+This repository provides infrastructure, account/organization access PDF document intake and the phase 3 evidence-based comparison implementation. It does not approve invoices or send claims. See docs/status.md for verification evidence and current limits.
 
 ## Expert harness
 

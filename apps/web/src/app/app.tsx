@@ -33,14 +33,23 @@ export function App() {
   const [logoutError, setLogoutError] = useState('');
   const invitationId =
     route.searchParams.get('invitationId') ?? route.searchParams.get('id');
-  const orgMatch = /^\/organizations\/([^/]+)(?:\/documents\/([^/]+))?$/.exec(
-    route.pathname,
-  );
+  const orgMatch =
+    /^\/organizations\/([^/]+)(?:\/(documents|operations)\/([^/]+))?$/.exec(
+      route.pathname,
+    );
   let organizationId = '';
   let documentId = '';
+  let operationId = '';
   try {
     organizationId = orgMatch?.[1] ? decodeURIComponent(orgMatch[1]) : '';
-    documentId = orgMatch?.[2] ? decodeURIComponent(orgMatch[2]) : '';
+    documentId =
+      orgMatch?.[2] === 'documents' && orgMatch[3]
+        ? decodeURIComponent(orgMatch[3])
+        : '';
+    operationId =
+      orgMatch?.[2] === 'operations' && orgMatch[3]
+        ? decodeURIComponent(orgMatch[3])
+        : '';
   } catch {
     /* Invalid paths render not-found below. */
   }
@@ -50,11 +59,13 @@ export function App() {
       ? pageValue
       : 0;
   const tab =
-    documentId || route.searchParams.get('tab') === 'documents'
-      ? 'documents'
-      : route.searchParams.get('tab') === 'invitations'
-        ? 'invitations'
-        : 'members';
+    operationId || route.searchParams.get('tab') === 'operations'
+      ? 'operations'
+      : documentId || route.searchParams.get('tab') === 'documents'
+        ? 'documents'
+        : route.searchParams.get('tab') === 'invitations'
+          ? 'invitations'
+          : 'members';
   async function logout() {
     if (busy) return;
     setBusy(true);
@@ -99,6 +110,8 @@ export function App() {
       userId={user.id}
       organizationId={organizationId || undefined}
       documentsActive={tab === 'documents'}
+      operationsActive={tab === 'operations'}
+      operationId={operationId || undefined}
       documentId={documentId || undefined}
       name={user.name}
       email={user.email}
@@ -140,6 +153,7 @@ export function App() {
           tab={tab}
           page={page}
           documentId={documentId || undefined}
+          operationId={operationId || undefined}
         />
       ) : route.pathname === '/' || route.pathname === '/organizations' ? (
         <OrganizationList key={user.id} userId={user.id} />

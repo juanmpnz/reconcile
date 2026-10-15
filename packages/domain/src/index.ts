@@ -11,3 +11,12 @@ export function subtractAmounts(invoiced: string, expected: string): string {
   });
   return new Arithmetic(invoiced).minus(expected).toFixed();
 }
+
+export type {
+  AnalysisEvidence,
+  AnalysisLine,
+  AnalysisDocument,
+  AnalysisSnapshot,
+  AnalysisFinding,
+  AnalysisResult,
+} from './analysis.js';
