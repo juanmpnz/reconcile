@@ -10,7 +10,7 @@
     "dev": "pnpm build:packages && pnpm --parallel --filter \"./apps/*\" dev",
     "build:packages": "pnpm --filter \"./packages/*\" -r build",
     "build": "pnpm -r build",
-    "typecheck": "pnpm build:packages && pnpm -r typecheck",
+    "typecheck": "pnpm build:packages && pnpm --filter @reconcile/worker build && pnpm -r typecheck",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
