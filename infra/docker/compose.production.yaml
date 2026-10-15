@@ -103,9 +103,9 @@ services:
       WEB_ORIGIN: ${APP_URL:?Required public HTTPS origin}
       AUTH_SECRET: ${SERVICE_PASSWORD_64_AUTH:?Required generated authentication secret}
       MAIL_MODE: smtp
-      SMTP_HOST: ${SMTP_HOST:?Required authenticated SMTPS host}
-      SMTP_PORT: '465'
-      SMTP_SECURE: 'true'
+      SMTP_HOST: ${SMTP_HOST:?Required authenticated SMTP host}
+      SMTP_PORT: '587'
+      SMTP_SECURE: 'false'
       SMTP_USER: ${SMTP_USER:?Required SMTP user}
       SMTP_PASSWORD: ${SMTP_PASSWORD:?Required SMTP password}
       MAIL_FROM: ${MAIL_FROM:?Required verified sender address}
