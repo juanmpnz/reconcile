@@ -1,7 +1,7 @@
 {
   "id": "2026-10-15-coolify-deployment",
   "summary": "Prepare a verified Coolify Compose deployment using existing application Docker targets, without changing React, API, worker or business logic.",
-  "state": "implementing",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend as platform-engineer",
   "scope": [
@@ -76,16 +76,123 @@
       "reason": "No rendered UI change."
     }
   ],
-  "reviews": [],
-  "checks": [],
-  "findings": [],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordinated actual expert decisions before configuration, reviewed unchanged app/Dockerfile scope and directly decoded production/Quality CI logs plus tested-merge tree parity.",
+      "evidence": [".agents/reviews/coolify-deployment-main.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent production topology, secret/network/migration/persistence/proxy review. Redis user and dynamic nginx DNS corrections reread; no app code authored. Actual Docker result separately owned by QA.",
+      "evidence": [".agents/reviews/coolify-deployment-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent production topology, secret/network/migration/persistence/proxy review. Redis user and dynamic nginx DNS corrections reread; no app code authored. Actual Docker result separately owned by QA.",
+      "evidence": [".agents/reviews/coolify-deployment-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent production topology, secret/network/migration/persistence/proxy review. Redis user and dynamic nginx DNS corrections reread; no app code authored. Actual Docker result separately owned by QA.",
+      "evidence": [".agents/reviews/coolify-deployment-architecture.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented production manifest/nginx/smoke/additive CI, explicitly self-review. Syntax/lint/format passed; real image/stack evidence independently checked by QA.",
+      "evidence": [".agents/reviews/coolify-deployment-platform.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent source, topology, guard and exact CI review: all three real targets built, auth/proxy/privatePDF/worker and retained volume smoke passed; existing67unit/48HTTP/migration/smoke passed. No source/test implementation authored.",
+      "evidence": [".agents/reviews/coolify-deployment-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "Scoped syntax, ESLint, Prettier, YAML/private topology and guarded smoke imports",
+      "status": "passed",
+      "result": "Independent QA checked smoke syntax/lint and supported file formatting, resource/network/volume/dependency assertions and explicit synthetic-run guard. Final DNS correction reread and checked; no local Docker claim."
+    },
+    {
+      "command": "Production containers actual CI run38745992783/job116459663084",
+      "status": "passed",
+      "result": "Source06ea1655d872a77b6f25ad14159d62660da594d5 and testedmergedd5babe55c0e7f13cad55412b96048f2add4f3a7 share tree17927fd0d28a0112abfa1e2df1250df8a221cea9. Three Docker targets built; migrated six-service stack ready; actual web/auth/Secure cookie/CSRF/S3 private/>1MiB PDF/extraction/checksum/worker smoke passed. API-only replacement retained nginx process and recovered proxy. Docker reused API addresses; no forced-IP-change proof claimed. Full down/up retained PostgreSQL/Redis/S3 and original PDF. Workflow completed success."
+    },
+    {
+      "command": "Quality actual CI run38745992643/job116459664018",
+      "status": "passed",
+      "result": "Same source/tree passed frozen install, fullcheck67unit+8harness, real migrations,48/48HTTP and API/PG/Redis/privatebucket/worker smoke. Only pending task-verification gate failed before evidence closure; this Quality collection workflow is not represented as green."
+    },
+    {
+      "command": "No application source or Dockerfile changes",
+      "status": "passed",
+      "result": "git diff --name-only 38850fcf356b5b045caa8ed529b046b07ac7ba3e -- apps/ packages/ infra/docker/Dockerfile pnpm-lock.yaml returned no paths. Deployment configuration and evidence only."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 38850fcf356b5b045caa8ed529b046b07ac7ba3e",
+      "status": "passed",
+      "result": "Verified task declares six applicable roles, actual independent source/runtime reviews and explicit unchanged feature/UI/integration exclusions. Gate validates declared coverage, not expert authenticity."
+    }
+  ],
+  "findings": [
+    {
+      "id": "CDEP-PDF",
+      "severity": "medium",
+      "summary": "Default nginx1MiB cap rejected PDFs allowed by API",
+      "status": "resolved",
+      "resolution": "Proxy now allows11m while application preserves10MiB. Independent source review and actual >1MiB authenticated upload/extraction/download checksum passed production CI."
+    },
+    {
+      "id": "CDEP1",
+      "severity": "medium",
+      "summary": "Redis shell command bypassed image privilege drop",
+      "status": "resolved",
+      "resolution": "Explicit Redis image user configured; architecture independently reread and actual startup/authenticatedqueue/AOF volume persistence passed."
+    },
+    {
+      "id": "CDEP2",
+      "severity": "high",
+      "summary": "Static nginx upstream could retain an obsolete API address after independent replacement",
+      "status": "resolved",
+      "resolution": "Shared upstream zone with Docker resolver and resolve supported in nginx1.28, independently reread. Real API-only replacement preserved nginx identity/start time and proxy worked; addresses were reused, so changed-IP recovery remains an explicit unforced scenario limit."
+    }
+  ],
   "limitations": [
-    "No live server MCP tools are exposed; cannot claim remote deployment, provisioned TLS, verified real SMTP, backup or restore.",
-    "This closes production configuration readiness only; full Phase5 requires actual server deployment and operational acceptance."
+    "No live server MCP tools are exposed. No remote server deployment, provisioned certificate, actual SMTP delivery, deployed-browser E2E, offsite backup or restore is certified.",
+    "This closes production configuration readiness only; full Phase5 still requires user-server operational acceptance. Single host is not high availability.",
+    "Production smoke uses isolated synthetic identity/data and configured HTTPS cookie semantics over internal HTTP; no real TLS ingress or external mail.",
+    "API recreation preserved its network addresses in CI; forced web-facing IP change was not exercised. DNS configuration was independently reviewed and actual nginx startup/proxy recreation passed.",
+    "CPU/memory/PID defaults are bounded pilot settings, not capacity benchmarks; existing build-stage runtime retains dev dependencies by unchanged Dockerfile design."
   ],
   "evidence": [
     "https://coolify.io/docs/applications/builds/docker-compose",
-    "https://coolify.io/docs/applications/configuration/environment-variables"
+    "https://coolify.io/docs/applications/configuration/environment-variables",
+    "docs/runbooks/coolify-deployment.md",
+    ".agents/reviews/coolify-deployment-main.md",
+    ".agents/reviews/coolify-deployment-architecture.md",
+    ".agents/reviews/coolify-deployment-platform.md",
+    ".agents/reviews/coolify-deployment-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38745992783",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38745992643"
   ],
   "changeClass": "platform",
   "risk": "high",

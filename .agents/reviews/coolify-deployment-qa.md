@@ -43,3 +43,35 @@ Independent checks actually executed:
 The smoke explicitly seeds a synthetic verified identity/credential in the isolated database, authenticates through real production HTTP and checks cookie attributes/Origin/private S3/upload/worker behavior; it does not test registration email delivery. Teardown/recreation preserves volumes and secrets, then checks persisted PostgreSQL, Redis, S3 sentinel and original PDF bytes. It cleans only its scoped synthetic fixtures. The production workflow is additive: existing unit/HTTP gates are retained independently.
 
 Source review: passed with no remaining blocking config/smoke finding in the examined candidate. Real Docker target builds, Compose resolution, service startup, migrations, production smoke and recreation acceptance are pending CI; a user-server deployment/TLS/DNS/backup restoration is not claimed.
+
+## DNS/recreation delta review
+
+Independently reexamined the final Nginx upstream shared-memory zone, `server api:3000 resolve`, and Docker resolver `127.0.0.11` with a five-second validity. Consulted the official [HTTP upstream documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#server): dynamic resolve is available in open-source Nginx from 1.27.3, compatible with the existing 1.28 image. No image/application dependency change was introduced for this correction.
+
+The additive API-only recreation check requires a changed API container ID, unchanged web container ID and unchanged web start timestamp, then polls the actual web API proxy for recovery. It explicitly distinguishes a real address change from Docker reusing the same IP and does not claim changed-IP recovery if reuse occurred. Scoped workflow Prettier/YAML assertions passed. Runtime checks are still pending the production-image CI candidate `06ea1655d872a77b6f25ad14159d62660da594d5`.
+
+## Actual production-image CI acceptance
+
+Independently fetched decoded logs and job summaries for [Production containers run 38745992783](https://github.com/juanmpnz/reconcile/actions/runs/38745992783), job 116459663084. The production-smoke job completed with success. Source **`06ea1655d872a77b6f25ad14159d62660da594d5`** and tested PR merge **`dd5babe55c0e7f13cad55412b96048f2add4f3a7`** both have tree **`17927fd0d28a0112abfa1e2df1250df8a221cea9`**, independently verified through Git commit endpoints.
+
+Actual Docker evidence on this pinned tree:
+
+- Resolved Compose private topology validation passed.
+- The actual Dockerfile **api, worker and web targets all built successfully**.
+- Complete production stack started healthy after real migrations.
+- Seed smoke passed: web/static HTML, same-origin API, private operational readiness, secure cookie attributes and hostile Origin rejection, required migration rows, authenticated S3 versus anonymous denial, actual valid PDF larger than 1 MiB through Nginx, worker extraction and original checksum download, Redis platform job and scoped synthetic identity.
+- API-only force recreation passed while web container ID and StartedAt remained unchanged; API proxy recovered. **Docker reused the same network addresses** in this run, as explicitly logged. Changed-IP DNS recovery is therefore not claimed by this runtime result, although the dynamic DNS configuration was independently reviewed.
+- Full container teardown/recreation without deleting volumes passed: persisted PostgreSQL organization/document, Redis sentinel, S3 object and original PDF checksum survived.
+- Cleanup of the isolated synthetic stack passed. SMTP was configuration-only; no real verification message or email delivery was attempted.
+
+The earlier proxy body-size compatibility finding is resolved by both the examined 11m configuration and this actual >1 MiB upload/extraction check. This is production-image/configuration acceptance in CI, not deployment to the user's Coolify server or external backup restoration.
+
+The separate unchanged Quality workflow's 67-unit/48-HTTP/harness result is still pending final inspection; do not replace it with this production smoke.
+
+## Retained Quality acceptance and independent closure
+
+Independently fetched the complete job summary and decoded logs for [Quality run 38745992643](https://github.com/juanmpnz/reconcile/actions/runs/38745992643), job 116459664018, on the same source/tested merge above. Frozen install, full `pnpm check` (**67 unit tests**), existing real-service infrastructure and migrations, **48 HTTP groups**, and API/worker smoke all passed. The full Quality workflow conclusion is failure solely because the pre-closure task is not yet verified: `Task is not verified: 2026-10-15-coolify-deployment`. That collection run is not described as globally green.
+
+Separately queried the production workflow resource: run 38745992783 is **completed/success**, not merely a successful intermediate step. No implementation changes were needed after its actual builds and acceptance.
+
+Independent QA/platform source and runtime acceptance: **passed on source `06ea1655d872a77b6f25ad14159d62660da594d5` / tree `17927fd0d28a0112abfa1e2df1250df8a221cea9`**. No blocking finding remains in this bounded configuration scope. Final documentation/task-closure commit still requires its own final CI result. Preserve the same-IP runtime limitation and the separation from real-server TLS/DNS/SMTP delivery, external backups, restoration rehearsal and overall Phase-5 completion.
