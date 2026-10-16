@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { operationAgreementsSchema } from '@reconcile/contracts';
@@ -399,13 +400,13 @@ function SelectAgreementDialog({
                 <label htmlFor={`${id}-agreement`}>
                   Tarifa guardada o spot de esta operación
                 </label>
-                <select
+                <Select
                   id={`${id}-agreement`}
                   required
                   value={selectedId}
-                  onChange={(event) => {
-                    setSelectedId(event.target.value);
-                    setSelectedAgreement(items.get(event.target.value));
+                  onValueChange={(selectedValue) => {
+                    setSelectedId(selectedValue);
+                    setSelectedAgreement(items.get(selectedValue));
                   }}
                 >
                   <option value="">Elegí explícitamente un acuerdo</option>
@@ -417,7 +418,7 @@ function SelectAgreementDialog({
                       {item.terms.validUntil} · versión {item.id}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="pagination">
                 <Button

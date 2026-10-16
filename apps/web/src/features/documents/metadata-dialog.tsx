@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DocumentKind, DocumentSummary } from '@reconcile/contracts';
@@ -166,12 +167,12 @@ export function MetadataDialog({
           <label htmlFor={`metadata-kind-${document.id}`}>
             Tipo de documento
           </label>
-          <select
+          <Select
             id={`metadata-kind-${document.id}`}
             value={kind}
             disabled={busy || checking}
-            onChange={(event) => {
-              const result = documentKindSchema.safeParse(event.target.value);
+            onValueChange={(selectedValue) => {
+              const result = documentKindSchema.safeParse(selectedValue);
               if (result.success) setKind(result.data);
             }}
           >
@@ -180,7 +181,7 @@ export function MetadataDialog({
                 {kindLabels[value]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="field">
           <label htmlFor={`metadata-reason-${document.id}`}>

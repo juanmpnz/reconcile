@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { DataTable, renderStatus } from '../../components/ui/data-table';
 import { RebaseDialog } from './rebase-dialog';
 import { claimEligibility, followUpSummary } from './presentation';
@@ -363,12 +364,12 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
               <label htmlFor={`decision-${findingIndex}`}>
                 Decisión humana
               </label>
-              <select
+              <Select
                 id={`decision-${findingIndex}`}
                 value={action}
                 disabled={busy}
-                onChange={(event) => {
-                  const value = event.target.value;
+                onValueChange={(selectedValue) => {
+                  const value = selectedValue;
                   if (
                     value === 'confirm' ||
                     value === 'accept' ||
@@ -380,7 +381,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
                 <option value="confirm">Confirmar hallazgo</option>
                 <option value="dismiss">Desestimar hallazgo</option>
                 <option value="accept">Aceptar diferencia</option>
-              </select>
+              </Select>
             </div>
             <p className="permission-note">
               Confirmar permite preparar una solicitud cuando hay respaldo.

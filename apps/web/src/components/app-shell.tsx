@@ -1,3 +1,4 @@
+import { Select } from './ui/select';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -86,7 +87,7 @@ export function AppShell({
         </Button>
         <div className="workspace-selector">
           <label htmlFor="workspace-organization">Organización</label>
-          <select
+          <Select
             id="workspace-organization"
             value={
               organizations.data?.some((org) => org.id === organizationId)
@@ -94,10 +95,10 @@ export function AppShell({
                 : ''
             }
             disabled={!verified || organizations.isPending}
-            onChange={(event) => {
-              if (event.target.value) {
+            onValueChange={(selectedValue) => {
+              if (selectedValue) {
                 setMobile(false);
-                navigate(organizationPath(event.target.value, 'overview'));
+                navigate(organizationPath(selectedValue, 'overview'));
               }
             }}
           >
@@ -107,7 +108,7 @@ export function AppShell({
                 {org.name}
               </option>
             ))}
-          </select>
+          </Select>
           {organizations.isError && (
             <p className="metadata">
               No se pudo cargar el selector.{' '}

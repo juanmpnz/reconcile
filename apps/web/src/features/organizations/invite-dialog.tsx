@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '../../lib/auth';
@@ -77,10 +78,10 @@ export function InviteDialog({
         />
         <div className="field">
           <label htmlFor="invite-role">Permiso</label>
-          <select id="invite-role" name="invite-role">
+          <Select id="invite-role" name="invite-role">
             <option value="analyst">Analista</option>
             <option value="viewer">Lector</option>
-          </select>
+          </Select>
         </div>
         <div className="dialog-actions">
           <Button

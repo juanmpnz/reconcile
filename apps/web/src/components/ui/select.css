@@ -1,0 +1,118 @@
+.select-field {
+  width: 100%;
+  min-width: 0;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+}
+.select-trigger:hover:not(:disabled) {
+  background: #fafaf9;
+  border-color: #b5b1aa;
+}
+.select-trigger:focus-visible {
+  outline: 2px solid #2f3238;
+  outline-offset: 2px;
+}
+.select-trigger[data-placeholder] {
+  color: var(--muted);
+}
+.select-trigger > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-chevron {
+  flex: none;
+  color: var(--muted);
+}
+.select-trigger[aria-invalid='true'] {
+  border-color: #b42318;
+}
+.select-error {
+  color: #b42318;
+  display: block;
+  margin-top: 6px;
+}
+.select-content {
+  z-index: 100;
+  min-width: var(--radix-select-trigger-width);
+  max-width: min(560px, calc(100vw - 16px));
+  max-height: min(360px, var(--radix-select-content-available-height));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 8px 28px #2f32381c;
+  overflow: hidden;
+}
+.select-viewport {
+  padding: 5px;
+}
+.select-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 30px 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  cursor: default;
+  user-select: none;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.select-option[data-highlighted] {
+  background: #fff0e3;
+  color: #2f3238;
+}
+.select-option[data-state='checked'] {
+  font-weight: 600;
+}
+.select-option[data-disabled] {
+  color: #767676;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.select-check {
+  position: absolute;
+  right: 10px;
+  color: #994106;
+}
+.select-scroll {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 24px;
+  background: #fff;
+  color: var(--muted);
+}
+.sidebar .select-trigger {
+  font-size: 12px;
+}
+@media (max-width: 599px) {
+  .select-trigger {
+    min-height: 40px;
+  }
+  .select-option {
+    min-height: 40px;
+  }
+}
+.data-table-pagination .select-field {
+  width: 78px;
+  flex: none;
+}

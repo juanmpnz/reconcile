@@ -1,3 +1,4 @@
+import { Select } from './select';
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -398,15 +399,16 @@ export function DataTable<T>({
         </table>
       </TableRegion>
       <div className="pagination data-table-pagination">
-        <label>
+        <label htmlFor={`${id}-page-size`}>
           Filas por página{' '}
-          <select
+          <Select
+            id={`${id}-page-size`}
             value={currentPagination.pageSize}
             disabled={disabled || busy}
-            onChange={(event) =>
+            onValueChange={(selectedValue) =>
               table.setPagination({
                 pageIndex: 0,
-                pageSize: Number(event.target.value),
+                pageSize: Number(selectedValue),
               })
             }
           >
@@ -415,7 +417,7 @@ export function DataTable<T>({
                 {size}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <span className="metadata">
           {count

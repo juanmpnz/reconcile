@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import {
   DataTable,
   renderLink,
@@ -381,10 +382,10 @@ export function OperationDetailView({
               <label htmlFor="analysis-run">
                 Análisis recientes (últimos 5)
               </label>
-              <select
+              <Select
                 id="analysis-run"
                 value={selected.id}
-                onChange={(event) => setSelectedRun(event.target.value)}
+                onValueChange={(selectedValue) => setSelectedRun(selectedValue)}
               >
                 {!data.analyses.some((run) => run.id === selected.id) && (
                   <option value={selected.id}>
@@ -396,7 +397,7 @@ export function OperationDetailView({
                     {timestampLabel(run.createdAt)} · {runLabels[run.status]}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="document-status">
               <Badge>{runLabels[selected.status]}</Badge>

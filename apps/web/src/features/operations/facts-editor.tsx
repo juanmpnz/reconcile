@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useId, useState } from 'react';
 import type { AnalysisDocumentInput } from '@reconcile/contracts';
 import { analysisDocumentSchema } from '@reconcile/contracts';
@@ -150,12 +151,12 @@ export function FactsEditor({
         {draft.kind === 'agreement' && (
           <div className="field">
             <label htmlFor={`${id}-basis`}>Base del acuerdo</label>
-            <select
+            <Select
               id={`${id}-basis`}
               value={draft.agreementBasis}
               disabled={busy}
-              onChange={(event) => {
-                const value = event.target.value;
+              onValueChange={(selectedValue) => {
+                const value = selectedValue;
                 if (
                   value === 'accepted' ||
                   value === 'internal-estimate' ||
@@ -167,29 +168,27 @@ export function FactsEditor({
               <option value="unknown">Sin verificar</option>
               <option value="accepted">Acuerdo aceptado por las partes</option>
               <option value="internal-estimate">Estimación interna</option>
-            </select>
+            </Select>
           </div>
         )}
         {draft.kind === 'operational-record' && (
           <div className="field">
             <label htmlFor={`${id}-completed`}>Estado del servicio</label>
-            <select
+            <Select
               id={`${id}-completed`}
               value={draft.serviceStatus}
               disabled={busy}
-              onChange={(event) =>
+              onValueChange={(selectedValue) =>
                 setDraft({
                   ...draft,
                   serviceStatus:
-                    event.target.value === 'completed'
-                      ? 'completed'
-                      : 'unknown',
+                    selectedValue === 'completed' ? 'completed' : 'unknown',
                 })
               }
             >
               <option value="unknown">Sin verificar</option>
               <option value="completed">Realizado según la evidencia</option>
-            </select>
+            </Select>
           </div>
         )}
         <h3>Partidas</h3>
@@ -240,12 +239,12 @@ export function FactsEditor({
             ))}
             <div className="field">
               <label htmlFor={`${id}-${index}-service`}>Servicio</label>
-              <select
+              <Select
                 id={`${id}-${index}-service`}
                 value={line.service}
                 disabled={busy}
-                onChange={(event) => {
-                  const value = event.target.value;
+                onValueChange={(selectedValue) => {
+                  const value = selectedValue;
                   if (
                     value === 'unknown' ||
                     value === 'pickup' ||
@@ -264,7 +263,7 @@ export function FactsEditor({
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {line.evidence.map((item, evidenceIndex) => (
               <blockquote className="source-evidence" key={evidenceIndex}>
@@ -289,12 +288,12 @@ export function FactsEditor({
                     <label htmlFor={`${id}-exclude-${index}`}>
                       Servicio excluido
                     </label>
-                    <select
+                    <Select
                       id={`${id}-exclude-${index}`}
                       value={item.service}
                       disabled={busy}
-                      onChange={(event) => {
-                        const value = event.target.value;
+                      onValueChange={(selectedValue) => {
+                        const value = selectedValue;
                         if (
                           value === 'unknown' ||
                           value === 'pickup' ||
@@ -316,7 +315,7 @@ export function FactsEditor({
                           {label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div className="field">
                     <label htmlFor={`${id}-exclude-route-${index}`}>

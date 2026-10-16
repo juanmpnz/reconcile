@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { latestDraft } from './presentation';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -723,12 +724,12 @@ function EventDialog({
         <Feedback error message={error} />
         <div className="field">
           <label htmlFor="claim-status">Acción realizada</label>
-          <select
+          <Select
             id="claim-status"
             value={status}
             disabled={busy}
-            onChange={(event) => {
-              const value = event.target.value;
+            onValueChange={(selectedValue) => {
+              const value = selectedValue;
               if (
                 value === 'sent' ||
                 value === 'in_review' ||
@@ -749,7 +750,7 @@ function EventDialog({
                 <option value="rejected">Registrar rechazo</option>
               </>
             )}
-          </select>
+          </Select>
         </div>
         <div className="field">
           <label htmlFor="claim-event-date">Fecha y hora de la acción</label>
@@ -811,13 +812,13 @@ function EventDialog({
         {status === 'resolved' && (
           <div className="field">
             <label htmlFor="claim-outcome">Resultado registrado</label>
-            <select
+            <Select
               id="claim-outcome"
               required
               value={outcome}
               disabled={busy}
-              onChange={(event) => {
-                const value = event.target.value;
+              onValueChange={(selectedValue) => {
+                const value = selectedValue;
                 if (
                   value === '' ||
                   value === 'corrected' ||
@@ -837,7 +838,7 @@ function EventDialog({
               <option value="withdrawn">
                 Retirado según el motivo registrado
               </option>
-            </select>
+            </Select>
           </div>
         )}
         {conflict && (
