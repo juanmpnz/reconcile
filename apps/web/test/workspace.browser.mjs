@@ -242,6 +242,10 @@ try {
   console.log(
     'PASS default overview, three workspace destinations, real-count DTO display and locally loaded Inter',
   );
+  await page.screenshot({
+    path: '/tmp/workspace-qa-overview.png',
+    fullPage: false,
+  });
   await nav.getByRole('link', { name: 'Operativa', exact: true }).click();
   await visible(
     page.getByRole('heading', { name: 'Operaciones', exact: true }),
@@ -345,6 +349,10 @@ try {
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();
   await panel.waitFor({ state: 'hidden' });
+  await page.waitForFunction(
+    (el) => el === document.activeElement,
+    await trigger.elementHandle(),
+  );
   assert.equal(
     await trigger.evaluate((el) => el === document.activeElement),
     true,
@@ -387,9 +395,17 @@ try {
     await visible(panel);
     const box = await panel.boundingBox();
     assert.ok(
-      box && box.x >= -1 && Math.abs(box.width - width) <= 2,
-      'mobile panel uses viewport width',
+      box &&
+        Math.abs(box.x) <= 1 &&
+        Math.abs(box.y) <= 1 &&
+        Math.abs(box.width - width) <= 2 &&
+        Math.abs(box.height - 844) <= 2,
+      'mobile panel uses the full viewport',
     );
+    await page.screenshot({
+      path: `/tmp/workspace-qa-panel-${width}.png`,
+      fullPage: false,
+    });
     assert.equal(await fits(), true);
     await panel
       .getByRole('button', { name: 'Cerrar panel', exact: true })

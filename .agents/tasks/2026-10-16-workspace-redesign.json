@@ -171,6 +171,21 @@
       "command": "pnpm check",
       "status": "passed",
       "result": "112 unit tests, eight harness regressions, format/lint/strict types/builds passed. Final web rebuild passed after Children.toArray normalization. Service/browser evidence pending."
+    },
+    {
+      "command": "Quality38951637913/job117144204705",
+      "status": "passed",
+      "result": "Source480ee1b343e8d7899539eacd7010d3a1c5bd56f3 and tested merge d674f997864e1eb43a6ae9140a95ddb327ae55bd share tree2a3ffdc70277b5579a10626b94f24aa769dd8208. Fullcheck112unit+8harness, migrations,57HTTP and API/PG/Redis/privateS3/worker smoke passed; overall Quality failed only task verified gate, separately browser had a test locator failure."
+    },
+    {
+      "command": "Production38951638184/job117144205614",
+      "status": "passed",
+      "result": "Workflow completed success for all three production images, migrated private stack, actual PDF/auth/proxy/worker, API-only recreation and durable-volume recovery. IP addresses were reused; no changed-IP claim."
+    },
+    {
+      "command": "Browser38951637913/job117144204812",
+      "status": "failed",
+      "result": "Prior agreements6groups and workspace overview/Inter/chart group passed. New runner page-size exact label locator failed; corrected test-only to prefix accessible label, keeping request assertions. Remaining browser acceptance pending new run."
     }
   ],
   "findings": [
