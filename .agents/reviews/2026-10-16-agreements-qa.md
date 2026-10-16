@@ -37,3 +37,21 @@ Re-ran the targeted domain/presentation command after the precision correction: 
 ## Final local source scope
 
 `pnpm exec eslint apps/web/test/agreements.browser.mjs --max-warnings 0` passed. Final targeted domain/contracts/presentation run passed **51 tests** (43 + 2 + 6). Independently reviewed the later narrow kilometer invoice-table extraction change in `packages/document-processing/src/analysis-facts.ts`: it adds only explicit `km` unit recognition and lowercase unit normalization, retaining anchored known service syntax, exact input decimal strings and original row/page evidence; unsupported/incomplete rows remain missing rather than inferred. `pnpm exec vitest run packages/document-processing/src/analysis-facts.test.ts` passed **4 tests**. Parser-version bump and real API integration remain attributed to coordinating implementation/CI.
+
+## Published-candidate runtime acceptance — independently inspected
+
+Additional execution `/root/analysis_qa` independently inspected the existing source/test review and fetched GitHub job summaries, decoded logs and both Git commit-tree endpoints after the user's explicit public publication authorization. No implementation/test edits or repeated local full check were performed by this execution.
+
+Published source **`8dbe3501cec9aa06da0da382ae5ac9f1e35a0f1a`** and tested PR merge **`32d4ac36b801cd3ed62ea9dd67d7036e90d44fbf`** both have tree **`22ecc9b89958343e4115cbb4dc5f0d042daaeafd`**, independently verified. This is the same content as the preserved local candidate; no previous unpublished runtime result is invented.
+
+[Quality run 38946661404](https://github.com/juanmpnz/reconcile/actions/runs/38946661404):
+
+- Job **117127395923** passed frozen install, full quality with **106 unit tests**, real infrastructure and all migrations including `20261016130000_agreements`.
+- **53/53 HTTP groups passed**: 14 analysis, 11 documents, 5 claims, 21 identity and 2 new agreements groups. The agreements groups use actual native authentication/HTTP, PostgreSQL constraints and analysis jobs, with **explicitly seeded extraction records to isolate reviewed commercial terms**. They are not represented as a new PDF-upload/parser/S3 end-to-end test. Existing document/analysis/claims suites and production smoke retain actual PDF/private-storage processing coverage.
+- Existing API/PostgreSQL/Redis/private-bucket/worker smoke passed.
+- The complete quality job fails solely at the expected pre-closure task gate: `Task is not verified: 2026-10-16-reusable-agreements`. This collection workflow is not called globally green.
+- Browser job **117127396336** completed successfully with six explicit PASS groups: reusable creation from an existing PDF source; keyboard Escape/focus; invoice-specific saved selection/source version; independent annual/spot selections and stale history; missing-distance/conflict retention/retry; mobile/focus containment; viewer read-only/no browser runtime errors (related assertions grouped by the suite's six output lines). HTTP interception is explicit synthetic fixture behavior, separate from service correctness. Browser evidence artifact **12067350776** was uploaded at https://github.com/juanmpnz/reconcile/actions/runs/38946661404/artifacts/12067350776 . No local browser pass was retroactively claimed.
+
+[Production containers run 38946661459](https://github.com/juanmpnz/reconcile/actions/runs/38946661459), job **117127395986**, completed successfully. Actual web/API/worker targets built; migrated production stack and real >1 MiB PDF/private-S3/worker/cookie checks passed. API-only recreation retained the running Nginx proxy; full recreation preserved PostgreSQL/Redis/storage and original bytes. Docker reused the same IP addresses, so changed-IP recovery is not claimed. SMTP configuration was synthetic; no actual delivery or user-server deployment occurred.
+
+Independent runtime QA acceptance is **passed on this exact source/tree**, with the seeded-extraction/browser-fixture boundaries above. Earlier local limitations remain historical facts, now supplemented by actual CI rather than rewritten. The principal must close task/evidence metadata and obtain its final full-workflow gate result before describing the PR as completely green or merged.
