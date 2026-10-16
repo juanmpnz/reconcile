@@ -1,6 +1,7 @@
 /* global URL, document, window, getComputedStyle */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import { chooseSelect } from './select.browser-helper.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
 // Explicit synthetic HTTP fixtures: browser/UI proof only, not authorization or aggregate correctness.
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -10,7 +11,12 @@ const org = id(101),
   now = '2026-10-16T10:00:00.000Z';
 const organizations = [
   { id: org, name: 'Workspace QA', slug: 'workspace-qa', createdAt: now },
-  { id: other, name: 'Second workspace', slug: 'second-qa', createdAt: now },
+  {
+    id: other,
+    name: 'Second workspace with a deliberately long organization label for narrow screens',
+    slug: 'second-qa',
+    createdAt: now,
+  },
 ];
 const operations = Array.from({ length: 53 }, (_, index) => ({
   id: id(index + 200),
@@ -227,6 +233,13 @@ try {
     true,
     'an actual local Inter font face is loaded',
   );
+  assert.equal(
+    await page
+      .getByRole('main')
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    'rgb(255, 255, 255)',
+    'workspace main surface is white',
+  );
   await visible(
     page.getByRole('img', { name: /Distribución actual de 37 documentos/ }),
   );
@@ -271,7 +284,18 @@ try {
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await visible(page.getByRole('link', { name: 'OP-053', exact: true }));
   await recorded((q) => q.q === 'OP-053' && q.offset === '0');
-  await page.getByLabel(/^Filas por página/).selectOption('50');
+  const rowsTrigger = page.getByRole('combobox', { name: /^Filas por página/ });
+  await rowsTrigger.focus();
+  await page.keyboard.press('Enter');
+  await visible(page.getByRole('listbox'));
+  await page.keyboard.press('1');
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute('data-value') === '100',
+  );
+  await page.keyboard.press('Enter');
+  await page.getByRole('listbox').waitFor({ state: 'hidden' });
+  await recorded((q) => q.limit === '100' && q.q === 'OP-053');
+  await chooseSelect(page, page.getByLabel(/^Filas por página/), '50');
   await page.waitForFunction(
     () => new URL(window.location.href).searchParams.get('limit') === '50',
   );
@@ -423,6 +447,24 @@ try {
         .getByRole('button', { name: 'Cerrar menú', exact: true })
         .click();
     }
+    const orgTrigger = page.getByRole('combobox', {
+      name: 'Organización',
+      exact: true,
+    });
+    await orgTrigger.click();
+    const optionsBox = await page.getByRole('listbox').boundingBox();
+    assert.ok(
+      optionsBox &&
+        optionsBox.x >= -1 &&
+        optionsBox.x + optionsBox.width <= width + 1,
+      'long select options fit mobile viewport',
+    );
+    await page.screenshot({
+      path: `/tmp/workspace-qa-select-${width}.png`,
+      fullPage: false,
+    });
+    await page.keyboard.press('Escape');
+    await page.getByRole('listbox').waitFor({ state: 'hidden' });
     await trigger.click();
     await visible(panel);
     await panel.evaluate((el) =>
@@ -457,7 +499,11 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(orgUrl);
   await visible(page.getByRole('heading', { name: 'Resumen', exact: true }));
-  await page.getByLabel('Organización', { exact: true }).selectOption(other);
+  await chooseSelect(
+    page,
+    page.getByLabel('Organización', { exact: true }),
+    other,
+  );
   await page.waitForURL(`**/organizations/${other}?tab=overview`);
   await visible(page.getByText('7', { exact: true }).first());
   assert.equal(await page.getByText('53', { exact: true }).count(), 0);

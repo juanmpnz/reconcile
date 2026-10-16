@@ -1,6 +1,7 @@
-/* global URL, document, window, structuredClone */
+/* global URL, document, window, structuredClone, FormData */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import { chooseSelect } from './select.browser-helper.mjs';
 // Synthetic HTTP fixtures verify browser interactions, not backend authorization or extraction accuracy.
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const org = id(1),
@@ -284,7 +285,32 @@ const doc = (docId, kind) => ({
   }
   async function createTerms(name, provider = 'Traginers') {
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Usar un PDF ya cargado').selectOption(tariff);
+    await chooseSelect(
+      page,
+      dialog.getByLabel('Usar un PDF ya cargado'),
+      tariff,
+    );
+    await chooseSelect(page, dialog.getByLabel('Usar un PDF ya cargado'), '');
+    assert.equal(
+      await dialog
+        .getByRole('combobox', { name: 'Servicio', exact: true })
+        .isDisabled(),
+      true,
+      'disabled fieldset disables the visible custom control',
+    );
+    assert.equal(
+      await dialog
+        .locator('select[required]')
+        .first()
+        .evaluate((el) => el.value),
+      '',
+      'clear option preserves empty raw value',
+    );
+    await chooseSelect(
+      page,
+      dialog.getByLabel('Usar un PDF ya cargado'),
+      tariff,
+    );
     await dialog.getByLabel('Nombre del acuerdo').fill(name);
     await dialog.getByLabel('Proveedor', { exact: true }).fill(provider);
     await dialog.getByLabel('Vigente desde').fill('2026-01-01');
@@ -294,7 +320,24 @@ const doc = (docId, kind) => ({
     await dialog
       .getByLabel('Precio total por viaje', { exact: true })
       .fill('100');
-    await dialog.getByLabel('Página de evidencia').selectOption('1');
+    await chooseSelect(page, dialog.getByLabel('Página de evidencia'), '1');
+    await chooseSelect(
+      page,
+      dialog.getByLabel('Servicio', { exact: true }),
+      'ocean-handling',
+    );
+    assert.equal(
+      await dialog
+        .locator('form')
+        .evaluate((el) => new FormData(el).get('service')),
+      'ocean-handling',
+      'custom select submits exact raw value',
+    );
+    await chooseSelect(
+      page,
+      dialog.getByLabel('Servicio', { exact: true }),
+      'pickup',
+    );
     await dialog
       .getByLabel('Cita literal que respalda estas condiciones')
       .fill(evidence[0].snippet);
@@ -319,8 +362,48 @@ const doc = (docId, kind) => ({
     .focus();
   await page.keyboard.press('Enter');
   await has(page.getByRole('dialog', { name: 'Crear acuerdo reutilizable' }));
+  const sourceTrigger = page
+    .getByRole('dialog')
+    .getByLabel('Usar un PDF ya cargado');
+  await sourceTrigger.click();
+  await has(page.getByRole('listbox'));
+  await page.keyboard.press('Escape');
+  await page.getByRole('listbox').waitFor({ state: 'hidden' });
+  assert.equal(
+    await page.getByRole('dialog').isVisible(),
+    true,
+    'first Escape closes select, preserving the sheet',
+  );
+  const requiredSource = page
+    .getByRole('dialog')
+    .locator('select[required]')
+    .first();
+  assert.equal(
+    await requiredSource.evaluate((el) => el.validity.valueMissing),
+    true,
+    'empty required custom select retains native invalidity',
+  );
+  assert.equal(
+    await requiredSource.evaluate((el) => el.reportValidity()),
+    false,
+  );
+  await page.waitForFunction(
+    (el) => el === document.activeElement,
+    await sourceTrigger.elementHandle(),
+  );
+  await page.waitForFunction(
+    (el) => el.getAttribute('aria-invalid') === 'true',
+    await sourceTrigger.elementHandle(),
+  );
+  assert.equal(await sourceTrigger.getAttribute('aria-invalid'), 'true');
   await page.keyboard.press('Escape');
   await noDialog();
+  await page.waitForFunction(
+    (el) => el === document.activeElement,
+    await page
+      .getByRole('button', { name: 'Crear acuerdo', exact: true })
+      .elementHandle(),
+  );
   assert.equal(
     await page
       .getByRole('button', { name: 'Crear acuerdo', exact: true })
@@ -361,9 +444,11 @@ const doc = (docId, kind) => ({
     .first()
     .click();
   let dialog = page.getByRole('dialog');
-  await dialog
-    .getByLabel('Tarifa guardada o spot de esta operación')
-    .selectOption(agreement.id);
+  await chooseSelect(
+    page,
+    dialog.getByLabel('Tarifa guardada o spot de esta operación'),
+    agreement.id,
+  );
   await dialog
     .getByLabel('Motivo de selección, cambio o retirada')
     .fill('Use annual agreement');
@@ -417,9 +502,11 @@ const doc = (docId, kind) => ({
     .getByRole('button', { name: 'Seleccionar tarifa', exact: true })
     .click();
   dialog = page.getByRole('dialog');
-  await dialog
-    .getByLabel('Tarifa guardada o spot de esta operación')
-    .selectOption(spot.id);
+  await chooseSelect(
+    page,
+    dialog.getByLabel('Tarifa guardada o spot de esta operación'),
+    spot.id,
+  );
   await dialog
     .getByLabel('Motivo de selección, cambio o retirada')
     .fill('Use operation spot');
@@ -554,10 +641,12 @@ const doc = (docId, kind) => ({
     .first()
     .click();
   dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Usar un PDF ya cargado').selectOption(tariff);
-  await dialog
-    .getByLabel('Cómo se calcula el precio')
-    .selectOption('distance-bands');
+  await chooseSelect(page, dialog.getByLabel('Usar un PDF ya cargado'), tariff);
+  await chooseSelect(
+    page,
+    dialog.getByLabel('Cómo se calcula el precio'),
+    'distance-bands',
+  );
   await dialog
     .getByRole('button', { name: 'Agregar tramo', exact: true })
     .click();

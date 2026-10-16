@@ -1,0 +1,188 @@
+{
+  "id": "2026-10-16-select-polish",
+  "summary": "Unify every visible select into a custom accessible dropdown and lighten main/background panel overlay.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root/analysis_frontend with /root CSS/dependencies",
+  "scope": [
+    "apps/web/",
+    "pnpm-lock.yaml",
+    "docs/status.md",
+    ".agents/tasks/2026-10-16-select-polish.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Every visible selector uses one styled reusable dropdown, including organization switch, pagination and business forms.",
+    "Keyboard navigation/typeahead/focus/Escape and nested panel interactions work; dropdown remains visible above panels within mobile viewport.",
+    "FormData preserves raw option values, names, disabled fields, required constraints and optional empty selection; controlled/uncontrolled behavior retained.",
+    "Main content uses white background and panel backdrop is light, retaining orange accents and legible controls."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "frontend-engineer",
+    "ui-engineer",
+    "ux-designer",
+    "visual-designer",
+    "accessibility-reviewer",
+    "solution-architect",
+    "platform-engineer",
+    "qa-engineer"
+  ],
+  "semanticRouting": "UI-only control replacement and presentation; no new business capability, authorization, data/engine/API/identity changes. UX preflight, frontend implementation and independent UX/a11y/architecture dependency review plus QA acceptance.",
+  "excludedRoles": [
+    {
+      "role": "product-manager",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "logistics-domain",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "backend-engineer",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "data-engineer",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "security-engineer",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No business rules, API, schema, authorization, connector or extraction changes; UI forwards existing values and capabilities."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-frontend.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-frontend.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-ux.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-architecture.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-architecture.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual browser acceptance pending CI.",
+      "evidence": [".agents/reviews/select-polish-qa.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independently decoded114unit/57actualHTTP/migrations/smoke plus all12corrected browsergroups with focused custom-select acceptance.",
+      "evidence": [".agents/reviews/select-polish-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "114unit+8harness, formatting/lint/strict types/builds passed. Later QA-only timing refinements separately formatted/linted; runtime pending."
+    },
+    {
+      "command": "Quality38958625371/job117167727260",
+      "status": "passed",
+      "result": "114unit tests, migrations,57actualHTTP andAPI/PostgreSQL/Redis/privateS3/worker smoke passed; initial workflow stopped only at pending task gate. Initial browser test synchronization failure is preserved in QA review."
+    },
+    {
+      "command": "Browser38958986245/job117168963888",
+      "status": "passed",
+      "result": "Head4e5362d339ba28491fdeb9c3744609009d82da9f testedmerge667de2674b40b5b639fb6129657b804eba2ce5d8 completed all12groups. Real visible custom controls, rawFormData/required/clear/disabled/nestedEscape/typeaheadrequest100/contrast/whitebackground/mobile320390 passed with explicit synthetic HTTP fixtures."
+    },
+    {
+      "command": "Production38958986154/job117168963571",
+      "status": "passed",
+      "result": "Completed-success production container smoke: allthreeimages, migrated private stack, actualauth/proxy/privatePDF/worker, API-only recreation and durable-volume recovery. No user-server deployment."
+    }
+  ],
+  "findings": [
+    {
+      "id": "SP1",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Mixed Radix layers could disagree about nested dropdown and sheet focus.",
+      "resolution": "Pinned Dialog1.2.0 with Select2.3.8; independently verified same installed DismissableLayer/FocusScope/Guards/Portal paths."
+    }
+  ],
+  "limitations": [
+    "Browser tests use explicit synthetic HTTP fixtures, while actual API/storage/worker acceptance runs separately. No local Chromium or full screen-reader certification.",
+    "Initial browser typeahead timing failure and its observable-focus correction are retained in QA review; no production source change was needed."
+  ],
+  "evidence": [
+    ".agents/reviews/select-polish-main.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38958986245",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38958986154"
+  ],
+  "changeClass": "ui",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Shared form and keyboard behavior requires independent source/accessibility and browser acceptance."
+}

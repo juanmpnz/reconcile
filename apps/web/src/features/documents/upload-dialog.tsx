@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DOCUMENT_MAX_BYTES, documentKindSchema } from '@reconcile/contracts';
@@ -139,18 +140,18 @@ export function UploadDialog({
         )}
         <div className="field">
           <label htmlFor={`${id}-kind`}>Tipo de documento</label>
-          <select
+          <Select
             id={`${id}-kind`}
             name="kind"
             value={kind}
-            onChange={(event) => setKind(event.target.value)}
+            onValueChange={(selectedValue) => setKind(selectedValue)}
           >
             {documentKindSchema.options.map((kind) => (
               <option key={kind} value={kind}>
                 {kindLabels[kind]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="dialog-actions">
           <Button

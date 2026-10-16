@@ -1,3 +1,4 @@
+import { Select } from '../../components/ui/select';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { agreementCreateSchema } from '@reconcile/contracts';
@@ -210,12 +211,12 @@ export function CreateAgreementDialog({
             <>
               <div className="field">
                 <label htmlFor={`${id}-source`}>Usar un PDF ya cargado</label>
-                <select
+                <Select
                   id={`${id}-source`}
                   required
                   value={sourceId}
-                  onChange={(event) => {
-                    setSourceId(event.target.value);
+                  onValueChange={(selectedValue) => {
+                    setSourceId(selectedValue);
                     setEvidencePage('');
                     setSnippet('');
                   }}
@@ -239,7 +240,7 @@ export function CreateAgreementDialog({
                         {item.filename}
                       </option>
                     ))}
-                </select>
+                </Select>
               </div>
               <div className="pagination">
                 <Button
@@ -321,10 +322,10 @@ export function CreateAgreementDialog({
           />
           <div className="field">
             <label htmlFor={`${id}-service`}>Servicio</label>
-            <select id={`${id}-service`} name="service">
+            <Select id={`${id}-service`} name="service">
               <option value="pickup">Recogida / transporte terrestre</option>
               <option value="ocean-handling">Servicio base marítimo</option>
-            </select>
+            </Select>
           </div>
           <Field
             name="currency"
@@ -334,15 +335,15 @@ export function CreateAgreementDialog({
           />
           <div className="field">
             <label htmlFor={`${id}-pricing`}>Cómo se calcula el precio</label>
-            <select
+            <Select
               id={`${id}-pricing`}
               value={pricingType}
-              onChange={(event) => setPricingType(event.target.value)}
+              onValueChange={(selectedValue) => setPricingType(selectedValue)}
             >
               <option value="fixed-trip">Precio total por viaje</option>
               <option value="per-km">Precio por kilómetro</option>
               <option value="distance-bands">Tramos de distancia</option>
-            </select>
+            </Select>
           </div>
           {pricingType !== 'distance-bands' ? (
             <Field
@@ -395,17 +396,17 @@ export function CreateAgreementDialog({
                     <label htmlFor={`${id}-basis-${index}`}>
                       Base del precio del tramo
                     </label>
-                    <select
+                    <Select
                       id={`${id}-basis-${index}`}
                       value={band.basis}
-                      onChange={(event) =>
+                      onValueChange={(selectedValue) =>
                         setBands(
                           bands.map((item, position) =>
                             position === index
                               ? {
                                   ...item,
                                   basis:
-                                    event.target.value === 'per-km'
+                                    selectedValue === 'per-km'
                                       ? 'per-km'
                                       : 'fixed-trip',
                                 }
@@ -416,7 +417,7 @@ export function CreateAgreementDialog({
                     >
                       <option value="fixed-trip">Total por viaje</option>
                       <option value="per-km">Por kilómetro</option>
-                    </select>
+                    </Select>
                   </div>
                   <Button
                     type="button"
@@ -462,12 +463,12 @@ export function CreateAgreementDialog({
           </p>
           <div className="field">
             <label htmlFor={`${id}-page`}>Página de evidencia</label>
-            <select
+            <Select
               id={`${id}-page`}
               required
               value={evidencePage}
-              onChange={(event) => {
-                setEvidencePage(event.target.value);
+              onValueChange={(selectedValue) => {
+                setEvidencePage(selectedValue);
                 setSnippet('');
               }}
             >
@@ -477,7 +478,7 @@ export function CreateAgreementDialog({
                   Página {page.page}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           {selectedPage && (
             <details>
