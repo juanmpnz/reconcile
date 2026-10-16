@@ -31,3 +31,13 @@ Aplicar a organizaciones, operaciones, documentos, tarifas, miembros, invitacion
 ## Aceptación antes de cierre
 
 Verificar rutas antiguas y nuevos destinos predeterminados; selección de organización con respuestas tardías/revocación; permisos viewer; agregado real frente a páginas parciales; gráfico con lectura textual. Inventariar todos los usos del antiguo Dialog y confirmar panel lateral, header/footer/cuerpo scroll, foco/Escape/retorno y formularios largos a320/390px+200%zoom. Medir contraste de naranja y grises con estilos reales. Comprobar DataTable búsqueda/orden/paginación globales y estados vacío/cargando/error sin datos ficticios. Browser fixtures prueban UI; autorización, KPIs completos y backend requieren pruebas independientes. No afirmar certificación de accesibilidad ni fidelidad exacta a Figma.
+
+## Componentes implementados
+
+`components/ui/data-table.tsx` expone `DataTable<T>` y `TableColumn<T>`. Cada columna declara `id`, `label`, `accessor`, `render`, `sortable` y ancho opcional. Presentadores compartidos: `renderString`, `renderNumber`, `renderCurrency`, `renderDate`, `renderStatus`, `renderBar`, `renderLink` y `renderActions`. Los importes decimales conservan su texto y moneda; `renderNumber` es para contadores/medidas de presentación, no para cálculos financieros.
+
+Modo cliente filtra, ordena y pagina la colección completa recibida. Modo servidor exige `pagination`, `rowCount` y `onPaginationChange`; búsqueda y orden aparecen solo al proporcionar sus callbacks. El padre debe actualizar criterio y página cero en una única navegación, evitando que otra actualización borre el criterio. La paginación usa el estado y modelo de TanStack; los listados globales ofrecen 25/50/100 filas. Selección, columnas visibles, redimensionado, fijación y expansión son capacidades optativas; no habilitan acciones de negocio inexistentes.
+
+Operaciones, documentos y tarifas consultan criterios globales antes de paginar. Miembros usa paginación real de Better Auth sin anunciar búsqueda/orden no integrados. Organizaciones e invitaciones usan la colección completa disponible. Los historiales acotados explican su límite; la tabla de hallazgos financieros conserva su composición especializada de evidencia/revisión.
+
+`components/ui/side-panel.tsx` centraliza el panel Radix; `dialog.tsx` mantiene compatibilidad de imports para todos los formularios actuales. El cuerpo se desplaza; encabezado y acciones permanecen visibles dentro del formulario original. Los cambios pendientes exigen conservar o descartar y una solicitud en curso bloquea el cierre. En móvil ocupa todo el viewport.

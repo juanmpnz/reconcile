@@ -267,7 +267,7 @@ try {
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await visible(page.getByRole('link', { name: 'OP-053', exact: true }));
   await recorded((q) => q.q === 'OP-053' && q.offset === '0');
-  await page.getByLabel('Filas por página', { exact: true }).selectOption('50');
+  await page.getByLabel(/^Filas por página/).selectOption('50');
   await page.waitForFunction(
     () => new URL(window.location.href).searchParams.get('limit') === '50',
   );

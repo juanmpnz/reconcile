@@ -21,7 +21,7 @@ The third card may display detected as its principal count and operator confirma
 
 ## Real chart and dates/currencies
 
-Principal selected **document status distribution**, not an activity time series. Count all organization documents by their actual persisted states, including genuine zero categories, and show the same labels used in lists. The distribution must reconcile to the total number of organization documents. Display a captured/as-of UTC timestamp and say the dashboard covers organization records without a date-range filter. Latest completed analysis counts describe their recorded snapshots and may require reanalysis; document/claim states describe current persisted records. No invented trend, prior-period comparison or seven-day implication.
+Principal selected **document status distribution**, not an activity time series. Count all organization documents by their actual persisted states, including genuine zero categories, and show the same labels used in lists. The distribution must reconcile to the total number of organization documents. Display a captured/as-of timestamp with its explicit timezone and say the dashboard covers organization records without a date-range filter. Latest completed analysis counts describe their recorded snapshots and may require reanalysis; document/claim states describe current persisted records. No invented trend, prior-period comparison or seven-day implication.
 
 No sum of questioned amounts, savings, recovered cash or currency conversion in this scope. Counts may cover documents in multiple currencies because they count records/controls; they do not aggregate financial value. If a future financial chart is added, separate currencies and non-overlapping claim identities using decimal amounts, with explicit period and validity—outside this redesign.
 
@@ -33,14 +33,14 @@ No sum of questioned amounts, savings, recovered cash or currency conversion in 
 - Normal needs_review PDF is review work, not extraction failure. Failed/blocked/unsupported cases have their literal reasons/status and direct links to the affected document.
 - Open claim count remains one through edit/export/rebase/follow-up versions and drops on resolved/rejected. No metric claims financial recovery.
 - Empty state offers real actions/links, error offers retry, counts/chart have accessible labels or a numeric equivalent, and loading remains local and readable.
-- Lists of outstanding work state a real bound/total (for example latest ten), not apparent completeness. Chart distribution reconciles with actual organization totals and the as-of UTC instant; mixed-currency records never produce one misleading monetary total.
+- Lists of outstanding work state a real bound/total (for example latest ten), not apparent completeness. Chart distribution reconciles with actual organization totals and the explicit as-of instant; mixed-currency records never produce one misleading monetary total.
 - Existing compact tables, source evidence, review/corrections and team operations remain reachable. Changing sidebar/tab does not change data, bypass current permissions or create records.
 
 ## Principal-approved scope and verification
 
-Principal explicitly approved the conservative SQL scope before dependent implementation: total operations with no-completed-run subcount; document review and failure categories distinguished; registered differences from each operation's latest completed persisted analysis, plus actual latest human confirmations when supported; open claims; current document-status distribution. No heavy global fingerprint recomputation or current-validity claim. The panel must disclose historical-analysis limitations and the as-of UTC instant. Backend and architecture received these definitions before implementing the dependent query.
+Principal explicitly approved the conservative SQL scope before dependent implementation: total operations with no-completed-run subcount; document review and failure categories distinguished; registered differences from each operation's latest completed persisted analysis, plus actual latest human confirmations when supported; open claims; current document-status distribution. No heavy global fingerprint recomputation or current-validity claim. The panel must disclose historical-analysis limitations and the explicit as-of instant. Backend and architecture received these definitions before implementing the dependent query.
 
-QA/architecture/browser checks and final source review are separate; none executed or passed by this planning record.
+At planning time no runtime checks or final source acceptance were claimed. The subsequent source review is recorded below; QA/architecture/browser executions remain separate.
 
 ## Final candidate product/source review
 
@@ -48,4 +48,12 @@ Read dashboard.tsx, dashboard contract, dashboard SQL, agreement-list/create/ope
 
 Dashboard uses real server counts, latest-completed-per-operation historical warnings, separate engine differences versus latest human confirmations, bounded pending lists with actual statuses and real document-status distribution. Human confirmations are restricted to latest confirm decisions among detected confirmed/probable controls. Cards count records/controls, do not sum money or imply recovered savings. Loading/error paths do not invent zeros. The agreement library remains an actual organization resource, with spot scope and per-invoice explicit selection preserved.
 
-Small presentation follow-ups requested before final closure: include failed+blocked incidents as a separate documents-card subcount alongside needs_review, and explicitly label the footer's existing localized timestamp as local time (or render UTC). No financial query change is needed for these. Independent QA/UX browser execution is owned by other agents; this report is product/domain source review only.
+Targeted presentation re-review closed both requested follow-ups: documents-card subcount now separates needs_review from failed+blocked incidents, and the footer explicitly says hora local for its localized generatedAt. This is an accepted display clarification from the preflight UTC suggestion; it does not change snapshot scope or pretend a date filter. No financial query change was needed. Status: **passed, product/logistics source acceptance**, with no open medium/high/critical product finding in this candidate. Independent QA/UX browser execution is owned by other agents; this report is product/domain source review only.
+
+Reviewed source SHA-256:
+
+```text
+940b327d4dca3854c105952fbcb9204dd1737f4d504e1853be5e7d7050121d8b apps/web/src/features/dashboard/dashboard.tsx
+157c0287eb50465bc40e2f236739edcad3f8209a8bb1b74c9dada3376187e4da packages/contracts/src/dashboard.ts
+1c6ebab0501fd1c41f8d0d0bf4548ca10d2792b212d009d7e0f16b33df2134d1 apps/web/src/features/agreements/agreement-list.tsx
+```

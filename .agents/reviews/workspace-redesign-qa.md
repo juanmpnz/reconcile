@@ -20,3 +20,11 @@ Existing agreements suite adaptation is test-only: provide organization-list fix
 - New browser runtime, screenshot/contrast/focus results and actual-service acceptance: pending stable build/CI. No browser or financial acceptance success is inferred from script preparation.
 
 Potential production defects are sent to the responsible authors. Architecture reported the server-sort/pagination two-callback race; the new browser case covers sort from a nonfirst page, and final review must inspect its correction. No implementation or test assertion is weakened to hide failures.
+
+## Source readiness and local browser constraint
+
+Architecture independently reviewed the portable browser test source and approved its explicit fixture boundary and meaningful page-2 sorting/request checks; the production sort/page callback race was corrected by its author and reexamined independently. Backend dashboard aggregation and list-query tests use actual HTTP/auth/PostgreSQL over clearly seeded metric/list fixtures; no new financial-engine or PDF accuracy claim follows from those arrangements.
+
+The principal reports its canonical full `pnpm check` passed **112 unit tests plus 8 harness regressions**, types/lint/format and final web build. QA did not duplicate that heavy build. Browser runner source is syntax/format/lint checked and includes actual Inter FontFace loading, accessible chart figure/text values, explicit pending-write Escape/error retention and a long mobile form's visible action footer, in addition to the earlier groups.
+
+No Chromium/Chrome/Firefox executable was found on PATH or in the known browser cache. As requested by the principal, QA attempted the official `node node_modules/playwright/cli.js install chromium` (no alternate download or privileged bypass). It failed after retries with `End of central directory record signature not found` for the downloaded 0-MiB archive, then exit 1. Log `/tmp/workspace-browser-install.log`. Therefore **no local browser pass, screenshot, measured contrast or focus/mobile result is claimed**. The ready portable runners will execute in CI, where Playwright installation previously worked. Actual service and browser acceptance remain pending their exact source/run results.
