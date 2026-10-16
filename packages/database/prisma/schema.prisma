@@ -72,6 +72,7 @@ model Organization {
  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
  members Member[]
  invitations Invitation[]
+ agreements AgreementVersion[]
  documents Document[]
  operations Operation[]
  @@map("organizations")
@@ -144,6 +145,7 @@ model Document {
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
  claims Claim[]
+ agreements AgreementVersion[]
  operationLinks OperationDocument[]
  factRevisions AnalysisFactRevision[]
  runs ExtractionRun[] @relation("DocumentRuns")
@@ -167,6 +169,7 @@ model ExtractionRun {
  leaseToken String? @db.Uuid
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  completedAt DateTime? @db.Timestamptz(3)
+ agreements AgreementVersion[]
  currentFor Document[] @relation("CurrentRun")
  document Document @relation("DocumentRuns",fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
  corrections DocumentCorrection[]
@@ -217,6 +220,8 @@ model Operation {
  createdAt DateTime @default(now()) @db.Timestamptz(3)
  updatedAt DateTime @updatedAt @db.Timestamptz(3)
  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ agreementBindings OperationAgreementBinding[]
+ spotAgreements AgreementVersion[]
  documents OperationDocument[]
  facts AnalysisFactRevision[]
  analyses AnalysisRun[]
@@ -233,6 +238,7 @@ model OperationDocument {
  documentId String @db.Uuid
  operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
  document Document @relation(fields:[organizationId,documentId],references:[organizationId,id],onDelete:Cascade)
+ agreementBinding OperationAgreementBinding?
  @@id([organizationId,operationId,documentId])
  @@map("operation_documents")
 }
@@ -409,4 +415,44 @@ model ClaimExport {
  claim Claim @relation(fields:[organizationId,operationId,claimId],references:[organizationId,operationId,id],onDelete:Cascade)
  @@unique([claimId,version])
  @@map("claim_exports")
+}
+
+// Reviewed commercial terms are immutable; a replacement creates a new version UUID.
+model AgreementVersion {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @db.Uuid
+ name String @db.VarChar(200)
+ scope String @db.VarChar(20)
+ operationId String? @db.Uuid
+ sourceDocumentId String @db.Uuid
+ sourceExtractionRunId String @db.Uuid
+ sourceSha256 String @db.Char(64)
+ sourceMetadataVersion Int
+ sourceCorrectionRevision Int
+ terms Json
+ actorId String @db.Uuid
+ reason String @db.VarChar(500)
+ createdAt DateTime @default(now()) @db.Timestamptz(3)
+ organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+ extractionRun ExtractionRun @relation(fields:[organizationId,sourceDocumentId,sourceExtractionRunId],references:[organizationId,documentId,id],onDelete:NoAction)
+ document Document @relation(fields:[organizationId,sourceDocumentId],references:[organizationId,id],onDelete:NoAction)
+ operation Operation? @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:NoAction)
+ bindings OperationAgreementBinding[]
+ @@unique([organizationId,id])
+ @@index([organizationId,createdAt])
+ @@map("agreement_versions")
+}
+model OperationAgreementBinding {
+ organizationId String @db.Uuid
+ operationId String @db.Uuid
+ invoiceDocumentId String @db.Uuid
+ agreementVersionId String @db.Uuid
+ serviceDate String @db.VarChar(10)
+ route String @db.VarChar(500)
+ distanceKm Decimal? @db.Decimal(20,8)
+ operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
+ invoiceLink OperationDocument @relation(fields:[organizationId,operationId,invoiceDocumentId],references:[organizationId,operationId,documentId],onDelete:Cascade)
+ agreement AgreementVersion @relation(fields:[organizationId,agreementVersionId],references:[organizationId,id],onDelete:NoAction)
+ @@id([organizationId,operationId,invoiceDocumentId])
+ @@map("operation_agreement_bindings")
 }

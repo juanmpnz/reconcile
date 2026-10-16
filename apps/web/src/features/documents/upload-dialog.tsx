@@ -17,13 +17,17 @@ export function UploadDialog({
   userId,
   organizationId,
   disabled,
+  defaultKind = 'invoice',
+  onUploaded,
 }: {
   userId: string;
   organizationId: string;
   disabled: boolean;
+  defaultKind?: string;
+  onUploaded?: (documentId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState('invoice');
+  const [kind, setKind] = useState(defaultKind);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +37,7 @@ export function UploadDialog({
   const queryClient = useQueryClient();
   function reset() {
     setFile(null);
-    setKind('invoice');
+    setKind(defaultKind);
     setError('');
     if (input.current) input.current.value = '';
   }
@@ -84,7 +88,8 @@ export function UploadDialog({
               });
               if (!mounted.current) return;
               setOpen(false);
-              navigate(documentPath(organizationId, document.id));
+              if (onUploaded) onUploaded(document.id);
+              else navigate(documentPath(organizationId, document.id));
             } catch (error) {
               setError(errorMessage(error));
             } finally {

@@ -23,6 +23,7 @@ import {
   documentKindSchema,
 } from '@reconcile/contracts';
 import { authorizeDocuments, DocumentError } from './documents.js';
+import { agreementDto } from './agreements.js';
 function boundedJson(value: unknown, code: string, maxBytes = 128 * 1024) {
   if (Buffer.byteLength(JSON.stringify(value), 'utf8') > maxBytes)
     throw new DocumentError(422, code);
@@ -48,11 +49,27 @@ export async function collectAnalysisInputs(
     orderBy: { documentId: 'asc' },
     include: { document: { include: { currentRun: true } } },
   });
+  const selected = await tx.operationAgreementBinding.findMany({
+    where: { organizationId, operationId },
+    orderBy: { invoiceDocumentId: 'asc' },
+    include: { agreement: true },
+  });
+  const agreementBindings = selected.map((binding) => ({
+    invoiceDocumentId: binding.invoiceDocumentId,
+    agreementVersionId: binding.agreementVersionId,
+    serviceDate: binding.serviceDate,
+    route: binding.route,
+    distanceKm: binding.distanceKm?.toFixed() ?? null,
+    agreement: agreementDto(binding.agreement),
+  }));
   const facts = [];
   const sources = [];
   const warnings: string[] = [];
   for (const link of links) {
     const doc = link.document;
+    // Explicitly selected immutable agreements supersede mutable facts for their source PDFs.
+    if (agreementBindings.some((b) => b.agreement.sourceDocumentId === doc.id))
+      continue;
     const run = doc.currentRun;
     const corrections = await tx.documentCorrection.findMany({
       where: {
@@ -120,7 +137,34 @@ export async function collectAnalysisInputs(
       warnings.push('DOCUMENT_FACTS_UNSUPPORTED:' + doc.id);
     }
   }
+  if (
+    agreementBindings.length &&
+    facts.some(
+      (f) =>
+        f.kind === 'invoice' &&
+        !agreementBindings.some((b) => b.invoiceDocumentId === f.documentId),
+    )
+  ) {
+    warnings.push('UNBOUND_INVOICES_REQUIRE_EXPLICIT_AGREEMENT_SELECTION');
+  }
+  for (const binding of agreementBindings.filter(
+    (b, i, all) =>
+      all.findIndex((v) => v.agreementVersionId === b.agreementVersionId) === i,
+  )) {
+    const agreement = binding.agreement;
+    sources.push({
+      documentId: agreement.sourceDocumentId,
+      sourceFingerprint: hash(agreement),
+      factRevisionId: null,
+      sha256: agreement.sourceSha256,
+      extractionRunId: agreement.sourceExtractionRunId,
+      extractionVersion: null,
+      correctionRevision: agreement.sourceCorrectionRevision,
+      metadataVersion: agreement.sourceMetadataVersion,
+    });
+  }
   const fingerprint = hash({
+    ...(agreementBindings.length ? { agreementBindings } : {}),
     operationReference: op.reference,
     revision: op.revision,
     parserVersion: ANALYSIS_PARSER_VERSION,
@@ -133,10 +177,12 @@ export async function collectAnalysisInputs(
     facts,
     warnings,
     fingerprint,
+    agreementBindings,
     snapshot: analysisSnapshotSchema.parse({
       organizationId,
       operationReference: op.reference,
       documents: facts,
+      ...(agreementBindings.length ? { operationId, agreementBindings } : {}),
     }),
     sources,
   };
@@ -182,6 +228,7 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
           updatedAt: data.op.updatedAt.toISOString(),
           documentIds: data.links.map((l) => l.documentId),
           facts: data.facts,
+          agreementBindings: data.agreementBindings,
           factRevisions: factRevisions.map((r) => ({
             id: r.id,
             documentId: r.documentId,
@@ -416,15 +463,28 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             where: { id: operationId },
             data: { revision: { increment: 1 } },
           });
-          await tx.operationDocument.deleteMany({
-            where: { organizationId, operationId },
-          });
-          await tx.operationDocument.createMany({
-            data: documentIds.map((documentId) => ({
+          await tx.operationAgreementBinding.deleteMany({
+            where: {
               organizationId,
               operationId,
-              documentId,
-            })),
+              invoiceDocumentId: { notIn: documentIds },
+            },
+          });
+          await tx.operationDocument.deleteMany({
+            where: {
+              organizationId,
+              operationId,
+              documentId: { notIn: documentIds },
+            },
+          });
+          await tx.operationDocument.createMany({
+            data: documentIds
+              .filter((id) => !before.includes(id))
+              .map((documentId) => ({
+                organizationId,
+                operationId,
+                documentId,
+              })),
           });
           await tx.identityAuditEvent.create({
             data: {

@@ -63,9 +63,11 @@ export function App() {
       ? 'operations'
       : documentId || route.searchParams.get('tab') === 'documents'
         ? 'documents'
-        : route.searchParams.get('tab') === 'invitations'
-          ? 'invitations'
-          : 'members';
+        : route.searchParams.get('tab') === 'agreements'
+          ? 'agreements'
+          : route.searchParams.get('tab') === 'invitations'
+            ? 'invitations'
+            : 'members';
   async function logout() {
     if (busy) return;
     setBusy(true);

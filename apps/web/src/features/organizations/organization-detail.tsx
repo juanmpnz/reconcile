@@ -1,3 +1,4 @@
+import { AgreementList } from '../agreements/agreement-list';
 import { OperationList } from '../operations/operation-list';
 import { OperationDetailView } from '../operations/operation-detail';
 import { useState } from 'react';
@@ -39,7 +40,7 @@ export function OrganizationDetail({
 }: {
   userId: string;
   organizationId: string;
-  tab: 'members' | 'invitations' | 'documents' | 'operations';
+  tab: 'members' | 'invitations' | 'documents' | 'operations' | 'agreements';
   operationId?: string | undefined;
   documentId?: string | undefined;
   page: number;
@@ -129,6 +130,7 @@ export function OrganizationDetail({
         </div>
         {tab !== 'documents' &&
           tab !== 'operations' &&
+          tab !== 'agreements' &&
           context.data.capabilities.canInviteMembers && (
             <InviteDialog
               userId={userId}
@@ -195,8 +197,27 @@ export function OrganizationDetail({
         >
           Operaciones
         </a>
+        <a
+          href={organizationPath(organizationId, 'agreements')}
+          aria-current={tab === 'agreements' ? 'page' : undefined}
+          onClick={(event) => {
+            if (!event.metaKey && !event.ctrlKey) {
+              event.preventDefault();
+              navigate(organizationPath(organizationId, 'agreements'));
+            }
+          }}
+        >
+          Tarifas y acuerdos
+        </a>
       </nav>
-      {tab === 'operations' ? (
+      {tab === 'agreements' ? (
+        <AgreementList
+          userId={userId}
+          organizationId={organizationId}
+          canWrite={context.data.capabilities.canWriteDocuments}
+          disabled={!canRead}
+        />
+      ) : tab === 'operations' ? (
         <>
           {!canRead && (
             <Loading label="Comprobando permisos antes de mostrar las operaciones…" />

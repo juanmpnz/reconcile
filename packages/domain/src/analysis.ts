@@ -45,8 +45,54 @@ export type AnalysisDocument = {
   evidence: AnalysisEvidence[];
   warnings: string[];
 };
+/** Reviewed terms preserve original PDF provenance; bands are [fromKm, toKm). */
+export type AgreementSourceEvidence = Omit<AnalysisEvidence, 'revisionId'>;
+export type AnalysisAgreementBand = {
+  fromKm: string;
+  toKm: string;
+  basis: 'fixed-trip' | 'per-km';
+  amount: string;
+  evidence: AgreementSourceEvidence[];
+};
+export type AnalysisAgreementPricing =
+  | {
+      type: 'fixed-trip' | 'per-km';
+      amount: string;
+      evidence: AgreementSourceEvidence[];
+    }
+  | { type: 'distance-bands'; bands: AnalysisAgreementBand[] };
+export type AnalysisAgreementTerms = {
+  agreementBasis: 'accepted' | 'internal-estimate' | 'unknown';
+  provider: string;
+  currency: string;
+  validFrom: string;
+  validUntil: string;
+  route: string;
+  service: 'ocean-handling' | 'pickup';
+  pricing: AnalysisAgreementPricing;
+  evidence: AgreementSourceEvidence[];
+};
+export type AnalysisAgreementVersion = {
+  id: string;
+  organizationId: string;
+  scope: 'reusable' | 'spot';
+  operationId: string | null;
+  sourceDocumentId: string;
+  sourceExtractionRunId: string;
+  terms: AnalysisAgreementTerms;
+};
+export type AnalysisAgreementBinding = {
+  invoiceDocumentId: string;
+  agreementVersionId: string;
+  serviceDate: string;
+  route: string;
+  distanceKm: string | null;
+  agreement: AnalysisAgreementVersion;
+};
 export type AnalysisSnapshot = {
   organizationId: string;
+  operationId?: string | undefined;
+  agreementBindings?: AnalysisAgreementBinding[] | undefined;
   operationReference: string;
   documents: AnalysisDocument[];
 };

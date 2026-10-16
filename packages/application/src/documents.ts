@@ -323,6 +323,32 @@ export function createDocumentService({
           if (doc.filename === data.filename && doc.kind === data.kind) return;
           if (doc.metadataVersion >= 1000)
             throw new DocumentError(409, 'METADATA_REVISION_LIMIT');
+          if (doc.kind === 'invoice' && data.kind !== 'invoice') {
+            const selections = await tx.operationAgreementBinding.findMany({
+              where: { organizationId, invoiceDocumentId: documentId },
+              orderBy: { operationId: 'asc' },
+            });
+            for (const selection of selections) {
+              await tx.$queryRaw`SELECT id FROM operations WHERE id=${selection.operationId}::uuid AND "organizationId"=${organizationId}::uuid FOR UPDATE`;
+              if (
+                await tx.analysisRun.count({
+                  where: {
+                    organizationId,
+                    operationId: selection.operationId,
+                    status: { in: ['queued', 'processing'] },
+                  },
+                })
+              )
+                throw new DocumentError(409, 'ANALYSIS_ACTIVE');
+              await tx.operation.update({
+                where: { id: selection.operationId },
+                data: { revision: { increment: 1 } },
+              });
+            }
+            await tx.operationAgreementBinding.deleteMany({
+              where: { organizationId, invoiceDocumentId: documentId },
+            });
+          }
           const changed = await tx.document.update({
             where: { id: documentId },
             data: {

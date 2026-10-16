@@ -1,0 +1,208 @@
+{
+  "id": "2026-10-16-reusable-agreements",
+  "summary": "Reusable immutable annual agreement versions and explicit annual/spot agreement selection per invoice, including distance pricing.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root/backend, /root/domain, /root/frontend coordinated by /root",
+  "scope": [
+    "packages/contracts/",
+    "packages/database/",
+    "packages/application/",
+    "packages/domain/",
+    "packages/sector-rules/",
+    "apps/api/",
+    "apps/web/",
+    "docs/plans/reusable-agreements.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    ".agents/tasks/2026-10-16-reusable-agreements.json",
+    ".agents/reviews/",
+    "package.json",
+    "pnpm-lock.yaml",
+    ".github/workflows/ci.yml",
+    "packages/document-processing/"
+  ],
+  "acceptance": [
+    "Upload agreement once and reuse pinned immutable version on multiple operations.",
+    "Select annual or operation-only spot agreement for each invoice independently.",
+    "Exact decimal fixed-trip/per-km/band pricing, explicit boundaries and missing-data results.",
+    "Current membership/role/origin/tenant enforcement, optimistic edits, source evidence and audit.",
+    "New agreement version preserves old selections, results and claims; explicit reselection makes old sources stale.",
+    "Independent relevant review plus local quality and real service CI acceptance; honest verification limits."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer",
+    "document-ai-engineer"
+  ],
+  "semanticRouting": "Changes financial rules, versioned source facts, tenant schema, API contracts and workflows. Planning consulted product/domain/architecture/UX/visual profiles before dependent implementation; independent source and UI review follows. Bounded invoice table parsing adds km unit support with source provenance; document AI role now applies.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No email/ERP connector or external service changes."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "product-manager",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-product-ux.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-product-ux.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-product-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-product-ux.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/security_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-security.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/security_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-security.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/security_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-security.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/security_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-security.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/security_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-security.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-qa.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-qa.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-qa.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-frontend.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded feature source review; runtime CI acceptance pending.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-backend.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Routing, cross-module source review, official Playwright CI documentation, local full quality and pending actual service acceptance.",
+      "evidence": [".agents/reviews/2026-10-16-agreements-main.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Local full quality completed: format, ESLint, strict types, unit tests and builds (exact current test count recorded in main report). Real services and browser remain separate CI checks."
+    },
+    {
+      "command": "GitHub remote tree publication and CI",
+      "status": "not-run",
+      "result": "Publication rejected by automatic approval review: explicit permission to publish full source changes to this public repository required. No CI or deploy claim."
+    },
+    {
+      "command": "node apps/web/test/agreements.browser.mjs",
+      "status": "not-run",
+      "result": "No local Chromium; browser download blocked by execution network. Portable CI suite ready but cannot run remote CI before source publication."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "No user-server deployment authorized through a configured server connection.",
+    "Local Docker not installed; actual service acceptance will use existing CI.",
+    "Remote source publication was rejected by automatic approval review twice, including after verifying connected admin/push access and public repository owner. Requires explicit user authorization to publish to public juanmpnz/reconcile. No remote branch/tree/PR or cloud task was created.",
+    "Browser and real-service CI acceptance remain not-run because publication is blocked. Source/unit review does not certify those checks."
+  ],
+  "evidence": ["docs/plans/reusable-agreements.md"],
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Financial calculations, tenant relations, immutable snapshots and user workflow require independent architecture/security/domain and QA review."
+}
