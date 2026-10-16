@@ -1,0 +1,207 @@
+{
+  "id": "2026-10-16-workspace-redesign",
+  "summary": "Reorganize organization workspace into real dashboard, operational/team navigation, responsive right-side panels, Inter/orange tokens and shared TanStack tables.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root with /root/analysis_backend, /root/analysis_frontend and /root/workspace_tables",
+  "scope": [
+    "apps/web/",
+    "apps/api/",
+    "packages/application/",
+    "packages/contracts/",
+    "docs/design/workspace-redesign.md",
+    "docs/status.md",
+    "docs/user-guide.md",
+    ".agents/tasks/2026-10-16-workspace-redesign.json",
+    ".agents/reviews/",
+    "pnpm-lock.yaml",
+    ".github/workflows/ci.yml"
+  ],
+  "acceptance": [
+    "Organization defaults to scoped dashboard; operational document/operation/agreement tabs and team member/invitation tabs are separate sidebar sections, retaining authorized deep links.",
+    "Dashboard uses real all-organization SQL counts/distribution and bounded pending items; registered differences use latest completed analysis per operation with explicit historical-scope warning, without fake savings or currency aggregation.",
+    "All centered form dialogs become right-side responsive SidePanel, full-screen on mobile, with accessible focus/keyboard/scroll and drafts protected.",
+    "Self-hosted Inter and approved orange palette apply consistently with compact type/spacing, white data surfaces and preserved financial semantic colors.",
+    "Shared typed TanStack DataTable DSL provides consistent renderers, global server search/sort/paging and selectable page size; supported optional features are capability gated without fake page-only global behavior.",
+    "Existing authorization, original documents, agreement snapshots, financial rules, claims and historical evidence remain unchanged; independent QA validates affected flows/responsive/browser and real API checks."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "UI/UX redesign and real readonly organization dashboard/list-query APIs change navigation, data aggregation and tenant access; no financial rule or extraction changes. Product/domain/architecture/UX preflight before dependent implementation, independent security/data/a11y/QA review.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No external connector, mail, storage adapter or queue transport change."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No PDF parsing, model or fact extraction changes."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-product.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/analysis_product_domain",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-product.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-architecture.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-architecture.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-architecture.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/analysis_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-architecture.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/analysis_ux",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-ux.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-frontend.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/analysis_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-frontend.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/analysis_backend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-dashboard-backend.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
+      "evidence": [".agents/reviews/workspace-redesign-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "112 unit tests, eight harness regressions, format/lint/strict types/builds passed. Final web rebuild passed after Children.toArray normalization. Service/browser evidence pending."
+    }
+  ],
+  "findings": [
+    {
+      "id": "WR-A1",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Server table requires controlled pagination/count/callback and gates unsupported sorting.",
+      "resolution": "Server table requires controlled pagination/count/callback and gates unsupported sorting. Independently reexamined in the linked specialist source review."
+    },
+    {
+      "id": "WR-A2",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Server sorting reset is atomic in parent callback, preserving new sort.",
+      "resolution": "Server sorting reset is atomic in parent callback, preserving new sort. Independently reexamined in the linked specialist source review."
+    },
+    {
+      "id": "WUX1",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Dirty-change confirmation focuses retain action and restores prior connected focus.",
+      "resolution": "Dirty-change confirmation focuses retain action and restores prior connected focus. Independently reexamined in the linked specialist source review."
+    }
+  ],
+  "limitations": [
+    "Figma Community reference has no accessible node-specific design URL; follow approved user palette/layout and existing reference vocabulary without pixel-fidelity claims."
+  ],
+  "evidence": [".agents/reviews/workspace-redesign-main.md"],
+  "changeClass": "ui",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Organization-wide aggregations, navigation and shared form/table controls require independent tenant/security and accessibility/QA acceptance before verification."
+}

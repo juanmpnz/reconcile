@@ -1,16 +1,15 @@
+import { DataTable, renderLink } from '../../components/ui/data-table';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
-  EmptyState,
   Feedback,
   Field,
   RequestError,
-  TableRegion,
 } from '../../components/ui/primitives';
 import { Dialog } from '../../components/ui/dialog';
 import { Loading } from '../../components/ui/loading';
-import { navigate, organizationPath } from '../../app/router';
+import { navigate, useRoute } from '../../app/router';
 import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import { timestampLabel } from '../documents/api';
@@ -33,6 +32,32 @@ export function OperationList({
   canWrite: boolean;
   disabled: boolean;
 }) {
+  const route = useRoute();
+  const q = (route.searchParams.get('q') ?? '').slice(0, 200);
+  const sortValue = route.searchParams.get('sort');
+  const sort =
+    sortValue === 'reference' || sortValue === 'name' ? sortValue : 'createdAt';
+  const direction =
+    route.searchParams.get('direction') === 'asc' ? 'asc' : 'desc';
+  const limitValue = Number(route.searchParams.get('limit'));
+  const limit = limitValue === 50 || limitValue === 100 ? limitValue : 25;
+  function change(values: {
+    q?: string;
+    sort?: string;
+    direction?: string;
+    limit?: number;
+    page?: number;
+  }) {
+    const params = new URLSearchParams({
+      tab: 'operations',
+      q: values.q ?? q,
+      sort: values.sort ?? sort,
+      direction: values.direction ?? direction,
+      limit: String(values.limit ?? limit),
+      page: String(values.page ?? 0),
+    });
+    navigate(`/organizations/${encodeURIComponent(organizationId)}?${params}`);
+  }
   const [open, setOpen] = useState(false);
   const [reference, setReference] = useState('');
   const [name, setName] = useState('');
@@ -41,8 +66,22 @@ export function OperationList({
   const mounted = useMounted();
   const client = useQueryClient();
   const query = useQuery({
-    queryKey: [...operationsKey(userId, organizationId), 'list', page],
-    queryFn: ({ signal }) => listOperations(organizationId, page, signal),
+    queryKey: [
+      ...operationsKey(userId, organizationId),
+      'list',
+      page,
+      q,
+      sort,
+      direction,
+      limit,
+    ],
+    queryFn: ({ signal }) =>
+      listOperations(organizationId, page, signal, {
+        q,
+        sort,
+        direction,
+        limit,
+      }),
     enabled: !disabled,
   });
   return (
@@ -150,112 +189,78 @@ export function OperationList({
             void query.refetch();
           }}
         />
-      ) : !query.data.items.length ? (
-        <EmptyState
-          title={
-            page
-              ? 'No hay operaciones en esta página'
-              : 'No hay operaciones todavía'
-          }
-        >
-          <p>
-            Creá una operación y vinculá los documentos que querés comparar.
-          </p>
-          {page > 0 && (
-            <Button
-              variant="outline"
-              onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'operations', page - 1),
-                )
-              }
-            >
-              Página anterior
-            </Button>
-          )}
-        </EmptyState>
       ) : (
-        <TableRegion label="Operaciones de la organización">
-          <table>
-            <caption className="sr-only">
-              Operaciones y última actualización
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Referencia</th>
-                <th scope="col">Nombre</th>
-                <th scope="col">Última actualización</th>
-                <th scope="col">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {query.data.items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <a
-                      href={operationPath(organizationId, item.id)}
-                      onClick={(event) => {
-                        if (!event.metaKey && !event.ctrlKey) {
-                          event.preventDefault();
-                          navigate(operationPath(organizationId, item.id));
-                        }
-                      }}
-                    >
-                      {item.reference}
-                    </a>
-                  </td>
-                  <td>{item.name}</td>
-                  <td>{timestampLabel(item.updatedAt)}</td>
-                  <td className="table-action">
-                    <Button
-                      variant="outline"
-                      aria-label={`Abrir operación ${item.reference}`}
-                      onClick={() =>
-                        navigate(operationPath(organizationId, item.id))
-                      }
-                    >
-                      Abrir
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableRegion>
-      )}
-      {query.data && query.data.total > 0 && (
-        <div className="pagination">
-          <p className="metadata">
-            {query.data.total} operaciones · Página {page + 1}
-          </p>
-          <div>
-            <Button
-              variant="outline"
-              disabled={!page || query.isFetching}
-              onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'operations', page - 1),
-                )
-              }
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              disabled={(page + 1) * 25 >= query.data.total || query.isFetching}
-              onClick={() =>
-                navigate(
-                  organizationPath(organizationId, 'operations', page + 1),
-                )
-              }
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
-      )}
-      {query.isFetching && !query.isPending && (
-        <Loading inline label="Actualizando operaciones…" />
+        <DataTable
+          label="Operaciones de la organización"
+          data={query.data.items}
+          getRowId={(item) => item.id}
+          mode="server"
+          search={q}
+          onSearchChange={(q) => change({ q })}
+          searchLabel="Buscar operaciones"
+          sorting={[{ id: sort, desc: direction === 'desc' }]}
+          onSortingChange={(next) =>
+            change({
+              sort: next[0]?.id ?? 'createdAt',
+              direction: next[0]?.desc ? 'desc' : 'asc',
+            })
+          }
+          pagination={{ pageIndex: page, pageSize: limit }}
+          rowCount={query.data.total}
+          onPaginationChange={(next) =>
+            change({ page: next.pageIndex, limit: next.pageSize })
+          }
+          disabled={disabled}
+          busy={query.isFetching}
+          emptyMessage="No hay operaciones para esta búsqueda."
+          columns={[
+            {
+              id: 'reference',
+              label: 'Referencia',
+              sortable: true,
+              render: (item) =>
+                renderLink(
+                  item.reference,
+                  operationPath(organizationId, item.id),
+                  navigate,
+                ),
+            },
+            {
+              id: 'name',
+              label: 'Nombre',
+              sortable: true,
+              render: (item) => item.name,
+            },
+            {
+              id: 'createdAt',
+              label: 'Fecha de creación',
+              sortable: true,
+              render: (item) => timestampLabel(item.createdAt),
+            },
+            {
+              id: 'updatedAt',
+              label: 'Última actualización',
+              sortable: false,
+              render: (item) => timestampLabel(item.updatedAt),
+            },
+            {
+              id: 'actions',
+              label: 'Acciones',
+              sortable: false,
+              render: (item) => (
+                <Button
+                  variant="outline"
+                  aria-label={`Abrir operación ${item.reference}`}
+                  onClick={() =>
+                    navigate(operationPath(organizationId, item.id))
+                  }
+                >
+                  Abrir
+                </Button>
+              ),
+            },
+          ]}
+        />
       )}
     </section>
   );

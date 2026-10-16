@@ -1,3 +1,4 @@
+import { WorkspaceEntry } from './workspace-entry';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '../lib/auth';
@@ -18,15 +19,17 @@ const publicPaths = [
 ];
 export function App() {
   const route = useRoute();
-  const previousPath = useRef(route.pathname);
+  const focusPath =
+    route.pathname + ':' + (route.searchParams.get('tab') ?? 'overview');
+  const previousPath = useRef(focusPath);
   useEffect(() => {
-    if (previousPath.current === route.pathname) return;
-    previousPath.current = route.pathname;
+    if (previousPath.current === focusPath) return;
+    previousPath.current = focusPath;
     const frame = window.requestAnimationFrame(() =>
       document.getElementById('main')?.focus(),
     );
     return () => window.cancelAnimationFrame(frame);
-  }, [route.pathname]);
+  }, [focusPath]);
   const session = authClient.useSession();
   const client = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -67,7 +70,9 @@ export function App() {
           ? 'agreements'
           : route.searchParams.get('tab') === 'invitations'
             ? 'invitations'
-            : 'members';
+            : route.searchParams.get('tab') === 'members'
+              ? 'members'
+              : 'overview';
   async function logout() {
     if (busy) return;
     setBusy(true);
@@ -110,6 +115,8 @@ export function App() {
   return (
     <AppShell
       userId={user.id}
+      verified={user.emailVerified}
+      activeTab={tab}
       organizationId={organizationId || undefined}
       documentsActive={tab === 'documents'}
       operationsActive={tab === 'operations'}
@@ -158,7 +165,11 @@ export function App() {
           operationId={operationId || undefined}
         />
       ) : route.pathname === '/' || route.pathname === '/organizations' ? (
-        <OrganizationList key={user.id} userId={user.id} />
+        route.searchParams.get('manage') === '1' ? (
+          <OrganizationList key={user.id} userId={user.id} />
+        ) : (
+          <WorkspaceEntry key={user.id} userId={user.id} />
+        )
       ) : (
         <section>
           <h1>Página no encontrada</h1>

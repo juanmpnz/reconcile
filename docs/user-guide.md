@@ -26,9 +26,11 @@ Para probar una invitación en local: enviála a otra dirección ficticia; abrí
 
 ## Navegación y estados
 
-Organizaciones vuelve al listado. Las secciones Documentos, Miembros e Invitaciones conservan su contexto en la URL; atrás/adelante del navegador permite volver a las vistas anteriores.
+Al entrar se abre el Resumen de la última organización disponible. El selector lateral permite cambiar de organización. Resumen muestra totales reales, estados de documentos y tareas pendientes; las diferencias registradas proceden del último análisis completado de cada operación y pueden corresponder a datos previos. No representan ahorros recuperados.
 
-Los diálogos tienen Cancelar y pueden cerrarse con Escape cuando no están enviando. Si una solicitud falla, el formulario conserva lo escrito. Una cuenta sin permisos ve una explicación; un listado sin datos muestra un estado vacío, distinto de un error de servicio.
+Operativa reúne Operaciones, Documentos y Tarifas; Equipo reúne Miembros e Invitaciones. Cada sección conserva su contexto en la URL y admite atrás/adelante del navegador. Las tablas principales permiten buscar, ordenar y paginar sobre todos los registros; los miembros tienen paginación del servidor y las invitaciones se filtran sobre la respuesta completa disponible. Los historiales acotados indican su alcance.
+
+Los formularios se abren en un panel lateral derecho, a pantalla completa en móvil. Tienen Cancelar y Escape; si hay cambios sin guardar, podés conservarlos o descartarlos. Si una solicitud falla, el formulario conserva lo escrito. Una cuenta sin permisos ve una explicación; un listado sin datos muestra un estado vacío, distinto de un error de servicio.
 
 Cerrar sesión elimina la sesión y los datos protegidos de la interfaz. Si otra persona revoca tu acceso, la siguiente comprobación del servidor debe impedir continuar en ese espacio.
 

@@ -1,3 +1,4 @@
+import { serverListParams, type ServerListOptions } from '../../lib/list-query';
 import { z } from 'zod';
 import {
   agreementCreateSchema,
@@ -70,9 +71,18 @@ export async function listAgreements(
   organizationId: string,
   page: number,
   signal: AbortSignal,
+  options: ServerListOptions = {},
 ) {
+  const params = serverListParams(page, options, [
+    'createdAt',
+    'provider',
+    'title',
+    'service',
+    'validFrom',
+    'validUntil',
+  ]);
   const result = await request(
-    `${endpoint(organizationId)}?limit=25&offset=${page * 25}`,
+    `${endpoint(organizationId)}?${params}`,
     agreementListSchema,
     { signal },
   );

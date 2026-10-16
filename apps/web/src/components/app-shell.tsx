@@ -1,14 +1,14 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getContext, organizationKey } from '../features/organizations/queries';
-import { Button } from './ui/primitives';
-import { navigate, organizationPath } from '../app/router';
 import {
-  operationsKey,
-  getOperation,
-  operationPath,
-} from '../features/operations/api';
-import { documentsKey, getDocument } from '../features/documents/api';
+  getContext,
+  identityKey,
+  listOrganizations,
+  organizationKey,
+} from '../features/organizations/queries';
+import { navigate, organizationPath } from '../app/router';
+import { Button } from './ui/primitives';
 export function AppShell({
   children,
   name,
@@ -17,10 +17,8 @@ export function AppShell({
   busy,
   organizationId,
   userId,
-  documentsActive = false,
-  documentId,
-  operationsActive = false,
-  operationId,
+  activeTab = 'overview',
+  verified = true,
 }: {
   children: ReactNode;
   name: string;
@@ -29,48 +27,138 @@ export function AppShell({
   busy: boolean;
   organizationId?: string | undefined;
   userId: string;
+  activeTab?: string;
+  verified?: boolean;
   documentsActive?: boolean;
   documentId?: string | undefined;
   operationsActive?: boolean;
   operationId?: string | undefined;
 }) {
+  const [mobile, setMobile] = useState(false);
+  const organizations = useQuery({
+    queryKey: identityKey(userId),
+    queryFn: listOrganizations,
+    enabled: verified,
+  });
+  const context = useQuery({
+    queryKey: [...organizationKey(userId, organizationId ?? ''), 'context'],
+    queryFn: ({ signal }) => getContext(organizationId ?? '', signal),
+    enabled: false,
+  });
+  const current =
+    context.isSuccess && !context.isFetching
+      ? context.data.organization.name
+      : 'Espacio de trabajo';
+  const section = ['members', 'invitations'].includes(activeTab)
+    ? 'team'
+    : ['operations', 'documents', 'agreements'].includes(activeTab)
+      ? 'operations'
+      : 'overview';
+  const links = [
+    { id: 'overview', label: 'Resumen', tab: 'overview', icon: '◫' },
+    { id: 'operations', label: 'Operativa', tab: 'operations', icon: '▤' },
+    { id: 'team', label: 'Equipo', tab: 'members', icon: '♧' },
+  ];
   return (
     <div className="app-shell">
       <a className="skip" href="#main">
         Saltar al contenido
       </a>
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobile ? 'sidebar-open' : ''}`}>
         <a
           className="brand"
-          href="/organizations"
+          href="/"
           onClick={(event) => {
             event.preventDefault();
-            navigate('/organizations');
+            navigate('/');
           }}
         >
-          Reconcile
+          reconcile<span aria-hidden="true">.</span>
         </a>
-        <nav aria-label="Principal">
-          <a
-            className="sidebar-link"
-            href="/organizations"
-            aria-current="page"
-            onClick={(event) => {
-              event.preventDefault();
-              navigate('/organizations');
+        <Button
+          className="mobile-menu-toggle"
+          variant="ghost"
+          aria-expanded={mobile}
+          aria-controls="workspace-navigation"
+          onClick={() => setMobile(!mobile)}
+        >
+          {mobile ? 'Cerrar menú' : 'Menú'}
+        </Button>
+        <div className="workspace-selector">
+          <label htmlFor="workspace-organization">Organización</label>
+          <select
+            id="workspace-organization"
+            value={
+              organizations.data?.some((org) => org.id === organizationId)
+                ? (organizationId ?? '')
+                : ''
+            }
+            disabled={!verified || organizations.isPending}
+            onChange={(event) => {
+              if (event.target.value) {
+                setMobile(false);
+                navigate(organizationPath(event.target.value, 'overview'));
+              }
             }}
           >
-            <span aria-hidden="true" className="nav-icon">
-              ▦
-            </span>
-            Organizaciones
+            <option value="">Seleccioná una organización</option>
+            {organizations.data?.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+          {organizations.isError && (
+            <p className="metadata">
+              No se pudo cargar el selector.{' '}
+              <button
+                className="text-button"
+                onClick={() => {
+                  void organizations.refetch();
+                }}
+              >
+                Reintentar
+              </button>
+            </p>
+          )}
+        </div>
+        <nav id="workspace-navigation" aria-label="Espacio de trabajo">
+          {organizationId &&
+            links.map((link) => (
+              <a
+                key={link.id}
+                className="sidebar-link"
+                aria-current={section === link.id ? 'page' : undefined}
+                href={organizationPath(organizationId, link.tab)}
+                onClick={(event) => {
+                  if (!event.ctrlKey && !event.metaKey) {
+                    event.preventDefault();
+                    setMobile(false);
+                    navigate(organizationPath(organizationId, link.tab));
+                  }
+                }}
+              >
+                <span aria-hidden="true">{link.icon}</span>
+                {link.label}
+              </a>
+            ))}
+          <a
+            className="workspace-manage"
+            href="/organizations?manage=1"
+            onClick={(event) => {
+              event.preventDefault();
+              setMobile(false);
+              navigate('/organizations?manage=1');
+            }}
+          >
+            Gestionar organizaciones
           </a>
         </nav>
         <div className="identity">
           <span className="identity-name">{name}</span>
           <span className="metadata">{email}</span>
           <Button
-            variant="outline"
+            variant="ghost"
             pending={busy}
             disabled={busy}
             onClick={onLogout}
@@ -81,132 +169,21 @@ export function AppShell({
       </aside>
       <div className="app-body">
         <header className="topbar">
-          <nav aria-label="Ubicación">
-            <a
-              href="/organizations"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/organizations');
-              }}
-            >
-              Organizaciones
-            </a>
-            {organizationId && (
-              <OrganizationBreadcrumb
-                userId={userId}
-                organizationId={organizationId}
-                documentsActive={documentsActive}
-                documentId={documentId}
-                operationsActive={operationsActive}
-                operationId={operationId}
-              />
-            )}
-          </nav>
+          <span>{organizationId ? current : 'Organizaciones'}</span>
+          <span className="topbar-section">
+            {organizationId
+              ? section === 'overview'
+                ? 'Resumen'
+                : section === 'operations'
+                  ? 'Operativa'
+                  : 'Equipo'
+              : ''}
+          </span>
         </header>
         <main tabIndex={-1} id="main" className="app-content">
           {children}
         </main>
       </div>
     </div>
-  );
-}
-
-function OrganizationBreadcrumb({
-  userId,
-  organizationId,
-  documentsActive,
-  documentId,
-  operationsActive,
-  operationId,
-}: {
-  userId: string;
-  organizationId: string;
-  documentsActive: boolean;
-  documentId: string | undefined;
-  operationsActive: boolean;
-  operationId: string | undefined;
-}) {
-  const context = useQuery({
-    queryKey: [...organizationKey(userId, organizationId), 'context'],
-    queryFn: ({ signal }) => getContext(organizationId, signal),
-    enabled: false,
-  });
-  const document = useQuery({
-    queryKey: [
-      ...documentsKey(userId, organizationId),
-      'detail',
-      documentId ?? '',
-    ],
-    queryFn: ({ signal }) =>
-      getDocument(organizationId, documentId ?? '', signal),
-    enabled: false,
-  });
-  const operation = useQuery({
-    queryKey: [
-      ...operationsKey(userId, organizationId),
-      'detail',
-      operationId ?? '',
-    ],
-    queryFn: ({ signal }) =>
-      getOperation(organizationId, operationId ?? '', signal),
-    enabled: false,
-  });
-  return (
-    <>
-      <span aria-hidden="true">/</span>
-      <span>
-        {context.isSuccess ? context.data.organization.name : 'Organización'}
-      </span>
-      {operationsActive && (
-        <>
-          <span aria-hidden="true">/</span>
-          <a
-            href={organizationPath(organizationId, 'operations')}
-            onClick={(event) => {
-              event.preventDefault();
-              navigate(organizationPath(organizationId, 'operations'));
-            }}
-          >
-            Operaciones
-          </a>
-          {operationId &&
-            context.isSuccess &&
-            !context.isFetching &&
-            operation.isSuccess && (
-              <>
-                <span aria-hidden="true">/</span>
-                <a href={operationPath(organizationId, operationId)}>
-                  {operation.data.reference}
-                </a>
-              </>
-            )}
-        </>
-      )}
-      {documentsActive && (
-        <>
-          <span aria-hidden="true">/</span>
-          <a
-            href={organizationPath(organizationId, 'documents')}
-            onClick={(event) => {
-              event.preventDefault();
-              navigate(organizationPath(organizationId, 'documents'));
-            }}
-          >
-            Documentos
-          </a>
-        </>
-      )}
-      {documentId &&
-        context.isSuccess &&
-        !context.isFetching &&
-        document.isSuccess && (
-          <>
-            <span aria-hidden="true">/</span>
-            <span className="breadcrumb-document">
-              {document.data.filename}
-            </span>
-          </>
-        )}
-    </>
   );
 }

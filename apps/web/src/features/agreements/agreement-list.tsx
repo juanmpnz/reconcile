@@ -1,11 +1,7 @@
-import { useState } from 'react';
+import { DataTable } from '../../components/ui/data-table';
+import { navigate, useRoute } from '../../app/router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Button,
-  EmptyState,
-  RequestError,
-  TableRegion,
-} from '../../components/ui/primitives';
+import { RequestError } from '../../components/ui/primitives';
 import { Loading } from '../../components/ui/loading';
 import { documentPath } from '../documents/api';
 import { agreementsKey, listAgreements } from './api';
@@ -22,10 +18,58 @@ export function AgreementList({
   canWrite: boolean;
   disabled: boolean;
 }) {
-  const [page, setPage] = useState(0);
+  const route = useRoute();
+  const page = Math.max(0, Number(route.searchParams.get('page')) || 0);
+  const q = (route.searchParams.get('q') ?? '').slice(0, 200);
+  const requestedSort = route.searchParams.get('sort');
+  const sort =
+    requestedSort === 'provider' ||
+    requestedSort === 'title' ||
+    requestedSort === 'service' ||
+    requestedSort === 'validFrom' ||
+    requestedSort === 'validUntil'
+      ? requestedSort
+      : 'createdAt';
+  const direction =
+    route.searchParams.get('direction') === 'asc' ? 'asc' : 'desc';
+  const requestedLimit = Number(route.searchParams.get('limit'));
+  const limit =
+    requestedLimit === 50 || requestedLimit === 100 ? requestedLimit : 25;
+  function change(values: {
+    q?: string;
+    sort?: string;
+    direction?: string;
+    limit?: number;
+    page?: number;
+  }) {
+    const params = new URLSearchParams({
+      tab: 'agreements',
+      q: values.q ?? q,
+      sort: values.sort ?? sort,
+      direction: values.direction ?? direction,
+      limit: String(values.limit ?? limit),
+      page: String(values.page ?? 0),
+    });
+    navigate(`/organizations/${encodeURIComponent(organizationId)}?${params}`);
+  }
+
   const query = useQuery({
-    queryKey: [...agreementsKey(userId, organizationId), 'list', page],
-    queryFn: ({ signal }) => listAgreements(organizationId, page, signal),
+    queryKey: [
+      ...agreementsKey(userId, organizationId),
+      'list',
+      page,
+      q,
+      sort,
+      direction,
+      limit,
+    ],
+    queryFn: ({ signal }) =>
+      listAgreements(organizationId, page, signal, {
+        q,
+        sort,
+        direction,
+        limit,
+      }),
     enabled: !disabled,
   });
   return (
@@ -61,105 +105,109 @@ export function AgreementList({
             void query.refetch();
           }}
         />
-      ) : query.data.items.length === 0 ? (
-        <EmptyState title="No hay acuerdos en esta página">
-          <p>
-            Publicá una tarifa revisada para reutilizar el mismo PDF en varias
-            operaciones.
-          </p>
-        </EmptyState>
       ) : (
-        <TableRegion label="Tarifas y acuerdos revisados">
-          <table>
-            <caption className="sr-only">
-              Versiones inmutables, vigencias y condiciones
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Acuerdo y versión</th>
-                <th scope="col">Proveedor / ámbito</th>
-                <th scope="col">Uso / vigencia</th>
-                <th scope="col">Precio revisado</th>
-                <th scope="col">Evidencia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {query.data.items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    {item.name}
-                    {item.terms.agreementBasis !== 'accepted' && (
-                      <p className="document-warning">
-                        Condiciones sin aceptación confirmada
-                      </p>
-                    )}
-                    <small className="file-size">Versión {item.id}</small>
-                  </td>
-                  <td>
-                    {item.terms.provider}
-                    <small className="file-size">
-                      {item.terms.route} ·{' '}
-                      {item.terms.service === 'pickup'
-                        ? 'Recogida / transporte terrestre'
-                        : 'Servicio base marítimo'}
-                    </small>
-                  </td>
-                  <td>
-                    {item.scope === 'reusable'
-                      ? 'Reutilizable'
-                      : 'Spot de una operación'}
-                    <small className="file-size">
-                      {item.terms.validFrom} — {item.terms.validUntil}
-                    </small>
-                  </td>
-                  <td>
-                    {pricingLabel(item.terms.pricing)} {item.terms.currency}
-                  </td>
-                  <td>
-                    <a
-                      href={documentPath(organizationId, item.sourceDocumentId)}
-                    >
-                      Ver PDF original
-                    </a>
-                    <details>
-                      <summary>Condiciones revisadas</summary>
-                      {item.terms.evidence.map((evidence, index) => (
-                        <blockquote key={index}>
-                          Página {evidence.page}: {evidence.snippet}
-                        </blockquote>
-                      ))}
-                      <p>Revisión manual: {item.reason}</p>
-                    </details>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableRegion>
-      )}
-      <div className="pagination">
-        <Button
-          variant="outline"
-          disabled={!page || query.isFetching}
-          onClick={() => setPage(page - 1)}
-        >
-          Anterior
-        </Button>
-        <span className="metadata">
-          Página {page + 1} · {query.data?.total ?? 0} versiones
-        </span>
-        <Button
-          variant="outline"
-          disabled={
-            !query.data ||
-            (page + 1) * 25 >= query.data.total ||
-            query.isFetching
+        <DataTable
+          label="Tarifas y acuerdos revisados"
+          data={query.data.items}
+          getRowId={(item) => item.id}
+          mode="server"
+          search={q}
+          onSearchChange={(q) => change({ q })}
+          searchLabel="Buscar tarifas y acuerdos"
+          sorting={[{ id: sort, desc: direction === 'desc' }]}
+          onSortingChange={(next) =>
+            change({
+              sort: next[0]?.id ?? 'createdAt',
+              direction: next[0]?.desc ? 'desc' : 'asc',
+            })
           }
-          onClick={() => setPage(page + 1)}
-        >
-          Siguiente
-        </Button>
-      </div>
+          pagination={{ pageIndex: page, pageSize: limit }}
+          rowCount={query.data.total}
+          onPaginationChange={(next) =>
+            change({ page: next.pageIndex, limit: next.pageSize })
+          }
+          disabled={disabled}
+          busy={query.isFetching}
+          emptyMessage="No hay acuerdos para esta búsqueda."
+          columns={[
+            {
+              id: 'title',
+              label: 'Acuerdo y versión',
+              sortable: true,
+              render: (item) => (
+                <>
+                  {item.name}
+                  {item.terms.agreementBasis !== 'accepted' && (
+                    <p className="document-warning">
+                      Condiciones sin aceptación confirmada
+                    </p>
+                  )}
+                  <small className="file-size">Versión {item.id}</small>
+                </>
+              ),
+            },
+            {
+              id: 'provider',
+              label: 'Proveedor / ámbito',
+              sortable: true,
+              render: (item) => (
+                <>
+                  {item.terms.provider}
+                  <small className="file-size">
+                    {item.terms.route} ·{' '}
+                    {item.terms.service === 'pickup'
+                      ? 'Recogida / transporte terrestre'
+                      : 'Servicio base marítimo'}
+                  </small>
+                </>
+              ),
+            },
+            {
+              id: 'validFrom',
+              label: 'Uso / vigencia',
+              sortable: true,
+              render: (item) => (
+                <>
+                  {item.scope === 'reusable'
+                    ? 'Reutilizable'
+                    : 'Spot de una operación'}
+                  <small className="file-size">
+                    {item.terms.validFrom} — {item.terms.validUntil}
+                  </small>
+                </>
+              ),
+            },
+            {
+              id: 'price',
+              label: 'Precio revisado',
+              sortable: false,
+              render: (item) =>
+                `${pricingLabel(item.terms.pricing)} ${item.terms.currency}`,
+            },
+            {
+              id: 'evidence',
+              label: 'Evidencia',
+              sortable: false,
+              render: (item) => (
+                <>
+                  <a href={documentPath(organizationId, item.sourceDocumentId)}>
+                    Ver PDF original
+                  </a>
+                  <details>
+                    <summary>Condiciones revisadas</summary>
+                    {item.terms.evidence.map((evidence, index) => (
+                      <blockquote key={index}>
+                        Página {evidence.page}: {evidence.snippet}
+                      </blockquote>
+                    ))}
+                    <p>Revisión manual: {item.reason}</p>
+                  </details>
+                </>
+              ),
+            },
+          ]}
+        />
+      )}
     </section>
   );
 }

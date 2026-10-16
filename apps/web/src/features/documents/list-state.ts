@@ -8,7 +8,13 @@ export function documentListState(
     sort: params.get('sort') ?? 'createdAt',
     direction: params.get('direction') ?? 'desc',
   });
-  return result.success ? result.data : documentListQuerySchema.parse({});
+  const options = result.success
+    ? result.data
+    : documentListQuerySchema.parse({});
+  const requestedLimit = Number(params.get('limit'));
+  return [25, 50, 100].includes(requestedLimit)
+    ? { ...options, limit: requestedLimit }
+    : options;
 }
 export function documentListPath(
   organizationId: string,
@@ -20,6 +26,7 @@ export function documentListPath(
     sort: options.sort,
     direction: options.direction,
   });
+  if (options.limit) params.set('limit', String(options.limit));
   if (options.q) params.set('q', options.q);
   if (page > 0) params.set('page', String(page));
   return `/organizations/${encodeURIComponent(organizationId)}?${params}`;

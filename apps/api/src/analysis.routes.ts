@@ -1,3 +1,4 @@
+import { operationListQuerySchema } from '@reconcile/contracts';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
@@ -103,7 +104,13 @@ export function registerAnalysisRoutes(
   const base = '/api/v1/organizations/:organizationId/operations';
   server.get<{
     Params: Params;
-    Querystring: { limit?: string; offset?: string };
+    Querystring: {
+      limit?: string;
+      offset?: string;
+      q?: string;
+      sort?: string;
+      direction?: string;
+    };
   }>(base, (req, reply) =>
     bounded(reply, async () => {
       const who = await actor(req, reply);
@@ -118,7 +125,19 @@ export function registerAnalysisRoutes(
         offset > 100000
       )
         throw new DocumentError(400, 'INVALID_PAGINATION');
-      return service.list(req.params.organizationId, who, limit, offset);
+      const options = operationListQuerySchema.safeParse({
+        q: req.query.q,
+        sort: req.query.sort,
+        direction: req.query.direction,
+      });
+      if (!options.success) throw new DocumentError(400, 'INVALID_LIST_QUERY');
+      return service.list(
+        req.params.organizationId,
+        who,
+        limit,
+        offset,
+        options.data,
+      );
     }),
   );
   server.post<{ Params: Params }>(base, { bodyLimit: 4096 }, (req, reply) =>

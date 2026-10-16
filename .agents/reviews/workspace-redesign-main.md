@@ -1,0 +1,7 @@
+# Workspace redesign — coordination and validation
+
+Coordinator /root; sequential principal-engineer review, not independent. Product/domain and UX designed the scope before backend/frontend/table implementation. Separate architecture/security/data and UX/a11y agents reviewed production source, closed server table callback/atomic sorting findings and dirty-confirmation focus finding, and QA authored a portable independent browser acceptance suite.
+
+Implemented only the authorized workspace redesign and readonly global dashboard/list APIs. No document engine, financial rules, schema migration or evidence replacement. Typed server pagination requires callbacks/count; unsupported member/audit searches are not offered. Existing specialized financial evidence layout remains intentionally separate. Global query API clients validate allowlisted parameters; member page sizes use existing Better Auth list API. Figma Community reference has no usable node-specific URL, so no pixel-fidelity claim.
+
+Local pnpm check passed formatting, lint, strict types, 112 unit tests, eight harness regressions and all builds. A tiny React Children.toArray normalization was then formatted and the final web build passed. This prevents child-key warnings without changing form semantics. Real PostgreSQL aggregate/list HTTP tests, browser fixtures and production-image checks remain separate pending CI evidence. No local Docker is available and no user-server deployment is claimed.

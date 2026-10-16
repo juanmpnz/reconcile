@@ -1,3 +1,4 @@
+import { DataTable } from '../../components/ui/data-table';
 import { MetadataDialog } from './metadata-dialog';
 import { OperationLinks } from './operation-links';
 import { useState } from 'react';
@@ -8,7 +9,6 @@ import {
   Button,
   Feedback,
   RequestError,
-  TableRegion,
 } from '../../components/ui/primitives';
 import { Loading } from '../../components/ui/loading';
 import { navigate, organizationPath } from '../../app/router';
@@ -378,77 +378,94 @@ export function DocumentDetailView({
       {data.metadataHistory.length > 0 && (
         <details className="metadata-history">
           <summary>Historial de nombre y tipo (últimos 50 cambios)</summary>
-          <TableRegion label="Historial de metadatos del documento">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Antes</th>
-                  <th scope="col">Después</th>
-                  <th scope="col">Motivo</th>
-                  <th scope="col">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.metadataHistory.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      {item.before.filename}
-                      <small className="file-size">
-                        {kindLabels[item.before.kind]}
-                      </small>
-                    </td>
-                    <td>
-                      {item.after.filename}
-                      <small className="file-size">
-                        {kindLabels[item.after.kind]}
-                      </small>
-                    </td>
-                    <td>{item.reason}</td>
-                    <td>
-                      {timestampLabel(item.createdAt)}
-                      <small className="file-size">
-                        {item.actorId === userId
-                          ? 'Vos'
-                          : 'Integrante del equipo'}
-                      </small>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
+          <DataTable
+            label="Historial de metadatos del documento (últimos 50 cambios)"
+            searchLabel="Buscar en los últimos 50 cambios"
+            data={data.metadataHistory}
+            getRowId={(item) => item.id}
+            columns={[
+              {
+                id: 'before',
+                label: 'Antes',
+                accessor: (item) => item.before.filename,
+                render: (item) => (
+                  <>
+                    {item.before.filename}
+                    <small className="file-size">
+                      {kindLabels[item.before.kind]}
+                    </small>
+                  </>
+                ),
+              },
+              {
+                id: 'after',
+                label: 'Después',
+                accessor: (item) => item.after.filename,
+                render: (item) => (
+                  <>
+                    {item.after.filename}
+                    <small className="file-size">
+                      {kindLabels[item.after.kind]}
+                    </small>
+                  </>
+                ),
+              },
+              {
+                id: 'reason',
+                label: 'Motivo',
+                accessor: (item) => item.reason,
+              },
+              {
+                id: 'date',
+                label: 'Fecha',
+                accessor: (item) => item.createdAt,
+                render: (item) => (
+                  <>
+                    {timestampLabel(item.createdAt)}
+                    <small className="file-size">
+                      {item.actorId === userId
+                        ? 'Vos'
+                        : 'Integrante del equipo'}
+                    </small>
+                  </>
+                ),
+              },
+            ]}
+          />
         </details>
       )}
       {data.corrections.length > 0 && (
         <section className="correction-history">
           <h3>Historial de correcciones</h3>
-          <TableRegion label="Correcciones registradas">
-            <table>
-              <caption className="sr-only">
-                Historial que conserva el valor extraído original
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Campo</th>
-                  <th scope="col">Valor corregido</th>
-                  <th scope="col">Motivo</th>
-                  <th scope="col">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.corrections.map((correction) => (
-                  <tr key={correction.id}>
-                    <td>{fieldLabels[correction.field]}</td>
-                    <td>{correction.value ?? 'Sin dato verificable'}</td>
-                    <td>{correction.reason}</td>
-                    <td className="metadata">
-                      {timestampLabel(correction.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
+          <DataTable
+            label="Correcciones registradas"
+            searchLabel="Buscar correcciones de este documento"
+            data={data.corrections}
+            getRowId={(item) => item.id}
+            columns={[
+              {
+                id: 'field',
+                label: 'Campo',
+                accessor: (item) => fieldLabels[item.field],
+              },
+              {
+                id: 'value',
+                label: 'Valor corregido',
+                accessor: (item) => item.value ?? 'Sin dato verificable',
+              },
+              {
+                id: 'reason',
+                label: 'Motivo',
+                accessor: (item) => item.reason,
+              },
+              {
+                id: 'date',
+                label: 'Fecha',
+                accessor: (item) => item.createdAt,
+                render: (item) => timestampLabel(item.createdAt),
+              },
+            ]}
+          />
         </section>
       )}
     </section>

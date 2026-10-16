@@ -98,3 +98,22 @@ describe('global document controls', () => {
     ).rejects.toThrow('no corresponde');
   });
 });
+
+describe('shared server page size', () => {
+  it('requests page two at50rows without switching to page-local filtering', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ items: [], total: 0, limit: 50, offset: 100 }),
+      );
+    vi.stubGlobal('fetch', fetcher);
+    await listDocuments(organizationId, 2, new AbortController().signal, {
+      limit: 50,
+      q: 'Tarifa',
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining('limit=50&offset=100'),
+      expect.objectContaining({ credentials: 'include' }),
+    );
+  });
+});

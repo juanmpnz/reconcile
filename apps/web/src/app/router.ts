@@ -24,7 +24,7 @@ export function navigate(
 export function callback(path: string) {
   return new URL(path, window.location.origin).href;
 }
-export function organizationPath(id: string, tab = 'members', page = 0) {
+export function organizationPath(id: string, tab = 'overview', page = 0) {
   const query = new URLSearchParams({ tab });
   if (page > 0) query.set('page', String(page));
   return `/organizations/${encodeURIComponent(id)}?${query}`;

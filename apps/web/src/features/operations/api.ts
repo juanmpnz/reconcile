@@ -1,3 +1,4 @@
+import { serverListParams, type ServerListOptions } from '../../lib/list-query';
 import { z } from 'zod';
 import {
   analysisRunSchema,
@@ -90,10 +91,16 @@ export async function listOperations(
   organizationId: string,
   page: number,
   signal: AbortSignal,
+  options: ServerListOptions = {},
 ) {
+  const params = serverListParams(page, options, [
+    'createdAt',
+    'reference',
+    'name',
+  ]);
   const result = parseResponse(
     operationListSchema,
-    await request(`${endpoint(organizationId)}?limit=25&offset=${page * 25}`, {
+    await request(`${endpoint(organizationId)}?${params}`, {
       signal,
     }),
   );
