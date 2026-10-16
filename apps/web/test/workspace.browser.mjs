@@ -289,6 +289,9 @@ try {
   await page.keyboard.press('Enter');
   await visible(page.getByRole('listbox'));
   await page.keyboard.press('1');
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute('data-value') === '100',
+  );
   await page.keyboard.press('Enter');
   await page.getByRole('listbox').waitFor({ state: 'hidden' });
   await recorded((q) => q.limit === '100' && q.q === 'OP-053');
