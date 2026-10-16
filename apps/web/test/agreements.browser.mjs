@@ -562,11 +562,18 @@ const doc = (docId, kind) => ({
     .getByRole('button', { name: 'Agregar tramo', exact: true })
     .click();
   await has(dialog.getByText('Tramo 2', { exact: true }));
+  await dialog.evaluate((el) =>
+    Promise.all(el.getAnimations().map((animation) => animation.finished)),
+  );
+  await page.screenshot({
+    path: '/tmp/agreements-qa-mobile-footer.png',
+    fullPage: false,
+  });
   const footerBox = await dialog.locator('.side-panel-footer').boundingBox();
   assert.ok(
     footerBox &&
       footerBox.y + footerBox.height <= page.viewportSize().height + 1,
-    'long mobile form keeps its action footer in the viewport',
+    `long mobile form keeps its action footer in the viewport: ${JSON.stringify({ footerBox, viewport: page.viewportSize() })}`,
   );
   assert.equal(
     await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),

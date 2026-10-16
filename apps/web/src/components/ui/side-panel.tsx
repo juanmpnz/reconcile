@@ -1,5 +1,6 @@
 import {
   Children,
+  Fragment,
   cloneElement,
   isValidElement,
   useState,
@@ -14,53 +15,68 @@ type NodeProps = {
   onClick?: ComponentProps<'button'>['onClick'];
   type?: string;
 };
-export function splitPanelForm(children: ReactNode, onCancel: () => void) {
-  return Children.map(children, (node) => {
-    if (!isValidElement<NodeProps>(node) || node.type !== 'form')
-      return <div className="side-panel-scroll">{node}</div>;
-    const body: ReactNode[] = [];
-    const actions: ReactNode[] = [];
-    Children.forEach(node.props.children, (child) => {
-      if (
-        isValidElement<NodeProps>(child) &&
-        child.props.className?.split(' ').includes('dialog-actions')
-      )
-        actions.push(
-          cloneElement(
-            child,
-            {},
-            Children.map(child.props.children, (action) => {
-              if (
-                isValidElement<NodeProps>(action) &&
-                action.props.type === 'button' &&
-                action.props.children === 'Cancelar'
-              )
-                return cloneElement(action, {
-                  onClick: (event) => {
-                    event.preventDefault();
-                    onCancel();
-                  },
-                });
-              return action;
-            }),
-          ),
-        );
-      else body.push(child);
-    });
-    return cloneElement(
-      node,
-      { className: `${node.props.className ?? ''} side-panel-form` },
-      <>
-        <div className="side-panel-scroll">{Children.toArray(body)}</div>
-        {actions.length > 0 && (
-          <footer className="side-panel-footer">
-            {Children.toArray(actions)}
-          </footer>
-        )}
-      </>,
-    );
-  });
+function panelNodes(children: ReactNode): ReactNode[] {
+  return Children.toArray(children).flatMap((node) =>
+    isValidElement<NodeProps>(node) && node.type === Fragment
+      ? panelNodes(node.props.children)
+      : [node],
+  );
 }
+export function splitPanelForm(children: ReactNode, onCancel: () => void) {
+  const nodes = panelNodes(children);
+  const forms = nodes.filter(
+    (node) => isValidElement<NodeProps>(node) && node.type === 'form',
+  );
+  if (forms.length !== 1)
+    return <div className="side-panel-scroll">{nodes}</div>;
+  const node = forms[0];
+  if (!isValidElement<NodeProps>(node))
+    return <div className="side-panel-scroll">{nodes}</div>;
+  const formIndex = nodes.indexOf(node);
+  const body: ReactNode[] = [...nodes.slice(0, formIndex)];
+  const actions: ReactNode[] = [];
+  Children.forEach(node.props.children, (child) => {
+    if (
+      isValidElement<NodeProps>(child) &&
+      child.props.className?.split(' ').includes('dialog-actions')
+    ) {
+      actions.push(
+        cloneElement(
+          child,
+          {},
+          Children.map(child.props.children, (action) => {
+            if (
+              isValidElement<NodeProps>(action) &&
+              action.props.type === 'button' &&
+              action.props.children === 'Cancelar'
+            )
+              return cloneElement(action, {
+                onClick: (event) => {
+                  event.preventDefault();
+                  onCancel();
+                },
+              });
+            return action;
+          }),
+        ),
+      );
+    } else body.push(child);
+  });
+  body.push(...nodes.slice(formIndex + 1));
+  return cloneElement(
+    node,
+    { className: `${node.props.className ?? ''} side-panel-form` },
+    <>
+      <div className="side-panel-scroll">{Children.toArray(body)}</div>
+      {actions.length > 0 && (
+        <footer className="side-panel-footer">
+          {Children.toArray(actions)}
+        </footer>
+      )}
+    </>,
+  );
+}
+
 export function SidePanel({
   title,
   description,

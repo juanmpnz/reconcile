@@ -209,6 +209,20 @@
       "status": "resolved",
       "summary": "Dirty-change confirmation focuses retain action and restores prior connected focus.",
       "resolution": "Dirty-change confirmation focuses retain action and restores prior connected focus. Independently reexamined in the linked specialist source review."
+    },
+    {
+      "id": "WUX2",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Sibling Feedback created an extra padded scroll block before a full-height form, clipping the mobile footer.",
+      "resolution": "Consolidated all sibling content into the single form scroll body; main uses flex column. Independent UX source reinspection and two regression tests passed; final browser geometry acceptance pending."
+    },
+    {
+      "id": "WR-P1",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Inter font distribution lacked the OFL text in public built assets.",
+      "resolution": "Copied exact installed copyright/license into public/licenses/Inter-OFL.txt; final local web build and byte comparison confirmed distribution."
     }
   ],
   "limitations": [

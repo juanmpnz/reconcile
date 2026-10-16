@@ -1575,6 +1575,8 @@ h1 {
   font-size: 24px;
 }
 .side-panel-main {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
