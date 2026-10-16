@@ -1,7 +1,7 @@
 {
   "id": "2026-10-16-workspace-redesign",
   "summary": "Reorganize organization workspace into real dashboard, operational/team navigation, responsive right-side panels, Inter/orange tokens and shared TanStack tables.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with /root/analysis_backend, /root/analysis_frontend and /root/workspace_tables",
   "scope": [
@@ -164,6 +164,14 @@
       "status": "passed",
       "examined": "Bounded source review; actual service and browser runtime acceptance pending.",
       "evidence": [".agents/reviews/workspace-redesign-qa.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Combined actual-service and12browsergroup acceptance plus bounded final busy-guard assertions; test-only locator correction pending unified green CI before merge.",
+      "evidence": [".agents/reviews/workspace-redesign-qa.md"]
     }
   ],
   "checks": [
@@ -183,9 +191,24 @@
       "result": "Workflow completed success for all three production images, migrated private stack, actual PDF/auth/proxy/worker, API-only recreation and durable-volume recovery. IP addresses were reused; no changed-IP claim."
     },
     {
-      "command": "Browser38951637913/job117144204812",
-      "status": "failed",
-      "result": "Prior agreements6groups and workspace overview/Inter/chart group passed. New runner page-size exact label locator failed; corrected test-only to prefix accessible label, keeping request assertions. Remaining browser acceptance pending new run."
+      "command": "pnpm check (final panel fix)",
+      "status": "passed",
+      "result": "114 unit tests, eight harness regressions, formatting, ESLint, strict types and all builds passed after the single-scroll-body correction; subsequent bounded busy-button guard passed scoped lint and actual browser assertions."
+    },
+    {
+      "command": "Browser38953738976/job117151303844",
+      "status": "passed",
+      "result": "Source2b240e28764d58a2c27ab19db1600e99012c8d6d: all12groups passed (6agreements+6workspace). Actual desktop/mobile320/390/fullheight/footer/Inter/contrast>=4.5/keyboard/draft/globalqueries/organization/error/viewer/200% checks. Explicit synthetic API fixtures, not real-auth browser E2E."
+    },
+    {
+      "command": "Browser38953888285/job117151951672 (bounded busy edge)",
+      "status": "passed",
+      "result": "Sourcea5148a6855502c490476c87c813f778c37c52843: new pending+dirty-confirmation controls disabled and Escape cannot close assertions passed. Runner then failed because generic alert matched both prompt and server feedback; test-only exact feedback filter corrected. Overall run was NOT green; final unified run pending."
+    },
+    {
+      "command": "Production38953887796/job117151976781",
+      "status": "passed",
+      "result": "Final executable sourcea5148a6 production workflow completed success: threeimages, migrated stack, actualproxy/auth/privatePDF/worker, API-onlyrecreation and durablevolumes. Prior actual57HTTP globalquery/tenant acceptance remains unchanged in backend; final unified CI pending."
     }
   ],
   "findings": [
@@ -226,9 +249,15 @@
     }
   ],
   "limitations": [
-    "Figma Community reference has no accessible node-specific design URL; follow approved user palette/layout and existing reference vocabulary without pixel-fidelity claims."
+    "Figma Community reference has no accessible node-specific design URL; follow approved user palette/layout and existing reference vocabulary without pixel-fidelity claims.",
+    "Browser acceptance uses explicit synthetic HTTP fixtures; actual API/tenant/dashboard correctness is separately tested with PostgreSQL. No assistive-technology certification.",
+    "Initial browser failures and the genuine sibling-feedback footer defect are preserved in QA/main reviews; corrected test selectors/animation waits keep the functional assertions. Unified final CI must be green before merge."
   ],
-  "evidence": [".agents/reviews/workspace-redesign-main.md"],
+  "evidence": [
+    ".agents/reviews/workspace-redesign-main.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38953738976",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38953887796"
+  ],
   "changeClass": "ui",
   "risk": "high",
   "independentReviewRequired": true,

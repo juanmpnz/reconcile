@@ -332,7 +332,13 @@ try {
     await panel.getByText('Hay cambios sin guardar.', { exact: true }).count(),
     0,
   );
-  await visible(panel.getByRole('alert'));
+  await visible(
+    panel
+      .getByRole('alert')
+      .filter({
+        hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
+      }),
+  );
   assert.equal(
     await panel
       .getByLabel('Referencia de operación', { exact: true })
@@ -368,7 +374,13 @@ try {
     (el) => el.getAttribute('aria-busy') !== 'true',
     await panel.locator('form').elementHandle(),
   );
-  await visible(panel.getByRole('alert'));
+  await visible(
+    panel
+      .getByRole('alert')
+      .filter({
+        hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
+      }),
+  );
   await panel
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();
