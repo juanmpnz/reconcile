@@ -345,6 +345,30 @@ try {
     true,
   );
   await page.keyboard.press('Escape');
+  await visible(panel.getByText('Hay cambios sin guardar.', { exact: true }));
+  await panel
+    .getByRole('button', { name: 'Crear operación', exact: true })
+    .click();
+  assert.equal(await panel.locator('form').getAttribute('aria-busy'), 'true');
+  assert.equal(
+    await panel
+      .getByRole('button', { name: 'Conservar edición', exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
+    await panel
+      .getByRole('button', { name: 'Descartar cambios', exact: true })
+      .isDisabled(),
+    true,
+  );
+  await page.keyboard.press('Escape');
+  assert.equal(await panel.isVisible(), true);
+  await page.waitForFunction(
+    (el) => el.getAttribute('aria-busy') !== 'true',
+    await panel.locator('form').elementHandle(),
+  );
+  await visible(panel.getByRole('alert'));
   await panel
     .getByRole('button', { name: 'Descartar cambios', exact: true })
     .click();

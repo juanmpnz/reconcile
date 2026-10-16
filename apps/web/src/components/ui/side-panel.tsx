@@ -162,11 +162,18 @@ export function SidePanel({
               <strong>Hay cambios sin guardar.</strong>
               <p>¿Querés conservar la edición o descartar los cambios?</p>
               <div>
-                <Button ref={keepRef} variant="outline" onClick={keepEditing}>
+                <Button
+                  ref={keepRef}
+                  disabled={busy}
+                  variant="outline"
+                  onClick={keepEditing}
+                >
                   Conservar edición
                 </Button>
                 <Button
+                  disabled={busy}
                   onClick={() => {
+                    if (busy) return;
                     setDirty(false);
                     setDiscard(false);
                     onOpenChange(false);
