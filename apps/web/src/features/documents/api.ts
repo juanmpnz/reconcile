@@ -68,12 +68,20 @@ export async function listDocuments(
   organizationId: string,
   page: number,
   signal: AbortSignal,
-  options: Partial<z.infer<typeof documentListQuerySchema>> = {},
+  options: Partial<DocumentListOptions> = {},
 ) {
-  const filters = documentListQuerySchema.parse(options);
+  const { limit: requestedLimit, ...query } = options;
+  const limit = z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(25)
+    .parse(requestedLimit);
+  const filters = documentListQuerySchema.parse(query);
   const params = new URLSearchParams({
-    limit: '25',
-    offset: String(page * 25),
+    limit: String(limit),
+    offset: String(page * limit),
     ...filters,
   });
   const response = await checked(
@@ -236,4 +244,6 @@ export async function updateDocumentMetadata(
     throw new Error('La respuesta no corresponde al documento solicitado.');
   return result;
 }
-export type DocumentListOptions = z.infer<typeof documentListQuerySchema>;
+export type DocumentListOptions = z.infer<typeof documentListQuerySchema> & {
+  limit?: number;
+};

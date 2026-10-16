@@ -178,6 +178,10 @@ const doc = (docId, kind) => ({
           updatedAt: now,
         },
       };
+    else if (path === '/api/auth/organization/list')
+      result = [
+        { id: org, name: 'Synthetic Logistics QA', slug: 'qa', createdAt: now },
+      ];
     else if (path.endsWith('/context'))
       result = {
         organization: { id: org, name: 'Synthetic Logistics QA', slug: 'qa' },
@@ -558,6 +562,19 @@ const doc = (docId, kind) => ({
     .getByRole('button', { name: 'Agregar tramo', exact: true })
     .click();
   await has(dialog.getByText('Tramo 2', { exact: true }));
+  await dialog.evaluate((el) =>
+    Promise.all(el.getAnimations().map((animation) => animation.finished)),
+  );
+  await page.screenshot({
+    path: '/tmp/agreements-qa-mobile-footer.png',
+    fullPage: false,
+  });
+  const footerBox = await dialog.locator('.side-panel-footer').boundingBox();
+  assert.ok(
+    footerBox &&
+      footerBox.y + footerBox.height <= page.viewportSize().height + 1,
+    `long mobile form keeps its action footer in the viewport: ${JSON.stringify({ footerBox, viewport: page.viewportSize() })}`,
+  );
   assert.equal(
     await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
     true,
@@ -568,6 +585,10 @@ const doc = (docId, kind) => ({
     fullPage: true,
   });
   await page.keyboard.press('Escape');
+  await has(dialog.getByText('Hay cambios sin guardar.', { exact: true }));
+  await dialog
+    .getByRole('button', { name: 'Descartar cambios', exact: true })
+    .click();
   await noDialog();
   console.log(
     'PASS mobile operation/dialog layout and keyboard focus containment',

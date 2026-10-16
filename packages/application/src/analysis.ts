@@ -16,6 +16,7 @@ import {
   operationDetailSchema,
   operationListSchema,
   operationCreateSchema,
+  operationListQuerySchema,
   operationUpdateSchema,
   operationDocumentsSchema,
   factRevisionInputSchema,
@@ -305,27 +306,44 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       actorId: string,
       limit = 50,
       offset = 0,
+      options: unknown = {},
     ) {
-      await authorizeDocuments(prisma, organizationId, actorId);
-      const [items, total] = await prisma.$transaction([
-        prisma.operation.findMany({
-          where: { organizationId },
-          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-          take: limit,
-          skip: offset,
-        }),
-        prisma.operation.count({ where: { organizationId } }),
-      ]);
-      return operationListSchema.parse({
-        items: items.map((i) => ({
-          ...i,
-          createdAt: i.createdAt.toISOString(),
-          updatedAt: i.updatedAt.toISOString(),
-        })),
-        total,
-        limit,
-        offset,
-      });
+      const query = operationListQuerySchema.parse(options);
+      const literal = query.q.replace(/[\\%_]/g, '\\$&');
+      return prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId);
+          const where: Prisma.OperationWhereInput = {
+            organizationId,
+            ...(query.q
+              ? {
+                  OR: [
+                    { name: { contains: literal, mode: 'insensitive' } },
+                    { reference: { contains: literal, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
+          };
+          const items = await tx.operation.findMany({
+            where,
+            orderBy: [{ [query.sort]: query.direction }, { id: 'asc' }],
+            take: limit,
+            skip: offset,
+          });
+          const total = await tx.operation.count({ where });
+          return operationListSchema.parse({
+            items: items.map((i) => ({
+              ...i,
+              createdAt: i.createdAt.toISOString(),
+              updatedAt: i.updatedAt.toISOString(),
+            })),
+            total,
+            limit,
+            offset,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
     },
     async create(organizationId: string, actorId: string, input: unknown) {
       const data = operationCreateSchema.parse(input);

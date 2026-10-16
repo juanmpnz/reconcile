@@ -84,11 +84,14 @@ jobs:
             sleep 1
           done
           node apps/web/test/agreements.browser.mjs
+          node apps/web/test/workspace.browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: agreement-browser-evidence
-          path: /tmp/agreements-qa-*.png
+          path: |
+            /tmp/agreements-qa-*.png
+            /tmp/workspace-qa-*.png
           if-no-files-found: ignore
       - name: Browser diagnostics
         if: failure()

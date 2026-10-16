@@ -85,12 +85,19 @@ export async function getContext(id: string, signal: AbortSignal) {
     );
   return context;
 }
-export async function listMembers(organizationId: string, page: number) {
+export async function listMembers(
+  organizationId: string,
+  page: number,
+  pageSize = 25,
+) {
+  const limit = z
+    .union([z.literal(25), z.literal(50), z.literal(100)])
+    .parse(pageSize);
   const result = await authClient.organization.listMembers({
     query: {
       organizationId,
-      limit: 25,
-      offset: page * 25,
+      limit,
+      offset: page * limit,
       sortBy: 'createdAt',
       sortDirection: 'asc',
     },

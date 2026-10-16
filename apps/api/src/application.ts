@@ -4,6 +4,7 @@ import {
   createPrivateDocumentStorage,
   type PrivateDocumentStorage,
 } from '@reconcile/document-processing';
+import { registerDashboardRoutes } from './dashboard.routes.js';
 import { registerClaimRoutes } from './claims.routes.js';
 import { registerAgreementRoutes } from './agreements.routes.js';
 import { registerAnalysisRoutes } from './analysis.routes.js';
@@ -177,6 +178,7 @@ export async function createApplication({
   registerAnalysisRoutes(server, { auth, prisma });
   registerAgreementRoutes(server, { auth, prisma });
   registerClaimRoutes(server, { auth, prisma });
+  registerDashboardRoutes(server, { auth, prisma });
   server.addHook('onClose', async () => {
     if (!documentStorage) storage.close();
     await prisma.$disconnect();

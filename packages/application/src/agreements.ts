@@ -3,6 +3,7 @@ import {
   agreementCreateSchema,
   agreementVersionSchema,
   agreementListSchema,
+  agreementListQuerySchema,
   operationAgreementsSchema,
   extractionResultSchema,
 } from '@reconcile/contracts';
@@ -26,23 +27,52 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
       actorId: string,
       limit = 50,
       offset = 0,
+      options: unknown = {},
     ) {
-      await authorizeDocuments(prisma, organizationId, actorId);
-      const [rows, total] = await prisma.$transaction([
-        prisma.agreementVersion.findMany({
-          where: { organizationId },
-          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-          take: limit,
-          skip: offset,
-        }),
-        prisma.agreementVersion.count({ where: { organizationId } }),
-      ]);
-      return agreementListSchema.parse({
-        items: rows.map(agreementDto),
-        total,
-        limit,
-        offset,
-      });
+      const query = agreementListQuerySchema.parse(options);
+      return prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId);
+          const columns = {
+            provider: 'provider',
+            title: 'title',
+            service: 'service',
+            validFrom: 'validFrom',
+            validUntil: 'validUntil',
+            createdAt: 'createdAt',
+          } as const;
+          const order = Prisma.raw(
+            '"' +
+              columns[query.sort] +
+              '" ' +
+              (query.direction === 'asc' ? 'ASC' : 'DESC') +
+              ' NULLS LAST,id ASC',
+          );
+          const projection = Prisma.sql`WITH projected AS (SELECT id,name AS title,"createdAt",terms->>'provider' AS provider,terms->>'service' AS service,terms->>'validFrom' AS "validFrom",terms->>'validUntil' AS "validUntil" FROM agreement_versions WHERE "organizationId"=${organizationId}::uuid), filtered AS (SELECT * FROM projected WHERE ${query.q}='' OR strpos(lower(concat_ws(' ',title,provider,service)),lower(${query.q}))>0)`;
+          const ids = await tx.$queryRaw<{ id: string }[]>(
+            Prisma.sql`${projection} SELECT id FROM filtered ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`,
+          );
+          const counts = await tx.$queryRaw<{ total: bigint }[]>(
+            Prisma.sql`${projection} SELECT count(*) AS total FROM filtered`,
+          );
+          const rows = await tx.agreementVersion.findMany({
+            where: { organizationId, id: { in: ids.map((i) => i.id) } },
+          });
+          const byId = new Map(rows.map((r) => [r.id, r]));
+          return agreementListSchema.parse({
+            items: ids.map((i) => {
+              const row = byId.get(i.id);
+              if (!row)
+                throw new DocumentError(503, 'AGREEMENT_LIST_UNAVAILABLE');
+              return agreementDto(row);
+            }),
+            total: Number(counts[0]?.total ?? 0),
+            limit,
+            offset,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
     },
     async detail(organizationId: string, actorId: string, id: string) {
       await authorizeDocuments(prisma, organizationId, actorId);

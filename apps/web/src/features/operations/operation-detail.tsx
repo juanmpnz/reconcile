@@ -1,3 +1,8 @@
+import {
+  DataTable,
+  renderLink,
+  renderStatus,
+} from '../../components/ui/data-table';
 import { OperationAgreements } from '../agreements/operation-agreements';
 import { ReviewWorkspace, FindingReviewCell } from '../claims/review-workspace';
 import { EditOperationDialog } from './edit-dialog';
@@ -296,32 +301,29 @@ export function OperationDetailView({
             referencias diferentes se analizarán como no verificables; no se
             corrigen automáticamente.
           </p>
-          <TableRegion label="Referencias encontradas en los documentos">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Documento</th>
-                  <th scope="col">Referencia encontrada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.facts
-                  .filter((fact) => fact.operationReference !== data.reference)
-                  .map((fact) => (
-                    <tr key={fact.documentId}>
-                      <td>
-                        {filenames.get(fact.documentId) ??
-                          'Documento vinculado'}
-                      </td>
-                      <td>
-                        {fact.operationReference ??
-                          'Sin referencia identificada'}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </TableRegion>
+          <DataTable
+            label="Referencias encontradas en los documentos"
+            searchLabel="Buscar referencias de esta operación"
+            data={data.facts.filter(
+              (fact) => fact.operationReference !== data.reference,
+            )}
+            getRowId={(fact) => fact.documentId}
+            columns={[
+              {
+                id: 'document',
+                label: 'Documento',
+                accessor: (fact) =>
+                  filenames.get(fact.documentId) ?? 'Documento vinculado',
+              },
+              {
+                id: 'reference',
+                label: 'Referencia encontrada',
+                accessor: (fact) =>
+                  fact.operationReference ?? 'Sin referencia identificada',
+              },
+            ]}
+          />
+
           <a
             href="#comparison-facts"
             onClick={() => {
@@ -487,58 +489,54 @@ export function OperationDetailView({
               </p>
             </EmptyState>
           ) : (
-            <TableRegion label="Documentos vinculados a la operación">
-              <table>
-                <caption className="sr-only">
-                  Originales y estado de extracción
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Documento</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Extracción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.documentIds.map((id, index) => {
-                    const document = documentQueries[index];
-                    return (
-                      <tr key={id}>
-                        <td>
-                          <a
-                            href={documentPath(organizationId, id)}
-                            onClick={(event) => {
-                              if (!event.metaKey && !event.ctrlKey) {
-                                event.preventDefault();
-                                navigate(documentPath(organizationId, id));
-                              }
-                            }}
-                          >
-                            {document?.data?.filename ?? 'Documento vinculado'}
-                          </a>
-                          {document?.isError && (
-                            <p className="metadata">
-                              No se pudo cargar el nombre. Abrí el documento
-                              para reintentar.
-                            </p>
-                          )}
-                        </td>
-                        <td>
-                          {document?.data
-                            ? kindLabels[document.data.kind]
-                            : 'Consultando…'}
-                        </td>
-                        <td>
-                          {document?.data
-                            ? statusLabels[document.data.status]
-                            : 'Consultando…'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </TableRegion>
+            <DataTable
+              label="Documentos vinculados a la operación"
+              searchLabel="Buscar documentos vinculados"
+              data={data.documentIds.map((id, index) => ({
+                id,
+                query: documentQueries[index],
+              }))}
+              getRowId={(item) => item.id}
+              columns={[
+                {
+                  id: 'document',
+                  label: 'Documento',
+                  accessor: (item) =>
+                    item.query?.data?.filename ?? 'Documento vinculado',
+                  render: (item) => (
+                    <>
+                      {renderLink(
+                        item.query?.data?.filename ?? 'Documento vinculado',
+                        documentPath(organizationId, item.id),
+                        navigate,
+                      )}
+                      {item.query?.isError && (
+                        <p className="metadata">
+                          No se pudo cargar el nombre. Abrí el documento para
+                          reintentar.
+                        </p>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  id: 'kind',
+                  label: 'Tipo',
+                  accessor: (item) =>
+                    item.query?.data
+                      ? kindLabels[item.query.data.kind]
+                      : 'Consultando…',
+                },
+                {
+                  id: 'status',
+                  label: 'Extracción',
+                  accessor: (item) =>
+                    item.query?.data
+                      ? statusLabels[item.query.data.status]
+                      : 'Consultando…',
+                },
+              ]}
+            />
           )}
         </section>
       </details>
@@ -638,55 +636,41 @@ export function OperationDetailView({
               />
             ) : (
               <>
-                <TableRegion label="Historial completo de análisis">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.data.items.map((run) => (
-                        <tr key={run.id}>
-                          <td>{timestampLabel(run.createdAt)}</td>
-                          <td>{runLabels[run.status]}</td>
-                          <td>
-                            <Button
-                              variant="outline"
-                              onClick={() => setSelectedRun(run.id)}
-                            >
-                              Ver análisis
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableRegion>
-                <div className="pagination">
-                  <Button
-                    variant="outline"
-                    disabled={!historyPage || history.isFetching}
-                    onClick={() => setHistoryPage(historyPage - 1)}
-                  >
-                    Anterior
-                  </Button>
-                  <span className="metadata">
-                    Página {historyPage + 1} · {history.data.total} análisis
-                  </span>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      (historyPage + 1) * 25 >= history.data.total ||
-                      history.isFetching
-                    }
-                    onClick={() => setHistoryPage(historyPage + 1)}
-                  >
-                    Siguiente
-                  </Button>
-                </div>
+                <DataTable
+                  label="Historial completo de análisis"
+                  mode="server"
+                  data={history.data.items}
+                  getRowId={(run) => run.id}
+                  pagination={{ pageIndex: historyPage, pageSize: 25 }}
+                  rowCount={history.data.total}
+                  pageSizes={[25]}
+                  onPaginationChange={(next) => setHistoryPage(next.pageIndex)}
+                  busy={history.isFetching}
+                  columns={[
+                    {
+                      id: 'date',
+                      label: 'Fecha',
+                      render: (run) => timestampLabel(run.createdAt),
+                    },
+                    {
+                      id: 'status',
+                      label: 'Estado',
+                      render: (run) => renderStatus(runLabels[run.status]),
+                    },
+                    {
+                      id: 'actions',
+                      label: 'Acciones',
+                      render: (run) => (
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedRun(run.id)}
+                        >
+                          Ver análisis
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
               </>
             )}
           </div>
@@ -701,34 +685,36 @@ export function OperationDetailView({
               Se muestran las últimas 100 revisiones. Los documentos originales
               se conservan.
             </p>
-            <TableRegion label="Revisiones humanas de datos">
-              <table>
-                <caption className="sr-only">
-                  Documento, motivo y fecha de cada revisión de datos
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Documento</th>
-                    <th scope="col">Revisión</th>
-                    <th scope="col">Motivo</th>
-                    <th scope="col">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.factRevisions.map((revision) => (
-                    <tr key={revision.id}>
-                      <td>
-                        {filenames.get(revision.documentId) ??
-                          'Documento vinculado'}
-                      </td>
-                      <td>{revision.ordinal}</td>
-                      <td>{revision.reason}</td>
-                      <td>{timestampLabel(revision.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </TableRegion>
+            <DataTable
+              label="Revisiones humanas de datos (últimas 100)"
+              searchLabel="Buscar en las últimas 100 revisiones"
+              data={data.factRevisions}
+              getRowId={(revision) => revision.id}
+              columns={[
+                {
+                  id: 'document',
+                  label: 'Documento',
+                  accessor: (revision) =>
+                    filenames.get(revision.documentId) ?? 'Documento vinculado',
+                },
+                {
+                  id: 'ordinal',
+                  label: 'Revisión',
+                  accessor: (revision) => revision.ordinal,
+                },
+                {
+                  id: 'reason',
+                  label: 'Motivo',
+                  accessor: (revision) => revision.reason,
+                },
+                {
+                  id: 'date',
+                  label: 'Fecha',
+                  accessor: (revision) => revision.createdAt,
+                  render: (revision) => timestampLabel(revision.createdAt),
+                },
+              ]}
+            />
           </section>
         )}
       </details>

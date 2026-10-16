@@ -1,3 +1,4 @@
+import { DataTable, renderStatus } from '../../components/ui/data-table';
 import { RebaseDialog } from './rebase-dialog';
 import { claimEligibility, followUpSummary } from './presentation';
 import { createContext, useContext, useState } from 'react';
@@ -10,7 +11,6 @@ import {
   Button,
   Feedback,
   RequestError,
-  TableRegion,
 } from '../../components/ui/primitives';
 import { Loading } from '../../components/ui/loading';
 import { useMounted } from '../../lib/use-mounted';
@@ -143,46 +143,64 @@ export function ReviewWorkspace({
             motivo antes de preparar una solicitud.
           </p>
         ) : (
-          <TableRegion label="Reclamos de la operación">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Proveedor</th>
-                  <th scope="col">Solicitud</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Próximo seguimiento</th>
-                  <th scope="col">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {query.data.claims.map((claim) => (
-                  <tr key={claim.id}>
-                    <td>{claim.provider}</td>
-                    <td>
-                      {claim.kind === 'clarification'
-                        ? 'Aclaración · sin importe solicitado'
-                        : `${claim.amount ?? 'Sin importe'} ${claim.currency ?? ''}`}
-                      {claim.stale && (
-                        <small className="file-size">
-                          Fuentes modificadas · histórico
-                        </small>
-                      )}
-                    </td>
-                    <td>{statusLabels[claim.status]}</td>
-                    <td>{claim.dueDate ?? 'Sin fecha'}</td>
-                    <td>
-                      <Button
-                        variant="outline"
-                        onClick={() => setClaimId(claim.id)}
-                      >
-                        Abrir reclamo
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableRegion>
+          <DataTable
+            label="Reclamos de la operación"
+            searchLabel="Buscar reclamos"
+            data={query.data.claims}
+            getRowId={(claim) => claim.id}
+            columns={[
+              {
+                id: 'provider',
+                label: 'Proveedor',
+                accessor: (claim) => claim.provider,
+              },
+              {
+                id: 'kind',
+                label: 'Solicitud',
+                accessor: (claim) =>
+                  claim.kind === 'clarification'
+                    ? 'Aclaración'
+                    : claim.currency,
+                render: (claim) => (
+                  <>
+                    {claim.kind === 'clarification'
+                      ? 'Aclaración · sin importe solicitado'
+                      : `${claim.amount ?? 'Sin importe'} ${claim.currency ?? ''}`}
+                    {claim.stale && (
+                      <small className="file-size">
+                        Fuentes modificadas · histórico
+                      </small>
+                    )}
+                  </>
+                ),
+              },
+              {
+                id: 'status',
+                label: 'Estado',
+                accessor: (claim) => statusLabels[claim.status],
+                render: (claim) => renderStatus(statusLabels[claim.status]),
+              },
+              {
+                id: 'dueDate',
+                label: 'Próximo seguimiento',
+                accessor: (claim) => claim.dueDate ?? '',
+                render: (claim) => claim.dueDate ?? 'Sin fecha',
+              },
+              {
+                id: 'actions',
+                label: 'Acciones',
+                sortable: false,
+                render: (claim) => (
+                  <Button
+                    variant="outline"
+                    onClick={() => setClaimId(claim.id)}
+                  >
+                    Abrir reclamo
+                  </Button>
+                ),
+              },
+            ]}
+          />
         )}
       </section>
     </ReviewContext.Provider>

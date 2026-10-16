@@ -1,27 +1,15 @@
-import { useState } from 'react';
+import { DataTable, renderLink } from '../../components/ui/data-table';
 import { Loading } from '../../components/ui/loading';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Button,
-  EmptyState,
-  RequestError,
-  TableRegion,
-} from '../../components/ui/primitives';
+import { EmptyState, RequestError } from '../../components/ui/primitives';
 import { organizationPath, navigate } from '../../app/router';
 import { CreateOrganizationDialog } from './create-dialog';
 import { identityKey, listOrganizations } from './queries';
 export function OrganizationList({ userId }: { userId: string }) {
-  const [search, setSearch] = useState('');
   const organizations = useQuery({
     queryKey: identityKey(userId),
     queryFn: listOrganizations,
   });
-  const filtered =
-    organizations.data?.filter((org) =>
-      `${org.name} ${org.slug}`
-        .toLocaleLowerCase()
-        .includes(search.trim().toLocaleLowerCase()),
-    ) ?? [];
   return (
     <>
       <div className="page-header">
@@ -30,23 +18,6 @@ export function OrganizationList({ userId }: { userId: string }) {
           <p>Gestioná tus espacios y el acceso de tu equipo.</p>
         </div>
         <CreateOrganizationDialog userId={userId} />
-      </div>
-      <div className="toolbar">
-        <div className="search">
-          <label htmlFor="organization-search">Buscar organizaciones</label>
-          <input
-            id="organization-search"
-            type="search"
-            placeholder="Nombre o identificador"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
-        <p className="metadata" role="status">
-          {organizations.isSuccess
-            ? `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
-            : ''}
-        </p>
       </div>
       {organizations.isPending ? (
         <Loading label="Cargando organizaciones…" rows={4} />
@@ -61,59 +32,23 @@ export function OrganizationList({ userId }: { userId: string }) {
         <EmptyState title="No tenés organizaciones todavía">
           <p>Creá un espacio o aceptá la invitación enviada a tu correo.</p>
         </EmptyState>
-      ) : filtered.length === 0 ? (
-        <EmptyState title="No hay coincidencias">
-          <p>Probá otro nombre o identificador.</p>
-          <Button variant="outline" onClick={() => setSearch('')}>
-            Limpiar búsqueda
-          </Button>
-        </EmptyState>
       ) : (
-        <TableRegion label="Organizaciones">
-          <table>
-            <caption className="sr-only">
-              Organizaciones a las que pertenece tu cuenta
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Nombre</th>
-                <th scope="col">Identificador</th>
-                <th scope="col">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((org) => (
-                <tr key={org.id}>
-                  <td>
-                    <a
-                      href={organizationPath(org.id)}
-                      onClick={(event) => {
-                        if (!event.metaKey && !event.ctrlKey) {
-                          event.preventDefault();
-                          navigate(organizationPath(org.id));
-                        }
-                      }}
-                    >
-                      {org.name}
-                    </a>
-                  </td>
-                  <td className="metadata">{org.slug}</td>
-                  <td className="table-action">
-                    <Button
-                      variant="outline"
-                      aria-label={`Abrir ${org.name}`}
-                      onClick={() => navigate(organizationPath(org.id))}
-                    >
-                      Abrir
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableRegion>
+        <DataTable
+          label="Organizaciones"
+          searchLabel="Buscar organizaciones"
+          data={organizations.data}
+          getRowId={(org) => org.id}
+          columns={[
+            {
+              id: 'name',
+              label: 'Nombre',
+              accessor: (org) => org.name,
+              render: (org) =>
+                renderLink(org.name, organizationPath(org.id), navigate),
+            },
+            { id: 'slug', label: 'Identificador', accessor: (org) => org.slug },
+          ]}
+        />
       )}
       {organizations.isFetching && !organizations.isPending && (
         <Loading inline label="Actualizando organizaciones…" />

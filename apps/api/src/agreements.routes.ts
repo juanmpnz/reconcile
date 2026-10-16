@@ -1,3 +1,4 @@
+import { agreementListQuerySchema } from '@reconcile/contracts';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
@@ -102,7 +103,13 @@ export function registerAgreementRoutes(
   const base = '/api/v1/organizations/:organizationId/agreements';
   server.get<{
     Params: Params;
-    Querystring: { limit?: string; offset?: string };
+    Querystring: {
+      limit?: string;
+      offset?: string;
+      q?: string;
+      sort?: string;
+      direction?: string;
+    };
   }>(base, (req, reply) =>
     bounded(reply, async () => {
       const who = await actor(req, reply);
@@ -117,7 +124,19 @@ export function registerAgreementRoutes(
         offset > 100000
       )
         throw new DocumentError(400, 'INVALID_PAGINATION');
-      return service.list(req.params.organizationId, who, limit, offset);
+      const options = agreementListQuerySchema.safeParse({
+        q: req.query.q,
+        sort: req.query.sort,
+        direction: req.query.direction,
+      });
+      if (!options.success) throw new DocumentError(400, 'INVALID_LIST_QUERY');
+      return service.list(
+        req.params.organizationId,
+        who,
+        limit,
+        offset,
+        options.data,
+      );
     }),
   );
   server.get<{ Params: Params }>(base + '/:agreementVersionId', (req, reply) =>
