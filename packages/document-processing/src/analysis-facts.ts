@@ -80,7 +80,7 @@ export function deriveAnalysisFacts(input: {
           evidence: [ev(p.page, text)],
         });
       const table = text.match(
-        /^(Ocean\s+handling|Pickup\s*-\s*(.+?))\s+(\d+(?:\.\d+)?)\s+(service|trip)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$/i,
+        /^(Ocean\s+handling|Pickup\s*-\s*(.+?))\s+(\d+(?:\.\d+)?)\s+(service|trip|km)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$/i,
       );
       if (table) {
         lines.push({
@@ -89,7 +89,7 @@ export function deriveAnalysisFacts(input: {
           service: /^Pickup/i.test(text) ? 'pickup' : 'ocean-handling',
           route: table[2]?.replace(/\s+/g, ' ') ?? null,
           quantity: table[3] ?? null,
-          unit: table[4] ?? null,
+          unit: table[4]?.toLowerCase() ?? null,
           unitPrice: table[5] ?? null,
           amount: table[6] ?? null,
           evidence: [ev(p.page, text)],

@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { agreementBindingSchema } from './agreements.js';
 export const ANALYSIS_QUEUE = 'reconcile-analysis';
-export const ANALYSIS_PARSER_VERSION = 'logistics-text-v1';
+export const ANALYSIS_PARSER_VERSION = 'logistics-text-v2';
 const nullableText = z.string().trim().min(1).max(500).nullable();
 const money = z
   .string()
@@ -83,7 +84,9 @@ export const analysisSnapshotSchema = z
   .object({
     organizationId: z.uuid(),
     operationReference: z.string().min(1).max(100),
+    operationId: z.uuid().optional(),
     documents: z.array(analysisDocumentSchema).max(20),
+    agreementBindings: z.array(agreementBindingSchema).max(20).optional(),
   })
   .strict();
 export const analysisFindingSchema = z.object({
@@ -180,6 +183,7 @@ export const analysisRunSchema = z.object({
 });
 export const operationDetailSchema = operationSummarySchema.extend({
   documentIds: z.array(z.uuid()),
+  agreementBindings: z.array(agreementBindingSchema).default([]),
   facts: z.array(analysisDocumentSchema),
   factRevisions: z.array(
     z.object({

@@ -1,3 +1,4 @@
+import { OperationAgreements } from '../agreements/operation-agreements';
 import { ReviewWorkspace, FindingReviewCell } from '../claims/review-workspace';
 import { EditOperationDialog } from './edit-dialog';
 import { EvidenceList } from './evidence';
@@ -274,6 +275,13 @@ export function OperationDetailView({
           cuando termine.
         </p>
       )}
+      <OperationAgreements
+        userId={userId}
+        organizationId={organizationId}
+        operation={data}
+        filenames={filenames}
+        disabled={disabled || busy || query.isFetching}
+      />
       <WarningsList warnings={data.warnings} filenames={filenames} />
       {data.facts.some(
         (fact) => fact.operationReference !== data.reference,
@@ -473,8 +481,9 @@ export function OperationDetailView({
           {!data.documentIds.length ? (
             <EmptyState title="No hay documentos vinculados">
               <p>
-                Vinculá las facturas, el acuerdo aplicable y el registro
-                operativo de esta misma operación.
+                Vinculá las facturas y registros operativos de esta operación.
+                Los acuerdos reutilizables se seleccionan en «Acuerdos por
+                factura».
               </p>
             </EmptyState>
           ) : (

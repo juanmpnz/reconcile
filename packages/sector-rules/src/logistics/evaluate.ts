@@ -1,5 +1,7 @@
 import { Decimal } from 'decimal.js';
 import type {
+  AnalysisAgreementBinding,
+  AgreementSourceEvidence,
   AnalysisDocument,
   AnalysisEvidence,
   AnalysisFinding,
@@ -7,7 +9,7 @@ import type {
   AnalysisResult,
   AnalysisSnapshot,
 } from '@reconcile/domain';
-export const LOGISTICS_RULE_VERSION = 'logistics-v1';
+export const LOGISTICS_RULE_VERSION = 'logistics-v2';
 const Arithmetic = Decimal.clone({ precision: 128 });
 const decimal = (value: string | null): value is string =>
   value !== null && /^\d{1,30}(?:\.\d{1,12})?$/.test(value);
@@ -77,6 +79,190 @@ function sameService(
     same(invoice.serviceReference, record.serviceReference) &&
     same(invoice.serviceDate, record.serviceDate) &&
     same(line.route, record.route)
+  );
+}
+/** Selected terms are immutable reviewed facts, never inferred from another agreement. */
+function evaluateBinding(
+  snapshot: AnalysisSnapshot,
+  invoice: AnalysisDocument,
+  line: AnalysisLine,
+  bindings: AnalysisAgreementBinding[],
+): AnalysisFinding {
+  const binding = bindings[0];
+  const unavailable = (code: string, explanation: string) =>
+    finding(invoice, line, code, explanation);
+  if (bindings.length !== 1 || !binding)
+    return unavailable(
+      'AGREEMENT_BINDING_AMBIGUOUS',
+      'La factura requiere una única selección explícita de acuerdo.',
+    );
+  const agreement = binding.agreement;
+  const terms = agreement.terms;
+  const trusted = (items: AgreementSourceEvidence[]) =>
+    items.length > 0 &&
+    items.every(
+      (item) =>
+        item.documentId === agreement.sourceDocumentId &&
+        item.extractionRunId === agreement.sourceExtractionRunId &&
+        Number.isInteger(item.page) &&
+        item.page > 0 &&
+        item.snippet.trim().length > 0,
+    );
+  if (
+    agreement.id !== binding.agreementVersionId ||
+    agreement.organizationId !== snapshot.organizationId ||
+    (agreement.scope === 'spot' &&
+      (!snapshot.operationId ||
+        agreement.operationId !== snapshot.operationId)) ||
+    (agreement.scope === 'reusable' && agreement.operationId !== null) ||
+    !trusted(terms.evidence)
+  )
+    return unavailable(
+      'AGREEMENT_BINDING_INVALID',
+      'La selección o la evidencia del acuerdo no es verificable para esta operación.',
+    );
+  if (terms.agreementBasis !== 'accepted')
+    return unavailable(
+      'AGREEMENT_BASIS_UNVERIFIABLE',
+      'El documento seleccionado no acredita un precio aceptado por el proveedor.',
+    );
+  if (!same(terms.provider, invoice.provider))
+    return unavailable(
+      'AGREEMENT_PROVIDER_MISMATCH',
+      'El proveedor de la factura no coincide con el acuerdo seleccionado.',
+    );
+  if (!same(terms.currency, invoice.currency))
+    return unavailable(
+      'CURRENCY_UNVERIFIABLE',
+      'Las monedas no coinciden; no hay conversión respaldada.',
+    );
+  if (
+    !validDate(binding.serviceDate) ||
+    !validDate(terms.validFrom) ||
+    !validDate(terms.validUntil) ||
+    terms.validFrom > terms.validUntil ||
+    binding.serviceDate < terms.validFrom ||
+    binding.serviceDate > terms.validUntil ||
+    (invoice.serviceDate !== null &&
+      !same(invoice.serviceDate, binding.serviceDate))
+  )
+    return unavailable(
+      'AGREEMENT_DATE_UNVERIFIABLE',
+      'La fecha del servicio falta, contradice la factura o queda fuera de la vigencia seleccionada.',
+    );
+  if (
+    terms.service !== line.service ||
+    !same(terms.route, binding.route) ||
+    (line.route !== null && !same(line.route, binding.route)) ||
+    (invoice.route !== null && !same(invoice.route, binding.route))
+  )
+    return unavailable(
+      'AGREEMENT_SCOPE_MISMATCH',
+      'El servicio o trayecto no coincide con el ámbito del acuerdo seleccionado.',
+    );
+  let basis: 'fixed-trip' | 'per-km';
+  let amount: string;
+  let sources: AgreementSourceEvidence[];
+  if (terms.pricing.type === 'distance-bands') {
+    if (
+      !decimal(binding.distanceKm) ||
+      new Arithmetic(binding.distanceKm).lte(0)
+    )
+      return unavailable(
+        'DISTANCE_UNVERIFIABLE',
+        'Falta una distancia positiva y verificada para seleccionar el tramo.',
+      );
+    const bands = terms.pricing.bands;
+    const validBands =
+      bands.length > 0 &&
+      bands.every((band, i) => {
+        const previous = bands[i - 1];
+        return (
+          decimal(band.fromKm) &&
+          decimal(band.toKm) &&
+          decimal(band.amount) &&
+          new Arithmetic(band.amount).gt(0) &&
+          new Arithmetic(band.toKm).gt(band.fromKm) &&
+          (!previous || new Arithmetic(band.fromKm).gte(previous.toKm)) &&
+          trusted(band.evidence)
+        );
+      });
+    if (!validBands)
+      return unavailable(
+        'DISTANCE_BANDS_INVALID',
+        'Los tramos no son verificables, están superpuestos o carecen de evidencia.',
+      );
+    const distance = new Arithmetic(binding.distanceKm);
+    const matching = bands.filter(
+      (band) => distance.gte(band.fromKm) && distance.lt(band.toKm),
+    );
+    const band = matching[0];
+    if (matching.length !== 1 || !band)
+      return unavailable(
+        'DISTANCE_BAND_MISSING',
+        'La distancia no está cubierta por un único tramo [desde, hasta).',
+      );
+    basis = band.basis;
+    amount = band.amount;
+    sources = band.evidence;
+  } else {
+    basis = terms.pricing.type;
+    amount = terms.pricing.amount;
+    sources = terms.pricing.evidence;
+  }
+  if (!decimal(amount) || new Arithmetic(amount).lte(0) || !trusted(sources))
+    return unavailable(
+      'AGREEMENT_PRICE_UNVERIFIABLE',
+      'El precio seleccionado carece de importe o evidencia verificable.',
+    );
+  let expected: string;
+  if (basis === 'per-km') {
+    if (
+      !decimal(binding.distanceKm) ||
+      new Arithmetic(binding.distanceKm).lte(0)
+    )
+      return unavailable(
+        'DISTANCE_UNVERIFIABLE',
+        'Falta una distancia positiva y verificada para calcular el precio por kilómetro.',
+      );
+    if (
+      !same(line.unit, 'km') ||
+      !decimal(line.quantity) ||
+      !new Arithmetic(line.quantity).equals(binding.distanceKm)
+    )
+      return unavailable(
+        'AGREEMENT_UNIT_UNVERIFIABLE',
+        'La partida debe expresar kilómetros y una cantidad igual a la distancia verificada.',
+      );
+    expected = new Arithmetic(amount).times(binding.distanceKm).toFixed();
+  } else {
+    const unit = terms.service === 'pickup' ? 'trip' : 'service';
+    if (
+      !same(line.unit, unit) ||
+      !decimal(line.quantity) ||
+      !new Arithmetic(line.quantity).equals(1)
+    )
+      return unavailable(
+        'AGREEMENT_UNIT_UNVERIFIABLE',
+        'El precio total requiere una sola unidad de viaje o servicio compatible.',
+      );
+    expected = amount;
+  }
+  const different =
+    !decimal(line.amount) || !new Arithmetic(line.amount).equals(expected);
+  return finding(
+    invoice,
+    line,
+    different ? 'PRICE_OR_QUANTITY_DIFFERENCE' : 'PRICE_MATCH',
+    different
+      ? 'El importe facturado difiere de las condiciones revisadas del acuerdo seleccionado.'
+      : 'El importe coincide con las condiciones revisadas del acuerdo seleccionado; no acredita por sí solo la prestación.',
+    different ? 'confirmed' : 'matched',
+    expected,
+    [...terms.evidence, ...sources].map((item) => ({
+      ...item,
+      revisionId: agreement.id,
+    })),
   );
 }
 /** Pure deterministic comparison; never mutates financial/accounting state. */
@@ -184,6 +370,14 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
             calculated,
           ),
         );
+      const selected =
+        snapshot.agreementBindings?.filter(
+          (binding) => binding.invoiceDocumentId === invoice.documentId,
+        ) ?? [];
+      if (selected.length > 0) {
+        findings.push(evaluateBinding(snapshot, invoice, line, selected));
+        continue;
+      }
       const applicable = agreements.filter(
         (agreement) =>
           same(agreement.provider, invoice.provider) &&

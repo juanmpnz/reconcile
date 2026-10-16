@@ -13,6 +13,12 @@ export function subtractAmounts(invoiced: string, expected: string): string {
 }
 
 export type {
+  AgreementSourceEvidence,
+  AnalysisAgreementBand,
+  AnalysisAgreementPricing,
+  AnalysisAgreementTerms,
+  AnalysisAgreementVersion,
+  AnalysisAgreementBinding,
   AnalysisEvidence,
   AnalysisLine,
   AnalysisDocument,

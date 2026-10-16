@@ -54,6 +54,32 @@ La tabla distingue la **referencia extraída del PDF** de las **operaciones vinc
 
 ## Comparar una operación
 
+### Tarifas reutilizables y presupuestos spot
+
+En **Tarifas y acuerdos**, publicá condiciones revisadas a partir de un PDF ya cargado como **Tarifa** o **Cotización**, o subilo desde ese formulario. Esperá a que termine la extracción de texto. No hace falta subir el mismo contrato para cada operación.
+
+Ingresá nombre, proveedor, vigencia, moneda, servicio, ámbito y precio. Contrastá los valores con el original, elegí una página, copiá una cita literal y registrá el motivo de publicación. La confirmación declara que revisaste condiciones aceptadas por las partes; un coste estimado interno no debe publicarse como un acuerdo aceptado. El sistema conserva el PDF y la extracción utilizados como respaldo. Esta carga exige revisión manual: no reconoce automáticamente cualquier tabla comercial ni lee todavía tu correo.
+
+Cada registro publicado es inmutable y tiene su propio identificador. Para cambiar condiciones, publicá otro registro y seleccioná explícitamente el nuevo en las operaciones que corresponda. No existe todavía un editor de versiones agrupadas por contrato. Publicar una tarifa nueva no reemplaza las ya utilizadas ni altera los resultados anteriores.
+
+El alcance actual es **un servicio y un ámbito por registro**: recogida/transporte terrestre o servicio base marítimo. No representa todas las cláusulas, suplementos ni exclusiones de un contrato completo. Si una factura tiene otros servicios, esos conceptos pueden seguir pendientes de verificar aunque uno coincida. Las exclusiones del expediente demo siguen disponibles en su flujo de documentos vinculados; no se deducen de una tarifa nueva que solo define un precio.
+
+Podés definir precio total por viaje/servicio, precio por kilómetro o tramos. Los tramos incluyen **Desde** y excluyen **Hasta**: `[0, 30)` no incluye 30 km; esa distancia necesita el tramo siguiente. Ambos límites son obligatorios. No se rellenan huecos ni se prolonga la última tarifa. En un tramo por kilómetro, el precio se multiplica por la distancia completa; no se suman segmentos progresivos. La distancia se informa y revisa manualmente, sin cálculo automático de rutas.
+
+El cálculo usa decimales exactos, sin conversión de moneda, tolerancia ni redondeo contractual implícitos. La partida por kilómetro debe indicar unidad `km` y cantidad igual a la distancia revisada. El precio total requiere cantidad uno y unidad `trip` para recogida o `service` para servicio marítimo. Si el documento no aporta unidades compatibles, revisá sus datos con respaldo; el sistema no los inventa para forzar una coincidencia.
+
+Los presupuestos **spot** pertenecen a una única operación y no pueden aplicarse a otra. Una tarifa reutilizable puede usarse en varias operaciones, conservando siempre su identificador y respaldo originales. El lector puede consultar tarifas y evidencias; solo los roles con escritura pueden publicarlas o cambiar su selección.
+
+En el detalle de una operación, **Acuerdos por factura** muestra las facturas vinculadas que ya tienen datos extraídos. Para cada una, usá **Seleccionar tarifa**, **Cargar contrato nuevo** o **Cargar tarifa spot**. Crear un registro no lo aplica automáticamente: después confirmá su selección para esa factura. Informá fecha del servicio, ámbito y distancia cuando corresponda, y registrá el motivo. La misma operación admite, por ejemplo, una tarifa reutilizable para el transportista y otra spot para la naviera. El mismo proveedor puede usar condiciones diferentes en otras operaciones.
+
+La selección muestra nombre, identificador exacto, vigencia, precio, contexto revisado y enlace al original. No se elige automáticamente por el nombre del proveedor. El servidor rechaza contradicciones conocidas de proveedor, moneda, fecha o ámbito; los datos insuficientes o servicios no cubiertos siguen pendientes de verificar durante el análisis. Cambiar o quitar una selección conserva los resultados históricos y exige volver a analizar. Mientras hay un análisis activo, esperá a que termine para modificarla. Si hay un conflicto, revisá la selección vigente antes de conservar y reenviar tu borrador.
+
+El flujo previo con tarifas directamente vinculadas como documentos sigue disponible, incluido el expediente demo de abajo. Una selección explícita define la base de precio de esa factura y no toma condiciones adicionales de otros acuerdos por similitud de proveedor. Usá el flujo con respaldo adecuado al servicio y a las condiciones que querés verificar.
+
+Cuando seleccionás una versión publicada, su PDF de origen deja de aportar datos tarifarios mutables al conjunto del análisis de esa operación: se utiliza el registro inmutable revisado. Si ese mismo PDF respaldaba otras facturas, seleccioná también la versión que corresponda para cada una; no asumas que conservarán automáticamente las condiciones del documento anterior. El aviso de facturas sin selección ayuda a completar esta transición.
+
+### Primera comparación con los documentos demo
+
 1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
 2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. La referencia debe coincidir con la de las fuentes; no es una referencia inventada de CargoWise.
 3. Abrí el bloque **Documentos**, pulsá **Gestionar documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta 20 documentos de tu organización. Desmarcar un documento quita su vínculo con esta operación; no borra el original ni los análisis históricos. Si un documento seguía procesándose, usá **Recargar datos** cuando termine.
