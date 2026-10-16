@@ -109,3 +109,7 @@ Final unified browser acceptance subsequently completed success:38954431704/job1
 ## Shared custom selectors and light surfaces
 
 Implemented one accessible Radix Select for all19 visible selectors (organization, pagination and forms), preserving existing callbacks and native raw-value/name/required/disabled form integration. Main content is white; SidePanel backdrop is translucent white. Pinned compatible Dialog1.2.0/Select2.3.8 share runtime focus/dismissal modules. Independent architecture/UX source reviews and114unit+8harness/full local quality passed. Browser acceptance is pending; see .agents/tasks/2026-10-16-select-polish.json. No server deployment is claimed.
+
+### Shared selectors — acceptance completed
+
+Actual CI passed114unit tests, migrations,57HTTP and API/private-storage/worker smoke for this implementation. All12browser groups completed success in38958986245/job117168963888 on4e5362d339ba28491fdeb9c3744609009d82da9f, including rawFormData, required/clear/disabled controls, nestedSheetEscape, keyboardtypeahead, option contrast and320/390px menus. Production38958986154 completedsuccess. The first typeahead test needed an observable-focus wait; its failure and correction remain in the independent QA report. Browser uses synthetic API fixtures; actual-service checks remain separate. No server deployment is claimed.

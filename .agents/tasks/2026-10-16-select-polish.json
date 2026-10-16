@@ -1,7 +1,7 @@
 {
   "id": "2026-10-16-select-polish",
   "summary": "Unify every visible select into a custom accessible dropdown and lighten main/background panel overlay.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root/analysis_frontend with /root CSS/dependencies",
   "scope": [
@@ -131,6 +131,14 @@
       "status": "passed",
       "examined": "Bounded source review; actual browser acceptance pending CI.",
       "evidence": [".agents/reviews/select-polish-qa.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/analysis_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independently decoded114unit/57actualHTTP/migrations/smoke plus all12corrected browsergroups with focused custom-select acceptance.",
+      "evidence": [".agents/reviews/select-polish-qa.md"]
     }
   ],
   "checks": [
@@ -138,6 +146,21 @@
       "command": "pnpm check",
       "status": "passed",
       "result": "114unit+8harness, formatting/lint/strict types/builds passed. Later QA-only timing refinements separately formatted/linted; runtime pending."
+    },
+    {
+      "command": "Quality38958625371/job117167727260",
+      "status": "passed",
+      "result": "114unit tests, migrations,57actualHTTP andAPI/PostgreSQL/Redis/privateS3/worker smoke passed; initial workflow stopped only at pending task gate. Initial browser test synchronization failure is preserved in QA review."
+    },
+    {
+      "command": "Browser38958986245/job117168963888",
+      "status": "passed",
+      "result": "Head4e5362d339ba28491fdeb9c3744609009d82da9f testedmerge667de2674b40b5b639fb6129657b804eba2ce5d8 completed all12groups. Real visible custom controls, rawFormData/required/clear/disabled/nestedEscape/typeaheadrequest100/contrast/whitebackground/mobile320390 passed with explicit synthetic HTTP fixtures."
+    },
+    {
+      "command": "Production38958986154/job117168963571",
+      "status": "passed",
+      "result": "Completed-success production container smoke: allthreeimages, migrated private stack, actualauth/proxy/privatePDF/worker, API-only recreation and durable-volume recovery. No user-server deployment."
     }
   ],
   "findings": [
@@ -150,9 +173,14 @@
     }
   ],
   "limitations": [
-    "Browser runtime pending portable CI; no local Chromium binary. No financial/domain/service integration change."
+    "Browser tests use explicit synthetic HTTP fixtures, while actual API/storage/worker acceptance runs separately. No local Chromium or full screen-reader certification.",
+    "Initial browser typeahead timing failure and its observable-focus correction are retained in QA review; no production source change was needed."
   ],
-  "evidence": [".agents/reviews/select-polish-main.md"],
+  "evidence": [
+    ".agents/reviews/select-polish-main.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38958986245",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38958986154"
+  ],
   "changeClass": "ui",
   "risk": "medium",
   "independentReviewRequired": true,
