@@ -333,11 +333,9 @@ try {
     0,
   );
   await visible(
-    panel
-      .getByRole('alert')
-      .filter({
-        hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
-      }),
+    panel.getByRole('alert').filter({
+      hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
+    }),
   );
   assert.equal(
     await panel
@@ -375,11 +373,9 @@ try {
     await panel.locator('form').elementHandle(),
   );
   await visible(
-    panel
-      .getByRole('alert')
-      .filter({
-        hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
-      }),
+    panel.getByRole('alert').filter({
+      hasText: 'No pudimos completar la solicitud. Volvé a intentar.',
+    }),
   );
   await panel
     .getByRole('button', { name: 'Descartar cambios', exact: true })

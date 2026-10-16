@@ -209,6 +209,11 @@
       "command": "Production38953887796/job117151976781",
       "status": "passed",
       "result": "Final executable sourcea5148a6 production workflow completed success: threeimages, migrated stack, actualproxy/auth/privatePDF/worker, API-onlyrecreation and durablevolumes. Prior actual57HTTP globalquery/tenant acceptance remains unchanged in backend; final unified CI pending."
+    },
+    {
+      "command": "Browser38954431704/job117153593973",
+      "status": "passed",
+      "result": "Source2b00de71accfbb965a94b88578c23a525e1998f1: final unified browser job completed success with all12groups including the new busy+dirty-confirmation edge. Actual57HTTP/quality reruns after a formatting-only wrap correction; initial Quality run failed only Prettier, retained in review history."
     }
   ],
   "findings": [
