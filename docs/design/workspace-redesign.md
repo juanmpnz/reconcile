@@ -41,3 +41,5 @@ Modo cliente filtra, ordena y pagina la colección completa recibida. Modo servi
 Operaciones, documentos y tarifas consultan criterios globales antes de paginar. Miembros usa paginación real de Better Auth sin anunciar búsqueda/orden no integrados. Organizaciones e invitaciones usan la colección completa disponible. Los historiales acotados explican su límite; la tabla de hallazgos financieros conserva su composición especializada de evidencia/revisión.
 
 `components/ui/side-panel.tsx` centraliza el panel Radix; `dialog.tsx` mantiene compatibilidad de imports para todos los formularios actuales. El cuerpo se desplaza; encabezado y acciones permanecen visibles dentro del formulario original. Los cambios pendientes exigen conservar o descartar y una solicitud en curso bloquea el cierre. En móvil ocupa todo el viewport.
+
+La distribución incluye el aviso de copyright y la licencia SIL OFL de Inter en `/licenses/Inter-OFL.txt`, copiado literalmente del paquete instalado. Vite lo sirve junto a las fuentes locales.

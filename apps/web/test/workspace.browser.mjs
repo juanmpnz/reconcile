@@ -393,6 +393,9 @@ try {
     }
     await trigger.click();
     await visible(panel);
+    await panel.evaluate((el) =>
+      Promise.all(el.getAnimations().map((animation) => animation.finished)),
+    );
     const box = await panel.boundingBox();
     assert.ok(
       box &&
@@ -400,7 +403,7 @@ try {
         Math.abs(box.y) <= 1 &&
         Math.abs(box.width - width) <= 2 &&
         Math.abs(box.height - 844) <= 2,
-      'mobile panel uses the full viewport',
+      `mobile panel uses the full viewport: ${JSON.stringify(box)}`,
     );
     await page.screenshot({
       path: `/tmp/workspace-qa-panel-${width}.png`,
