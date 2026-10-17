@@ -66,3 +66,19 @@ Independent review passed for current root integration: `app/session-boundary.ts
 Independent reviewer actually executed `pnpm exec vitest run apps/web/src/lib/http.test.ts apps/web/src/lib/query-mutation.test.ts`: **6/6 passed**. Source-reviewed new browser MFA cases exercise the forms/gates/local QR and transient secret UI with explicitly synthetic API success fixtures. They do not prove TOTP crypto or real backend permission enforcement.
 
 Source status: passed for reviewed architecture/security changes, with no currently identified critical/high code finding remaining in that reviewed scope. Runtime acceptance for real HTTP MFA/migration, production Nginx and identity-change cache race remains required before verified task closure. Operational limits above remain unchanged; no server security certification.
+
+## Final source delta: `340369e2cff34fb9360ae83ad3abb7434395c39a`
+
+Independent final test-source verdict: **passed**. The added request gates retain the identity captured when a request starts. The same-tab race starts a pending user-A dashboard request, changes the mocked server identity to B through the actual application auth-change event, observes transport cancellation, and keeps B's membership response pending. Assertions reject A's cached data before and after releasing the obsolete request, then require B's distinct data only after fresh membership succeeds. This tests the actual integrated boundary without inspecting private Query internals; synthetic HTTP fixtures remain distinct from server authorization evidence.
+
+The dirty-form regression explicitly waits until a real context refetch is held pending, verifies the SidePanel and typed draft remain visible, releases the response and verifies the draft again. It then retains the existing Escape/discard confirmation assertions. The MFA UI fixture assertions reviewed earlier remain present, including zero tenant calls before assurance and transient locally generated secrets.
+
+Checked workflow status through GitHub connector for source head: Quality run `38994072287` (browser job `117282577996`, quality job `117282578329`) and Production run `38994072129` (job `117282577640`). At this inspection both workflows were still running, building/checking source; PostgreSQL, browser acceptance and production runtime steps were not yet completed. No passing runtime result is inferred from their being scheduled. Root will attach completed CI evidence to the task before verified closure.
+
+The initial MFA and frontend cache high findings above are resolved in reviewed source and now have substantive acceptance tests; the final runtime evidence remains the condition for verified closure. Operational server limitations are unchanged.
+
+### Bounded callback correction after source checkpoint
+
+Independent review passed the `router.ts` split between private `internalPath` (same-origin URL validation) and exported `internalDestination` (return-to loop prevention). Email callbacks may legitimately target `/login` with verification/invitation parameters; callback now preserves that path while still rejecting external/protocol-relative destinations. Return-to navigation retains login, two-factor and security loop rejection. No auth or tenant enforcement was removed.
+
+Reviewer independently ran `pnpm exec vitest run apps/web/src/app/router.test.ts`: **3/3 passed**, including exact preservation of the login notice/invitation callback and external callback rejection. Runtime CI attribution for later source commits must use their own run IDs rather than treating the previous build as identical.

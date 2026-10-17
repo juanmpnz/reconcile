@@ -10,7 +10,7 @@ let navigator: Navigator | undefined;
 export function configureNavigation(next: Navigator) {
   navigator = next;
 }
-export function internalDestination(path: string | null, fallback = '/') {
+function internalPath(path: string | null, fallback = '/') {
   if (
     !path ||
     !path.startsWith('/') ||
@@ -19,12 +19,15 @@ export function internalDestination(path: string | null, fallback = '/') {
   )
     return fallback;
   const url = new URL(path, 'https://reconcile.invalid');
-  if (
-    url.origin !== 'https://reconcile.invalid' ||
-    ['/login', '/two-factor', '/security'].includes(url.pathname)
-  )
-    return fallback;
+  if (url.origin !== 'https://reconcile.invalid') return fallback;
   return url.pathname + url.search + url.hash;
+}
+export function internalDestination(path: string | null, fallback = '/') {
+  const safe = internalPath(path, fallback);
+  const url = new URL(safe, 'https://reconcile.invalid');
+  return ['/login', '/two-factor', '/security'].includes(url.pathname)
+    ? fallback
+    : safe;
 }
 export function useRoute() {
   const location = useLocation();
@@ -44,7 +47,7 @@ export function navigate(
   void navigator(path, { replace, state });
 }
 export function callback(path: string) {
-  return new URL(internalDestination(path), window.location.origin).href;
+  return new URL(internalPath(path), window.location.origin).href;
 }
 export function organizationPath(id: string, tab = 'overview', page = 0) {
   const query = new URLSearchParams({ tab });

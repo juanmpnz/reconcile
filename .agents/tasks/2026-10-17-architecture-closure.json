@@ -163,9 +163,48 @@
       "command": "pnpm check",
       "status": "passed",
       "result": "133 unit tests, 8 harness regressions, formatting, lint, strict types and production builds pass locally; PostgreSQL/browser/container acceptance pending CI."
+    },
+    {
+      "command": "Production containers38994072129/job117282577640",
+      "status": "passed",
+      "result": "Head340369e: allthreeimages, migratedprivate stack, actualTOTP enrollment/challenge, proxyCSP/frame/permission and original sandbox, privatePDF/worker, API-onlyrecreation and durablevolume recovery passed. User-server not exercised."
+    },
+    {
+      "command": "Browser38994072287/job117282577996",
+      "status": "failed",
+      "result": "Head340369e: sixagreementgroups and overview passed; selector50visiblelabel checked before routercontrolled value settled. Corrected helper waits visible label; unchanged assertion/runtime rerun pending."
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "id": "AC1",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "MFA enrollment flag alone would allow earlier sessions and seed-management bypass.",
+      "resolution": "Server-only per-session proof plus management guards, unique factor, trustDevice denial; source independently reviewed. Actualproduction TOTP passed, fullnegativeHTTP pending."
+    },
+    {
+      "id": "AC2",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Sensitive cache could survive automatic identity transitions.",
+      "resolution": "Generation-gated query cancellation and clear before private children; identity/user/tenant keys and race browser acceptance added, execution pending."
+    },
+    {
+      "id": "AC3",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Background refetch unmounted editing forms.",
+      "resolution": "Pending-only initial gates and narrow mutation invalidation preserve drafts; browser acceptance added."
+    },
+    {
+      "id": "AC4",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Safe-return filtering dropped valid login email callback notices/invitations.",
+      "resolution": "Separate same-origin callback validation from post-login loop prevention; independent review and three router tests passed."
+    }
+  ],
   "limitations": [
     "Actual Coolify TLS, proxy topology, firewall, encrypted external backups/restore and encryption at rest require server verification.",
     "Parser worker threads are bounded but are not an OS security sandbox.",

@@ -1,11 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  callback,
   configureNavigation,
   internalDestination,
   navigate,
   organizationPath,
 } from './router';
 describe('internal navigation boundary', () => {
+  it('preserves same-origin email callbacks, including login notices and invitations', () => {
+    vi.stubGlobal('window', { location: { origin: 'https://reconcile.test' } });
+    try {
+      expect(
+        callback('/login?notice=verification-processed&invitationId=demo'),
+      ).toBe(
+        'https://reconcile.test/login?notice=verification-processed&invitationId=demo',
+      );
+      expect(callback('//external.test')).toBe('https://reconcile.test/');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it('preserves deep links and rejects external and authentication-loop destinations', () => {
     expect(
       internalDestination('/organizations/a?tab=documents&page=2#file'),

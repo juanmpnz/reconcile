@@ -50,13 +50,22 @@ describe('required MFA: real enrollment, challenge and recovery HTTP', () => {
       where: { userId: dbUser.id },
       data: { lockedUntil: new Date(Date.now() - 1000) },
     });
-    expect(
-      (
-        await request('/api/auth/two-factor/verify-totp', user, {
-          code: syntheticTotp(uri),
-        })
-      ).statusCode,
-    ).toBe(200);
+    // Account lock expiry does not replenish the exhausted five-attempt challenge.
+    const exhausted = await request('/api/auth/two-factor/verify-totp', user, {
+      code: syntheticTotp(uri),
+    });
+    expect(exhausted.statusCode, exhausted.body).toBe(400);
+    expect(body(exhausted).code).toBe('TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE');
+    expect((await request('/api/v1/session-assurance', user)).statusCode).toBe(
+      401,
+    );
+    const renewed = await fixture.login(user);
+    expect(renewed.statusCode, renewed.body).toBe(200);
+    expect(body(renewed).twoFactorRedirect).toBe(true);
+    const verified = await request('/api/auth/two-factor/verify-totp', user, {
+      code: syntheticTotp(uri),
+    });
+    expect(verified.statusCode, verified.body).toBe(200);
     expect(
       body(await request('/api/v1/session-assurance', user)).verified,
     ).toBe(true);
