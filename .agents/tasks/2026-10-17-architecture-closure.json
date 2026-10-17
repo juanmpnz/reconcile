@@ -1,7 +1,7 @@
 {
   "id": "2026-10-17-architecture-closure",
   "summary": "One internal design system, centralized Query transport/mutations, declarative private routes and server-enforced MFA/session boundaries.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root with ds_frontend, query_http and backend_security",
   "scope": [
@@ -13,7 +13,8 @@
     "pnpm-lock.yaml",
     "eslint.config.mjs",
     "docs/",
-    ".agents/"
+    ".agents/",
+    ".env.example"
   ],
   "acceptance": [
     "Native controls live only inside the DS and lint prevents bypasses; existing forms, tables, orange/light theme and mobile side panels remain usable.",
@@ -58,7 +59,7 @@
       "reviewer": "/root",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-main.md"]
     },
     {
@@ -66,7 +67,7 @@
       "reviewer": "/root",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-main.md"]
     },
     {
@@ -74,7 +75,7 @@
       "reviewer": "/root/ds_frontend",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-frontend.md"]
     },
     {
@@ -82,7 +83,7 @@
       "reviewer": "/root/ds_frontend",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-frontend.md"]
     },
     {
@@ -90,7 +91,7 @@
       "reviewer": "/root/backend_security",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-backend.md"]
     },
     {
@@ -98,7 +99,7 @@
       "reviewer": "/root/backend_security",
       "mode": "sequential",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-backend.md"]
     },
     {
@@ -106,7 +107,7 @@
       "reviewer": "/root/security_architecture",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-security.md"]
     },
     {
@@ -114,7 +115,7 @@
       "reviewer": "/root/security_architecture",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-security.md"]
     },
     {
@@ -122,7 +123,7 @@
       "reviewer": "/root/security_architecture",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-security.md"]
     },
     {
@@ -130,7 +131,7 @@
       "reviewer": "/root/ux_ds_review",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-ux.md"]
     },
     {
@@ -138,7 +139,7 @@
       "reviewer": "/root/ux_ds_review",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-ux.md"]
     },
     {
@@ -146,7 +147,7 @@
       "reviewer": "/root/ux_ds_review",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
       "evidence": [".agents/reviews/architecture-closure-ux.md"]
     },
     {
@@ -154,25 +155,35 @@
       "reviewer": "/root/closure_qa",
       "mode": "independent",
       "status": "passed",
-      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "examined": "Independent finalCI decoding:134units,65realHTTP,18browsergroups andproductioncontainers; priorfailures retained with fixes.",
       "evidence": [".agents/reviews/architecture-closure-qa.md"]
     }
   ],
   "checks": [
     {
-      "command": "pnpm check",
+      "command": "pnpm check / Quality38994395387/job117283603703",
       "status": "passed",
-      "result": "133 unit tests, 8 harness regressions, formatting, lint, strict types and production builds pass locally; PostgreSQL/browser/container acceptance pending CI."
+      "result": "Head26d7dda testedmergef8dc37451734af4bc62d03214be1ba8dcaffe679:134units+8harness, formatting/lint/types/builds, migrations,65actualPostgreSQLHTTPtests and API/privateS3/Redis/workersmoke pass. This evidence-collection job stopped only at task stillreviewed; no globalgreenclaim for that run."
     },
     {
-      "command": "Production containers38994072129/job117282577640",
+      "command": "Browser38994395387/job117283603962",
       "status": "passed",
-      "result": "Head340369e: allthreeimages, migratedprivate stack, actualTOTP enrollment/challenge, proxyCSP/frame/permission and original sandbox, privatePDF/worker, API-onlyrecreation and durablevolume recovery passed. User-server not exercised."
+      "result": "All18groupsPASS at26d7dda/f8dc374: actualcustomcontrols, tablequery/selection, drafts/conflicts/focus, mobile,401private removal, anonymousdeepURLzeroorgcalls, syntheticMFAsetup/recovery/gates and actualbrowseroldrequestcancellationduringidentitychange. Explicit HTTPfixtures, no realbackendclaim. Initialselectorwaitfailure andcorrection retainedQA review."
     },
     {
-      "command": "Browser38994072287/job117282577996",
-      "status": "failed",
-      "result": "Head340369e: sixagreementgroups and overview passed; selector50visiblelabel checked before routercontrolled value settled. Corrected helper waits visible label; unchanged assertion/runtime rerun pending."
+      "command": "Production38994395383/job117283603890",
+      "status": "passed",
+      "result": "Allthreeimages, migratedprivate stack, actualTOTP enrollment/challenge, securecookies, proxyCSP/frame/permissions and strict originalsandbox, >1MiBprivatePDF/worker, API-onlyrecreation anddurablePGRedisS3recoveryPASS. APIreusedsameIP, noIPchangerecoveryproof; noSMTPdeliveryoruser-serverdeployment."
+    },
+    {
+      "command": "pnpm exec vitest run apps/web/src/app/router.test.ts",
+      "status": "passed",
+      "result": "Three cases pass, including exactsafeemailcallbacknotice/invitation and externalURLrejection. Independently rerun by security reviewer."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 16e258e8a2b34ca2e5869be09fe0a9d4cb1ce82c",
+      "status": "passed",
+      "result": "Final task records cover full changed scope and allapplicable reviews; initial missing .env.example scope declaration corrected, actual gate rerun recorded by coordinator."
     }
   ],
   "findings": [
@@ -181,21 +192,21 @@
       "severity": "high",
       "status": "resolved",
       "summary": "MFA enrollment flag alone would allow earlier sessions and seed-management bypass.",
-      "resolution": "Server-only per-session proof plus management guards, unique factor, trustDevice denial; source independently reviewed. Actualproduction TOTP passed, fullnegativeHTTP pending."
+      "resolution": "Server-only per-session proof and management guards, unique factor, trustDevice denial. Independent source review plus all65HTTP andactualproductionTOTP acceptance passed."
     },
     {
       "id": "AC2",
       "severity": "high",
       "status": "resolved",
       "summary": "Sensitive cache could survive automatic identity transitions.",
-      "resolution": "Generation-gated query cancellation and clear before private children; identity/user/tenant keys and race browser acceptance added, execution pending."
+      "resolution": "Generation-gated cancellation/clear beforeprivatechildren andidentity/user/tenantkeys. Browserrace independently reviewed andpassed actualoldrequestabort,noolddata andnewmembershipgate."
     },
     {
       "id": "AC3",
       "severity": "medium",
       "status": "resolved",
       "summary": "Background refetch unmounted editing forms.",
-      "resolution": "Pending-only initial gates and narrow mutation invalidation preserve drafts; browser acceptance added."
+      "resolution": "Pending-only gates/narrowinvalidation; actualbrowserdirtydraftsurvives heldbackgroundrefresh."
     },
     {
       "id": "AC4",
@@ -213,7 +224,11 @@
   "evidence": [
     ".agents/reviews/architecture-closure-security.md",
     ".agents/reviews/architecture-closure-ux.md",
-    ".agents/reviews/architecture-closure-qa.md"
+    ".agents/reviews/architecture-closure-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38994395387",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38994395383",
+    "docs/architecture/architecture-closure.md",
+    "docs/adr/0007-shared-web-and-session-assurance.md"
   ],
   "changeClass": "security",
   "risk": "high",

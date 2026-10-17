@@ -82,3 +82,11 @@ The initial MFA and frontend cache high findings above are resolved in reviewed 
 Independent review passed the `router.ts` split between private `internalPath` (same-origin URL validation) and exported `internalDestination` (return-to loop prevention). Email callbacks may legitimately target `/login` with verification/invitation parameters; callback now preserves that path while still rejecting external/protocol-relative destinations. Return-to navigation retains login, two-factor and security loop rejection. No auth or tenant enforcement was removed.
 
 Reviewer independently ran `pnpm exec vitest run apps/web/src/app/router.test.ts`: **3/3 passed**, including exact preservation of the login notice/invitation callback and external callback rejection. Runtime CI attribution for later source commits must use their own run IDs rather than treating the previous build as identical.
+
+### Test-only synchronization and MFA challenge correction: `26d7ddaaf8630f43d7db40b3ce35eccde85da83f`
+
+Independent bounded delta review: **passed**.
+
+- `select.browser-helper.mjs` now waits for the selected visible trigger label after the listbox closes, rather than reading the previous controlled render immediately. Existing contrast, visible-option selection and final label assertions remain; no arbitrary sleep or timeout relaxation was introduced.
+- The MFA lock test retains all ten failure attempts, cross-challenge/address account lock, denial of a valid code while locked and absence of assurance. After simulating expiry of the account-level lock, it now additionally asserts that the exhausted five-attempt challenge remains rejected with HTTP400 `TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE` and no session, then starts a fresh password challenge and verifies valid TOTP.
+- Independently reread installed Better Auth 1.7.8 `verify-two-factor.mjs`: `beginAttempt` consumes an exhausted challenge and throws that exact error independently of account lock expiry. The correction tests stronger layered behavior; it does not alter production code or weaken the lock policy. Runtime CI must still demonstrate acceptance of the final test sequence.

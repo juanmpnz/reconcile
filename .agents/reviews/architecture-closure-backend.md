@@ -44,3 +44,9 @@ Eight new real-HTTP integration groups are committed as executable acceptance, b
 `/root/security_architecture` independently reviewed the design/source and identified enrollment-session and seed/backup-management bypass risks during implementation. Both were corrected with server-owned per-session proof and the native-auth allowlist; the reviewer maintains its separate report. Runtime hook behavior must pass real HTTP acceptance.
 
 No live deployment, certificate, encrypted host-volume, offsite backup restore or hostile-upload OS sandbox was verified by this work. Repository hardening is not a complete external security audit. Loss of both authenticator and backup codes requires a separately designed recovery process; no bypass is introduced here.
+
+## CI correction — exhausted challenge versus account lock
+
+Reviewed Quality run `38994072287`, job `117282578329`, source head `340369e` / tested merge `c1ed6ab`: 64 real-HTTP tests passed; the account-lock test failed when it expected an exhausted five-attempt challenge to accept a correct code after manually expiring the separate account lock. The other MFA enrollment/session/backup group assertions passed.
+
+Installed Better Auth 1.7.8 `dist/plugins/two-factor/verify-two-factor.mjs`, `beginAttempt`, independently enforces five attempts per challenge: when exhausted it consumes the verification, expires its cookie and returns `TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE`. Account-lock expiration does not replenish that challenge. Corrected the fixture to assert this denial and lack of assurance, then obtain a fresh password challenge and verify a valid TOTP. Added response-body diagnostics. No production policy or limit was weakened. This delta requires the subsequent real-HTTP CI run before runtime closure.

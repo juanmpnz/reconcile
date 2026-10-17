@@ -10,7 +10,7 @@ El transporte HTTP permite únicamente rutas relativas `/api/`, envía cookies, 
 
 ## Acceso y autorización
 
-React Router protege rutas privadas antes de montar pantallas de organizaciones. Es una protección de navegación; la autorización efectiva siempre pertenece al servidor. Better Auth utiliza sesiones persistidas y cookies HttpOnly/Secure en producción, con SameSite. Duración explícita: ocho horas, actualización cada treinta minutos y frescura de quince minutos; esta última solo se aplica donde el endpoint exige sesión reciente.
+React Router protege rutas privadas antes de montar pantallas de organizaciones. Es una protección de navegación; la autorización efectiva siempre pertenece al servidor. Better Auth utiliza sesiones persistidas y cookies HttpOnly/Secure en producción, con SameSite. Duración explícita: ocho horas renovables, actualización cada treinta minutos y frescura de quince minutos; esta última solo se aplica donde el endpoint exige sesión reciente.
 
 La API comparte un guard de sesión actual, correo verificado, membresía, rol, UUID y origen exacto para escrituras. Los casos de uso mantienen sus propias comprobaciones de organización y permisos. Ni el ID de organización del cliente ni una ruta privada conceden autorización. Las respuestas privadas/auth usan `no-store`; los originales se entregan como attachments autorizados.
 
