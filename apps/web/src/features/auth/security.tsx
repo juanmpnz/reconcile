@@ -215,7 +215,11 @@ export function SecuritySetup() {
   }
   return (
     <div className="auth-page">
-      <main id="main" tabIndex={-1} className="account-layout">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="account-layout account-layout-setup"
+      >
         <Card className="card account-card">
           <h1>Protegé tu cuenta</h1>
           <p>

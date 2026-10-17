@@ -1,0 +1,45 @@
+{
+  "id": "2026-10-17-white-canvas-primary-actions",
+  "summary": "Restore white content backgrounds and give primary actions a readable charcoal treatment with vivid-orange accents.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root/white_canvas_ui (ui-engineer); /root (documentation)",
+  "scope": [
+    "apps/web/src/styles/workspace.css",
+    "apps/web/src/styles/application.css",
+    "apps/web/src/design-system/theme.css",
+    "docs/design/workspace-redesign.md",
+    "docs/status.md",
+    ".agents/tasks/2026-10-17-white-canvas-primary-actions.json"
+  ],
+  "acceptance": [
+    "Workspace content and access-page backgrounds return to white while the recently widened access cards remain intact.",
+    "Primary buttons use a high-contrast neutral fill and a vivid-orange accent; hover and disabled states remain legible.",
+    "Orange stays visible in brand/navigation accents; financial status colors, structure and behavior remain unchanged."
+  ],
+  "requiredRoles": ["principal-engineer", "visual-designer", "ui-engineer", "frontend-engineer", "accessibility-reviewer", "qa-engineer"],
+  "semanticRouting": "User correction to visual palette only. No flow, auth logic, data, contracts, domain, identity boundary or deployment changes; visual designer consulted before implementation. Existing uncommitted access-card changes from the preceding task must be preserved.",
+  "excludedRoles": [
+    {"role": "solution-architect", "reason": "Task-record harness route only; no module boundary or contract changes."},
+    {"role": "ux-designer", "reason": "No user flow or information hierarchy change; visual palette and button surface only."},
+    {"role": "security-engineer", "reason": "Access-page background changes only; no identity, credential, session or MFA behavior changes."},
+    {"role": "product-manager", "reason": "No capability or business acceptance change."},
+    {"role": "platform-engineer", "reason": "No dependency, CI or deployment change."}
+  ],
+  "reviews": [
+    {"role": "visual-designer", "reviewer": "/root/white_canvas_visual", "mode": "independent", "status": "passed", "examined": "Preimplementation palette consultation and final CSS/design diff reread; source only.", "evidence": ["Agent planning and final review reports in this task session"]},
+    {"role": "ui-engineer", "reviewer": "/root/white_canvas_ui", "mode": "sequential", "status": "passed", "examined": "Implemented and inspected CSS diff while preserving preceding auth-card sizing changes.", "evidence": ["Agent implementation report in this task session"]},
+    {"role": "frontend-engineer", "reviewer": "/root/white_canvas_frontend_review", "mode": "independent", "status": "passed", "examined": "CSS cascade, white token resolution, button states, reduced motion and prior auth width preservation; source only.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "accessibility-reviewer", "reviewer": "/root/white_canvas_a11y_review", "mode": "independent", "status": "passed", "examined": "Primary button normal/hover/disabled styling, visible focus, orange cue and white surfaces; static only.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "qa-engineer", "reviewer": "/root/white_canvas_qa_review", "mode": "independent", "status": "passed", "examined": "Final CSS and design/status documentation against source-level acceptance; no runtime verification.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "principal-engineer", "reviewer": "/root", "mode": "sequential", "status": "passed", "examined": "Final palette CSS and task/design/status documentation, with prior uncommitted auth width changes preserved.", "evidence": ["git diff -- apps/web/src/design-system/theme.css apps/web/src/styles/workspace.css apps/web/src/styles/application.css"]}
+  ],
+  "checks": [{"command": "Tests, pnpm check, smoke and browser review", "status": "not-run", "result": "User requested no tests in this continuing visual task."}],
+  "findings": [],
+  "limitations": ["Runtime appearance, measured contrast, keyboard/zoom behavior and responsive layout are unverified because tests and browser checks were not run per user preference.", "This task builds on the preceding uncommitted auth-card width change; its 520px/620px widths and responsive padding remain intact."],
+  "evidence": ["Final CSS diff independently examined by visual, frontend, accessibility and QA agents in this task session."],
+  "changeClass": "ui",
+  "risk": "low",
+  "independentReviewRequired": false,
+  "independenceRationale": "CSS-only palette correction; independent visual/accessibility/QA source review is still requested."
+}

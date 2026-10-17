@@ -3,11 +3,14 @@
   min-width: 0;
 }
 .account-card img {
+  display: block;
   max-width: 100%;
   height: auto;
+  margin: 4px 0 20px;
 }
 .mfa-secret {
   display: block;
+  width: 100%;
   max-width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -34,14 +37,12 @@
 }
 .mfa-backup-codes code {
   font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   user-select: all;
 }
 @media (max-width: 420px) {
   .mfa-backup-codes {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .account-card > .button {
-    max-width: 100%;
-    white-space: normal;
   }
 }

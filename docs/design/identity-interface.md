@@ -34,7 +34,7 @@ Changing organization clears previous tenant display immediately; queries and mu
 
 ## Authentication
 
-Single form, maximum width 380px, centered with generous but bounded margin; small Reconcile wordmark, 22px task title, necessary instructions only. No marketing hero or left panel. Preserve login, register, forgot/reset password, verification/resend states and invitation destinations. Visible labels and autocomplete; password minimum remains 12. Email success copy does not reveal account existence. Missing/expired token offers a working recovery link. Logout failure remains visible on every signed-in screen.
+Single form, maximum width 520px for login, registration, recovery and code entry; authenticator setup may use 620px for QR and recovery codes. Center with generous but bounded margin and responsive gutters. These widths replace the original 380px limit following the user's 2026-10-17 feedback. Use a small Reconcile wordmark, 22px task title and necessary instructions only. No marketing hero or left panel. Preserve login, register, forgot/reset password, verification/resend states and invitation destinations. Visible labels and autocomplete; password minimum remains 12. Email success copy does not reveal account existence. Missing/expired token offers a working recovery link. Logout failure remains visible on every signed-in screen.
 
 ## Interaction and accessibility acceptance
 

@@ -61,7 +61,7 @@
 }
 .app-content {
   padding: 24px;
-  background: linear-gradient(135deg, #faf5ee 0%, var(--background) 48%);
+  background: var(--background);
 }
 .workspace-page-header {
   margin-bottom: 20px;

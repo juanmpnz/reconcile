@@ -10,7 +10,7 @@ Encabezados 20–22px, cuerpo Inter 14px con fallback system, metadatos12px; sin
 
 ## Tokens visuales
 
-Superficies blancas; fondo #F2EFE9, texto #2F3238, metadatos #8A8F98 solo donde el contraste sea suficiente, bordes neutros. #FF7A18 es acento/indicador con texto oscuro; no usar texto blanco pequeño sobre naranja sin medir contraste. #FFB26B es superficie/acento secundario. Para texto secundario pequeño usar un gris más oscuro si #8A8F98 falla contraste. Preservar rojo/verde/ámbar financieros con texto e icono: naranja de marca nunca sustituye advertencia ni hace parecer una diferencia aceptada. Foco oscuro visible 2px, no solo naranja tenue. Inter instalada/local según adopción real, sin depender obligatoriamente de terceros en runtime.
+Superficies y fondo del contenido blancos; texto #2F3238, metadatos #8A8F98 solo donde el contraste sea suficiente y bordes neutros. #FF7A18 es el acento de marca para navegación e indicadores; no se usa como fondo de botones con texto. Las acciones principales usan grafito #2F3238 con texto blanco y un borde interior naranja de 2px; el estado deshabilitado conserva texto legible. Esta decisión actualiza la paleta tras el comentario del usuario del 2026-10-17. #FFB26B sigue como acento secundario. Para texto secundario pequeño usar un gris más oscuro si #8A8F98 falla contraste. Preservar rojo/verde/ámbar financieros con texto e icono: naranja de marca nunca sustituye advertencia ni hace parecer una diferencia aceptada. Foco oscuro visible 2px, no solo naranja tenue. Inter instalada/local según adopción real, sin depender obligatoriamente de terceros en runtime.
 
 ## Resumen con datos reales
 
