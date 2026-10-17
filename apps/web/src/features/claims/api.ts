@@ -1,3 +1,9 @@
+import {
+  httpFetch,
+  HttpError,
+  parseHttpResponse,
+  readHttpJson,
+} from '../../lib/http';
 import { z } from 'zod';
 import {
   claimCreateInputSchema,
@@ -16,12 +22,12 @@ export const reviewKey = (
 ) => [...organizationKey(userId, organizationId), 'review', operationId];
 const base = (organizationId: string, operationId: string) =>
   `/api/v1/organizations/${encodeURIComponent(organizationId)}/operations/${encodeURIComponent(operationId)}`;
-export class ClaimConflictError extends Error {
+export class ClaimConflictError extends HttpError {
   constructor(
-    readonly code: string,
+    override readonly code: string,
     message: string,
   ) {
-    super(message);
+    super(409, message, code);
   }
 }
 const errorMessages: Record<string, string> = {
@@ -64,7 +70,7 @@ async function checked(response: Response) {
             ? 'Revisá la decisión, los campos y las fechas antes de guardar.'
             : 'No pudimos completar la acción. Volvé a intentar.';
   if (response.status === 409) throw new ClaimConflictError(code, message);
-  throw new Error(message);
+  throw new HttpError(response.status, message, code);
 }
 const json = (body: unknown, method = 'POST'): RequestInit => ({
   method,
@@ -74,18 +80,20 @@ const json = (body: unknown, method = 'POST'): RequestInit => ({
 });
 async function request(url: string, init: RequestInit = {}) {
   const response = await checked(
-    await fetch(url, { ...init, credentials: 'include' }),
+    await httpFetch(url, { ...init, credentials: 'include' }),
   );
-  const body: unknown = await response.json();
+  const body: unknown = await readHttpJson(
+    response,
+    'La respuesta de revisiones no es válida. Recargá y volvé a intentar.',
+  );
   return body;
 }
-function parse<T>(schema: z.ZodType<T>, body: unknown) {
-  const result = schema.safeParse(body);
-  if (!result.success)
-    throw new Error(
-      'La respuesta de revisiones no es válida. Recargá y volvé a intentar.',
-    );
-  return result.data;
+function parse<T>(schema: z.ZodType<T>, body: unknown): T {
+  return parseHttpResponse(
+    schema,
+    body,
+    'La respuesta de revisiones no es válida. Recargá y volvé a intentar.',
+  );
 }
 export async function getReview(
   organizationId: string,
@@ -205,7 +213,7 @@ export async function exportClaim(
   format: 'text' | 'dossier',
 ) {
   const response = await checked(
-    await fetch(
+    await httpFetch(
       `${base(organizationId, operationId)}/claims/${encodeURIComponent(claimId)}/export`,
       json({ expectedVersion, format }),
     ),
@@ -235,7 +243,7 @@ export async function downloadClaimExport(
   exportId: string,
 ) {
   const response = await checked(
-    await fetch(
+    await httpFetch(
       `${base(organizationId, operationId)}/claims/${encodeURIComponent(claimId)}/exports/${encodeURIComponent(exportId)}`,
       { credentials: 'include' },
     ),

@@ -1,0 +1,18 @@
+/* Effective approved tokens: one source for typography, surfaces and brand. */
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #2f3238;
+  background: var(--background, #fff);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --background: #fff;
+  --surface: #faf9f7;
+  --text: #2f3238;
+  --muted: #60656d;
+  --border: #dedbd5;
+  --hover: #f4f1ec;
+  --brand: #ff7a18;
+  --brand-soft: #ffb26b;
+}

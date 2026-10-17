@@ -1,28 +1,31 @@
-import { DataTable } from '../../components/ui/data-table';
+import { documentQueries } from './hooks';
+import { useRetryDocumentMutation, useDownloadDocumentMutation } from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  PageHeader,
+} from '../../design-system/layout';
+import { DataTable } from '../../design-system/data-table';
 import { MetadataDialog } from './metadata-dialog';
 import { OperationLinks } from './operation-links';
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { ExtractionFieldName } from '@reconcile/contracts';
 import {
   Badge,
   Button,
   Feedback,
   RequestError,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { navigate, organizationPath } from '../../app/router';
 import { errorMessage } from '../../lib/forms';
 import { useMounted } from '../../lib/use-mounted';
 import {
   bytesLabel,
-  documentsKey,
-  downloadDocument,
   saveOriginal,
-  getDocument,
   isProcessing,
   kindLabels,
-  retryDocument,
   statusLabels,
   timestampLabel,
 } from './api';
@@ -79,15 +82,16 @@ export function DocumentDetailView({
   documentId: string;
   authorizationPending: boolean;
 }) {
-  const queryClient = useQueryClient();
+  const retryDocumentMutation = useRetryDocumentMutation(userId);
+  const downloadDocumentMutation = useDownloadDocumentMutation();
+
   const mounted = useMounted();
   const [downloading, setDownloading] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
   const document = useQuery({
-    queryKey: [...documentsKey(userId, organizationId), 'detail', documentId],
-    queryFn: ({ signal }) => getDocument(organizationId, documentId, signal),
+    ...documentQueries.detail(userId, organizationId, documentId),
     enabled: !authorizationPending,
     refetchInterval: (query) =>
       query.state.data && isProcessing(query.state.data.status) ? 2000 : false,
@@ -102,11 +106,8 @@ export function DocumentDetailView({
     setRetrying(true);
     setMessage('');
     try {
-      await retryDocument(organizationId, documentId);
+      await retryDocumentMutation.mutateAsync([organizationId, documentId]);
       if (!mounted.current) return;
-      await queryClient.invalidateQueries({
-        queryKey: documentsKey(userId, organizationId),
-      });
       setFailed(false);
       setMessage(
         'La extracción volvió a la cola. Podés salir de esta pantalla mientras se procesa.',
@@ -123,7 +124,10 @@ export function DocumentDetailView({
     setDownloading(true);
     setMessage('');
     try {
-      const original = await downloadDocument(organizationId, documentId);
+      const original = await downloadDocumentMutation.mutateAsync([
+        organizationId,
+        documentId,
+      ]);
       if (!mounted.current) return;
       saveOriginal(original, document.data.filename);
     } catch (error) {
@@ -165,7 +169,7 @@ export function DocumentDetailView({
           Volver a documentos
         </a>
       </p>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h2>{data.filename}</h2>
           <p>
@@ -197,7 +201,7 @@ export function DocumentDetailView({
         >
           {downloading ? 'Descargando…' : 'Descargar original'}
         </Button>
-      </div>
+      </PageHeader>
       <Feedback message={message} error={failed} />
       <div className="document-status">
         <Badge>{statusLabels[data.status]}</Badge>
@@ -357,12 +361,12 @@ export function DocumentDetailView({
               <p>No hay texto disponible. Revisá el PDF original.</p>
             ) : (
               extraction.pages.map((page) => (
-                <details key={page.page} open={extraction.pages.length === 1}>
-                  <summary>Página {page.page}</summary>
+                <Accordion key={page.page} open={extraction.pages.length === 1}>
+                  <AccordionTrigger>Página {page.page}</AccordionTrigger>
                   <pre className="page-text">
                     {page.text || 'Esta página no contiene texto extraíble.'}
                   </pre>
-                </details>
+                </Accordion>
               ))
             )}
           </section>
@@ -376,8 +380,10 @@ export function DocumentDetailView({
         )
       )}
       {data.metadataHistory.length > 0 && (
-        <details className="metadata-history">
-          <summary>Historial de nombre y tipo (últimos 50 cambios)</summary>
+        <Accordion className="metadata-history">
+          <AccordionTrigger>
+            Historial de nombre y tipo (últimos 50 cambios)
+          </AccordionTrigger>
           <DataTable
             label="Historial de metadatos del documento (últimos 50 cambios)"
             searchLabel="Buscar en los últimos 50 cambios"
@@ -432,7 +438,7 @@ export function DocumentDetailView({
               },
             ]}
           />
-        </details>
+        </Accordion>
       )}
       {data.corrections.length > 0 && (
         <section className="correction-history">

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loading } from '../components/ui/loading';
-import { RequestError } from '../components/ui/primitives';
+import { Loading } from '../design-system';
+import { RequestError } from '../design-system';
 import { OrganizationList } from '../features/organizations/organization-list';
 import {
   getContext,

@@ -1,9 +1,27 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { documentQueries } from '../documents/hooks';
+import { operationQueries } from './hooks';
+import { useRequestAnalysisMutation } from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  PageHeader,
+} from '../../design-system/layout';
+import {
+  Table,
+  TableCaption,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from '../../design-system/table';
+import { Select } from '../../design-system/select';
 import {
   DataTable,
   renderLink,
   renderStatus,
-} from '../../components/ui/data-table';
+} from '../../design-system/data-table';
 import { OperationAgreements } from '../agreements/operation-agreements';
 import { ReviewWorkspace, FindingReviewCell } from '../claims/review-workspace';
 import { EditOperationDialog } from './edit-dialog';
@@ -26,25 +44,17 @@ import {
   Feedback,
   RequestError,
   TableRegion,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { navigate, organizationPath } from '../../app/router';
 import { useMounted } from '../../lib/use-mounted';
 import {
   documentPath,
-  documentsKey,
-  getDocument,
   kindLabels,
   statusLabels,
   timestampLabel,
 } from '../documents/api';
-import {
-  getOperation,
-  getAnalysis,
-  listAnalysisHistory,
-  operationsKey,
-  requestAnalysis,
-} from './api';
+import { operationsKey } from './api';
 import { LinkDialog } from './link-dialog';
 import { FactsEditor } from './facts-editor';
 const runLabels: Record<AnalysisRun['status'], string> = {
@@ -72,6 +82,8 @@ export function OperationDetailView({
   operationId: string;
   authorizationPending: boolean;
 }) {
+  const requestAnalysisMutation = useRequestAnalysisMutation(userId);
+
   const client = useQueryClient();
   const mounted = useMounted();
   const [busy, setBusy] = useState(false);
@@ -81,43 +93,36 @@ export function OperationDetailView({
   const [showHistory, setShowHistory] = useState(false);
   const [attemptKey, setAttemptKey] = useState(() => crypto.randomUUID());
   const query = useQuery({
-    queryKey: [...operationsKey(userId, organizationId), 'detail', operationId],
-    queryFn: ({ signal }) => getOperation(organizationId, operationId, signal),
+    ...operationQueries.detail(userId, organizationId, operationId),
     enabled: !authorizationPending,
     refetchInterval: (state) =>
       state.state.data?.analyses.some(active) ? 2000 : false,
   });
   const history = useQuery({
-    queryKey: [
-      ...operationsKey(userId, organizationId),
-      'history',
+    ...operationQueries.history(
+      userId,
+      organizationId,
       operationId,
       historyPage,
-    ],
-    queryFn: ({ signal }) =>
-      listAnalysisHistory(organizationId, operationId, historyPage, signal),
+    ),
     enabled: !authorizationPending && showHistory,
   });
   const historicalRun = useQuery({
-    queryKey: [
-      ...operationsKey(userId, organizationId),
-      'run',
+    ...operationQueries.analysis(
+      userId,
+      organizationId,
       operationId,
       selectedRun,
       query.data?.fingerprint ?? '',
-    ],
-    queryFn: ({ signal }) =>
-      getAnalysis(organizationId, operationId, selectedRun, signal),
+    ),
     enabled:
       !authorizationPending &&
       Boolean(selectedRun) &&
       !query.data?.analyses.some((run) => run.id === selectedRun),
   });
-  const documentQueries = useQueries({
+  const documentResults = useQueries({
     queries: (query.data?.documentIds ?? []).map((documentId) => ({
-      queryKey: [...documentsKey(userId, organizationId), 'detail', documentId],
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        getDocument(organizationId, documentId, signal),
+      ...documentQueries.detail(userId, organizationId, documentId),
       enabled: !authorizationPending && query.isSuccess && !query.isError,
     })),
   });
@@ -137,11 +142,11 @@ export function OperationDetailView({
     setBusy(true);
     setError('');
     try {
-      const run = await requestAnalysis(
+      const run = await requestAnalysisMutation.mutateAsync([
         organizationId,
         operationId,
         attemptKey,
-      );
+      ]);
       if (!mounted.current) return;
       setAttemptKey(crypto.randomUUID());
       setSelectedRun(run.id);
@@ -184,7 +189,7 @@ export function OperationDetailView({
           ? 'Vinculá al menos un documento para analizar.'
           : undefined;
   const filenames = new Map(
-    documentQueries.flatMap((item) =>
+    documentResults.flatMap((item) =>
       item.data ? [[item.data.id, item.data.filename] as const] : [],
     ),
   );
@@ -201,7 +206,7 @@ export function OperationDetailView({
           Volver a operaciones
         </a>
       </p>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h2>{data.reference}</h2>
           <p>{data.name}</p>
@@ -210,6 +215,7 @@ export function OperationDetailView({
           <div className="operation-actions">
             {data.capabilities.canWrite && (
               <EditOperationDialog
+                userId={userId}
                 organizationId={organizationId}
                 operationId={operationId}
                 name={data.name}
@@ -227,7 +233,7 @@ export function OperationDetailView({
               onClick={() => {
                 void query.refetch();
                 void Promise.all(
-                  documentQueries.map((document) => document.refetch()),
+                  documentResults.map((document) => document.refetch()),
                 );
               }}
             >
@@ -267,7 +273,7 @@ export function OperationDetailView({
             </p>
           )}
         </div>
-      </div>
+      </PageHeader>
       {!data.capabilities.canWrite && (
         <p className="permission-note">
           Tu rol permite consultar los datos y resultados. No permite
@@ -379,9 +385,9 @@ export function OperationDetailView({
         ) : (
           <>
             <div className="field analysis-run-select">
-              <label htmlFor="analysis-run">
+              <Label htmlFor="analysis-run">
                 Análisis recientes (últimos 5)
-              </label>
+              </Label>
               <Select
                 id="analysis-run"
                 value={selected.id}
@@ -460,13 +466,15 @@ export function OperationDetailView({
           </>
         )}
       </section>
-      <details className="operation-panel">
-        <summary>Documentos ({data.documentIds.length} vinculados)</summary>{' '}
+      <Accordion className="operation-panel">
+        <AccordionTrigger>
+          Documentos ({data.documentIds.length} vinculados)
+        </AccordionTrigger>{' '}
         <section
           className="operation-section"
           aria-labelledby="operation-documents"
         >
-          <div className="page-header">
+          <PageHeader className="page-header">
             <h3 id="operation-documents">Documentos</h3>
             {data.capabilities.canWrite && (
               <LinkDialog
@@ -480,7 +488,7 @@ export function OperationDetailView({
                 onSaved={refresh}
               />
             )}
-          </div>
+          </PageHeader>
           {!data.documentIds.length ? (
             <EmptyState title="No hay documentos vinculados">
               <p>
@@ -495,7 +503,7 @@ export function OperationDetailView({
               searchLabel="Buscar documentos vinculados"
               data={data.documentIds.map((id, index) => ({
                 id,
-                query: documentQueries[index],
+                query: documentResults[index],
               }))}
               getRowId={(item) => item.id}
               columns={[
@@ -540,12 +548,12 @@ export function OperationDetailView({
             />
           )}
         </section>
-      </details>
-      <details className="operation-panel">
-        <summary>
+      </Accordion>
+      <Accordion className="operation-panel">
+        <AccordionTrigger>
           Datos para comparar ({data.facts.length} documentos ·{' '}
           {data.factRevisions.length} revisiones)
-        </summary>{' '}
+        </AccordionTrigger>{' '}
         <section
           className="operation-section"
           aria-labelledby="comparison-facts"
@@ -566,7 +574,7 @@ export function OperationDetailView({
           ) : (
             data.facts.map((fact) => (
               <article key={fact.documentId} className="comparison-fact">
-                <div className="page-header">
+                <PageHeader className="page-header">
                   <div>
                     <h4>
                       {filenames.get(fact.documentId) ?? 'Documento vinculado'}
@@ -579,6 +587,7 @@ export function OperationDetailView({
                   </div>
                   {data.capabilities.canWrite && (
                     <FactsEditor
+                      userId={userId}
                       key={fact.documentId}
                       organizationId={organizationId}
                       operationId={operationId}
@@ -591,7 +600,7 @@ export function OperationDetailView({
                       onSaved={refresh}
                     />
                   )}
-                </div>
+                </PageHeader>
                 <p className="back-link">
                   <a href={documentPath(organizationId, fact.documentId)}>
                     Ver extracción original
@@ -604,17 +613,19 @@ export function OperationDetailView({
                   · {fact.lines.length} partidas ·{' '}
                   {fact.excludedServices.length} exclusiones
                 </p>
-                <details>
-                  <summary>Ver datos y evidencia</summary>
+                <Accordion>
+                  <AccordionTrigger>Ver datos y evidencia</AccordionTrigger>
                   <FactSummary fact={fact} />
-                </details>
+                </Accordion>
               </article>
             ))
           )}
         </section>
-      </details>
-      <details className="operation-panel">
-        <summary>Historial de análisis y correcciones</summary>{' '}
+      </Accordion>
+      <Accordion className="operation-panel">
+        <AccordionTrigger>
+          Historial de análisis y correcciones
+        </AccordionTrigger>{' '}
         <Button
           variant="outline"
           aria-expanded={showHistory}
@@ -718,7 +729,7 @@ export function OperationDetailView({
             />
           </section>
         )}
-      </details>
+      </Accordion>
     </section>
   );
 }
@@ -849,27 +860,27 @@ function ResultTable({
                   : 'Comparación de partidas'
               }
             >
-              <table>
-                <caption className="sr-only">
+              <Table>
+                <TableCaption className="sr-only">
                   Importes esperados, facturados y diferencias con sus motivos ·{' '}
                   {operation.reference}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Proveedor / servicio</th>
-                    <th scope="col">Esperado</th>
-                    <th scope="col">Facturado</th>
-                    <th scope="col">Diferencia</th>
-                    <th scope="col">Moneda</th>
-                    <th scope="col">Resultado y motivo</th>
-                    <th scope="col">Evidencia</th>
-                    <th scope="col">Revisión humana</th>
-                  </tr>
-                </thead>
-                <tbody>
+                </TableCaption>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader scope="col">Proveedor / servicio</TableHeader>
+                    <TableHeader scope="col">Esperado</TableHeader>
+                    <TableHeader scope="col">Facturado</TableHeader>
+                    <TableHeader scope="col">Diferencia</TableHeader>
+                    <TableHeader scope="col">Moneda</TableHeader>
+                    <TableHeader scope="col">Resultado y motivo</TableHeader>
+                    <TableHeader scope="col">Evidencia</TableHeader>
+                    <TableHeader scope="col">Revisión humana</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {findings.map((finding, index) => (
-                    <tr key={index}>
-                      <td>
+                    <TableRow key={index}>
+                      <TableCell>
                         {run.snapshot.documents.find(
                           (document) =>
                             document.documentId === finding.documentId,
@@ -877,12 +888,12 @@ function ResultTable({
                         <small className="file-size">
                           {serviceLabels[finding.service] ?? finding.service}
                         </small>
-                      </td>
-                      <td>{finding.expected ?? 'Sin dato'}</td>
-                      <td>{finding.invoiced ?? 'Sin dato'}</td>
-                      <td>{finding.difference ?? 'Sin dato'}</td>
-                      <td>{finding.currency ?? 'Sin dato'}</td>
-                      <td>
+                      </TableCell>
+                      <TableCell>{finding.expected ?? 'Sin dato'}</TableCell>
+                      <TableCell>{finding.invoiced ?? 'Sin dato'}</TableCell>
+                      <TableCell>{finding.difference ?? 'Sin dato'}</TableCell>
+                      <TableCell>{finding.currency ?? 'Sin dato'}</TableCell>
+                      <TableCell>
                         <span
                           className={`result-status result-${finding.status}`}
                         >
@@ -897,25 +908,25 @@ function ResultTable({
                             <strong>Dato ausente:</strong> {note}
                           </p>
                         ))}
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <EvidenceList
                           evidence={finding.evidence}
                           filenames={filenames}
                           organizationId={organizationId}
                         />
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <FindingReviewCell
                           findingIndex={
                             run.result?.findings.indexOf(finding) ?? -1
                           }
                         />
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </TableRegion>
           </section>
         );

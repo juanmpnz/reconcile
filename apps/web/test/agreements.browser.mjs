@@ -179,6 +179,8 @@ const doc = (docId, kind) => ({
           updatedAt: now,
         },
       };
+    else if (path === '/api/v1/session-assurance')
+      result = { required: false, enrolled: false, verified: false };
     else if (path === '/api/auth/organization/list')
       result = [
         { id: org, name: 'Synthetic Logistics QA', slug: 'qa', createdAt: now },

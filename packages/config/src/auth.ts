@@ -7,6 +7,12 @@ const authSchema = z
     AUTH_BASE_URL: z.url(),
     WEB_ORIGIN: z.url(),
     AUTH_SECRET: z.string().min(32),
+    AUTH_REQUIRE_MFA: z
+      .enum(['true', 'false'])
+      .optional()
+      .transform((value) =>
+        value === undefined ? undefined : value === 'true',
+      ),
     MAIL_MODE: z.enum(['smtp', 'capture']).default('smtp'),
     SMTP_HOST: z.string().min(1).default('localhost'),
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),

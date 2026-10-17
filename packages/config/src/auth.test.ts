@@ -6,6 +6,20 @@ const development = {
   AUTH_SECRET: 'local-development-secret-replace-before-deployment-2026',
 };
 describe('authentication environment', () => {
+  it('parses explicit MFA policy without coercing false strings to true', () => {
+    expect(parseAuthConfig(development).AUTH_REQUIRE_MFA).toBeUndefined();
+    expect(
+      parseAuthConfig({ ...development, AUTH_REQUIRE_MFA: 'true' })
+        .AUTH_REQUIRE_MFA,
+    ).toBe(true);
+    expect(
+      parseAuthConfig({ ...development, AUTH_REQUIRE_MFA: 'false' })
+        .AUTH_REQUIRE_MFA,
+    ).toBe(false);
+    expect(() =>
+      parseAuthConfig({ ...development, AUTH_REQUIRE_MFA: 'yes' }),
+    ).toThrow();
+  });
   it('supports local SMTP and test-only capture', () => {
     expect(parseAuthConfig(development).MAIL_MODE).toBe('smtp');
     expect(

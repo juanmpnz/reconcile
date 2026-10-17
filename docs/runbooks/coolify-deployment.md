@@ -33,6 +33,8 @@ MAIL_FROM=REMITENTE_VERIFICADO
 
 El despliegue usa SMTP autenticado en el puerto 587 con STARTTLS obligatorio (SMTP_SECURE=false indica que TLS se negocia al conectar). Hace falta un proveedor real y un remitente autorizado; Mailpit y el modo capture son solo para desarrollo/pruebas. No compartir contraseñas en el chat ni incluirlas en Git. Las conexiones internas a base, Redis y S3 las configura el manifest; no usar localhost ni copiar las credenciales locales. Los secretos son de ejecución, no variables VITE ni argumentos de build.
 
+El Compose fija `AUTH_REQUIRE_MFA=true`: cada cuenta debe configurar un autenticador TOTP y verificarlo antes de acceder a organizaciones. Guardar los códigos de recuperación fuera de la aplicación; cada uno permite una sola recuperación. No regenerar `SERVICE_PASSWORD_64_AUTH`: además de firmar sesiones, protege los secretos MFA cifrados. La pérdida del autenticador y de todos los códigos no tiene un bypass automático. La migración conserva los datos existentes y exige un segundo factor a las sesiones anteriores.
+
 ## Dominio
 
 En Domains, asignar el dominio únicamente a `web`, puerto interno **8080**. Si Coolify pide una URL con puerto, introducir `https://tu-dominio-publico:8080`: ese sufijo selecciona el puerto del contenedor; el navegador seguirá usando HTTPS normal. `APP_URL` conserva `https://tu-dominio-publico`, sin `:8080`.

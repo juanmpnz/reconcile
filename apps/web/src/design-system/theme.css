@@ -1,0 +1,146 @@
+body {
+  background: var(--background, #fff);
+}
+h1 {
+  font-size: 22px;
+  letter-spacing: -0.6px;
+}
+.button-default {
+  background: #ff7a18;
+  border-color: #ff7a18;
+  color: #2f3238;
+  font-weight: 600;
+}
+.button-default:hover:not(:disabled) {
+  background: #ed6c0c;
+  color: #2f3238;
+}
+.button-outline {
+  background: #fff;
+}
+.tabs {
+  background: transparent;
+  gap: 24px;
+}
+.tabs a[aria-current='page'] {
+  border-color: #cf5b06;
+}
+.side-panel {
+  position: fixed;
+  z-index: 50;
+  inset: 0 0 0 auto;
+  width: min(560px, 100vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  background: #fff;
+  box-shadow: -16px 0 45px #0002;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-left: 1px solid var(--border);
+  animation: panel-enter 0.18s ease-out;
+}
+.side-panel-header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.side-panel-header > div {
+  flex: 1;
+  min-width: 0;
+}
+.side-panel-header .dialog-title {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+.side-panel-header .dialog-description {
+  margin: 0;
+  font-size: 12px;
+}
+.side-panel-header > .button {
+  flex: none;
+  padding: 0;
+  width: 32px;
+  min-height: 32px;
+  font-size: 24px;
+}
+.side-panel-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.side-panel-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.side-panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  overscroll-behavior: contain;
+}
+.side-panel-footer {
+  flex: none;
+  padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.side-panel-footer .dialog-actions {
+  margin: 0;
+}
+.side-panel-discard {
+  padding: 14px 24px;
+  background: #fff4e8;
+  border-bottom: 1px solid #e5c2a3;
+  font-size: 13px;
+}
+.side-panel-discard > p {
+  margin: 5px 0 10px;
+}
+.side-panel-discard > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@keyframes panel-enter {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (max-width: 500px) {
+  .side-panel {
+    width: 100vw;
+    border: 0;
+  }
+  .side-panel-header {
+    padding: 20px 16px 16px;
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+  .side-panel-scroll {
+    padding: 20px 16px;
+  }
+  .side-panel-footer {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  }
+  .side-panel-discard {
+    padding: 12px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-panel {
+    animation: none;
+  }
+}

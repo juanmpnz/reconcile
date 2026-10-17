@@ -1,29 +1,33 @@
-import { Select } from '../../components/ui/select';
-import { DataTable, renderStatus } from '../../components/ui/data-table';
+import { Label } from '../../design-system/controls';
+import { claimQueries } from './hooks';
+import { useDecideFindingMutation, useCreateClaimMutation } from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  FormActions,
+} from '../../design-system/layout';
+import { FormField, Textarea } from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
+import { DataTable, renderStatus } from '../../design-system/data-table';
 import { RebaseDialog } from './rebase-dialog';
 import { claimEligibility, followUpSummary } from './presentation';
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AnalysisRun, OperationReview } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
+import { Dialog } from '../../design-system/dialog';
 import {
   Badge,
   Button,
   Feedback,
   RequestError,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { useMounted } from '../../lib/use-mounted';
 import { timestampLabel, documentPath } from '../documents/api';
 import { ClaimDetailView } from './claim-detail';
-import {
-  ClaimConflictError,
-  createClaim,
-  decideFinding,
-  getReview,
-  reviewKey,
-} from './api';
+import { ClaimConflictError, reviewKey } from './api';
 const decisionLabels = {
   confirm: 'Confirmado por operador',
   accept: 'Diferencia aceptada',
@@ -72,8 +76,7 @@ export function ReviewWorkspace({
   const client = useQueryClient();
   const [claimId, setClaimId] = useState('');
   const query = useQuery({
-    queryKey: reviewKey(userId, organizationId, operationId),
-    queryFn: ({ signal }) => getReview(organizationId, operationId, signal),
+    ...claimQueries.review(userId, organizationId, operationId),
     enabled: !disabled,
   });
   async function refresh() {
@@ -218,6 +221,9 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
     refresh,
     openClaim,
   } = useReview();
+  const decideFindingMutation = useDecideFindingMutation(userId);
+  const createClaimMutation = useCreateClaimMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<'confirm' | 'accept' | 'dismiss'>(
     'confirm',
@@ -261,8 +267,8 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
             : 'Sin revisar'}
       </Badge>
       {history.length > 0 && (
-        <details>
-          <summary>Historial ({history.length})</summary>
+        <Accordion>
+          <AccordionTrigger>Historial ({history.length})</AccordionTrigger>
           {history.map((item) => (
             <div className="review-history-item" key={item.id}>
               <strong>{decisionLabels[item.action]}</strong>
@@ -273,7 +279,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
               </small>
             </div>
           ))}
-        </details>
+        </Accordion>
       )}
       {canWrite && (
         <Dialog
@@ -311,13 +317,18 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
               setError('');
               void (async () => {
                 try {
-                  await decideFinding(organizationId, operationId, run.id, {
-                    findingIndex,
-                    action,
-                    reason: reason.trim(),
-                    expectedVersion,
-                    expectedFingerprint,
-                  });
+                  await decideFindingMutation.mutateAsync([
+                    organizationId,
+                    operationId,
+                    run.id,
+                    {
+                      findingIndex,
+                      action,
+                      reason: reason.trim(),
+                      expectedVersion,
+                      expectedFingerprint,
+                    },
+                  ]);
                   if (!mounted.current) return;
                   await refresh();
                   if (mounted.current) setOpen(false);
@@ -345,8 +356,10 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
               {finding.invoiced ?? 'Sin importe'} {finding.currency ?? ''}
             </p>
             <p>{finding.explanation}</p>
-            <details>
-              <summary>Consultar evidencia ({finding.evidence.length})</summary>
+            <Accordion>
+              <AccordionTrigger>
+                Consultar evidencia ({finding.evidence.length})
+              </AccordionTrigger>
               {finding.evidence.map((item, index) => (
                 <div className="source-evidence" key={index}>
                   <a
@@ -359,11 +372,11 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
                   <blockquote>{item.snippet}</blockquote>
                 </div>
               ))}
-            </details>
-            <div className="field">
-              <label htmlFor={`decision-${findingIndex}`}>
+            </Accordion>
+            <FormField className="field">
+              <Label htmlFor={`decision-${findingIndex}`}>
                 Decisión humana
-              </label>
+              </Label>
               <Select
                 id={`decision-${findingIndex}`}
                 value={action}
@@ -382,17 +395,17 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
                 <option value="dismiss">Desestimar hallazgo</option>
                 <option value="accept">Aceptar diferencia</option>
               </Select>
-            </div>
+            </FormField>
             <p className="permission-note">
               Confirmar permite preparar una solicitud cuando hay respaldo.
               Desestimar conserva el hallazgo. Aceptar registra tu decisión sin
               modificar el acuerdo.
             </p>
-            <div className="field">
-              <label htmlFor={`decision-reason-${findingIndex}`}>
+            <FormField className="field">
+              <Label htmlFor={`decision-reason-${findingIndex}`}>
                 Motivo de la decisión
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 id={`decision-reason-${findingIndex}`}
                 rows={3}
                 maxLength={1000}
@@ -401,7 +414,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
               />
-            </div>
+            </FormField>
             {conflict && (
               <div className="document-warning">
                 <p>
@@ -424,7 +437,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
                 </Button>
               </div>
             )}
-            <div className="dialog-actions">
+            <FormActions className="dialog-actions">
               <Button
                 type="button"
                 variant="outline"
@@ -436,7 +449,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
               <Button pending={busy} disabled={conflict || !reason.trim()}>
                 {busy ? 'Guardando…' : 'Guardar decisión'}
               </Button>
-            </div>
+            </FormActions>
           </form>
         </Dialog>
       )}
@@ -454,12 +467,16 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
             setError('');
             void (async () => {
               try {
-                const claim = await createClaim(organizationId, operationId, {
-                  runId: run.id,
-                  findingIndex,
-                  expectedVersion: data.version,
-                  expectedFingerprint: data.fingerprint,
-                });
+                const claim = await createClaimMutation.mutateAsync([
+                  organizationId,
+                  operationId,
+                  {
+                    runId: run.id,
+                    findingIndex,
+                    expectedVersion: data.version,
+                    expectedFingerprint: data.fingerprint,
+                  },
+                ]);
                 if (!mounted.current) return;
                 await refresh();
                 if (mounted.current) openClaim(claim.id);
@@ -495,6 +512,7 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
         ['draft', 'exported'].includes(claim.status) &&
         data && (
           <RebaseDialog
+            userId={userId}
             claim={claim}
             run={run}
             findingIndex={findingIndex}

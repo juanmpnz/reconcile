@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { organization } from 'better-auth/plugins';
+import { organization, twoFactor } from 'better-auth/plugins';
 import { createTransport } from 'nodemailer';
 import type { PrismaClient } from '@reconcile/database';
 import { ac, roles, isOrganizationRole } from './permissions.js';
@@ -10,6 +10,7 @@ export interface AuthConfig {
   WEB_ORIGIN: string;
   AUTH_SECRET: string;
   NODE_ENV: string;
+  AUTH_REQUIRE_MFA?: boolean | undefined;
   MAIL_MODE: 'smtp' | 'capture';
   SMTP_HOST?: string;
   SMTP_PORT?: number;
@@ -30,11 +31,31 @@ export interface AuthOptions {
   config: AuthConfig;
   captureMail?: (message: AuthMail) => void | Promise<void>;
 }
+const preAssurancePaths = new Set([
+  '/get-session',
+  '/sign-out',
+  '/sign-in/email',
+  '/sign-up/email',
+  '/verify-email',
+  '/send-verification-email',
+  '/forget-password',
+  '/request-password-reset',
+  '/reset-password',
+  '/two-factor/enable',
+  '/two-factor/get-totp-uri',
+  '/two-factor/verify-totp',
+  '/two-factor/verify-backup-code',
+]);
+const requiredMfaInstances = new WeakSet<object>();
+export const authRequiresMfa = (auth: object): boolean =>
+  requiredMfaInstances.has(auth);
 const forbidden = () =>
   new APIError('FORBIDDEN', {
     message: 'This organization action is not permitted.',
   });
 export function createAuth({ prisma, config, captureMail }: AuthOptions) {
+  const requireMfa =
+    config.AUTH_REQUIRE_MFA ?? config.NODE_ENV === 'production';
   const base = new URL(config.AUTH_BASE_URL);
   const web = new URL(config.WEB_ORIGIN);
   if (
@@ -138,7 +159,15 @@ export function createAuth({ prisma, config, captureMail }: AuthOptions) {
         },
       },
     },
-    session: { cookieCache: { enabled: false } },
+    session: {
+      expiresIn: 60 * 60 * 8,
+      updateAge: 60 * 30,
+      freshAge: 60 * 15,
+      cookieCache: { enabled: false },
+      additionalFields: {
+        mfaVerifiedAt: { type: 'date', required: false, input: false },
+      },
+    },
     rateLimit: { enabled: true, storage: 'database' },
     emailAndPassword: {
       enabled: true,
@@ -168,12 +197,73 @@ export function createAuth({ prisma, config, captureMail }: AuthOptions) {
     },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (!preAssurancePaths.has(ctx.path)) {
+          const session = await auth.api.getSession({
+            headers: ctx.headers ?? new Headers(),
+            query: { disableCookieCache: true },
+          });
+          if (
+            session &&
+            (requireMfa || session.user.twoFactorEnabled) &&
+            (!session.user.twoFactorEnabled || !session.session.mfaVerifiedAt)
+          )
+            throw new APIError('FORBIDDEN', {
+              code: 'MFA_REQUIRED',
+              message: 'Complete two-factor verification.',
+            });
+        }
+        if (ctx.path.startsWith('/two-factor/')) {
+          if (
+            ctx.body &&
+            typeof ctx.body === 'object' &&
+            Reflect.get(ctx.body, 'trustDevice') === true
+          )
+            throw new APIError('BAD_REQUEST', {
+              code: 'TRUSTED_DEVICES_DISABLED',
+              message: 'Verify your second factor on every sign-in.',
+            });
+          if (requireMfa && ctx.path === '/two-factor/disable')
+            throw new APIError('FORBIDDEN', {
+              code: 'MFA_REQUIRED',
+              message: 'Two-factor authentication is required.',
+            });
+          if (
+            [
+              '/two-factor/enable',
+              '/two-factor/get-totp-uri',
+              '/two-factor/generate-backup-codes',
+              '/two-factor/disable',
+            ].includes(ctx.path)
+          ) {
+            const session = await auth.api.getSession({
+              headers: ctx.headers ?? new Headers(),
+              query: { disableCookieCache: true },
+            });
+            if (
+              session?.user.twoFactorEnabled &&
+              !session.session.mfaVerifiedAt
+            )
+              throw new APIError('FORBIDDEN', {
+                code: 'MFA_REQUIRED',
+                message:
+                  'Verify your current second factor before managing it.',
+              });
+          }
+        }
         if (!ctx.path.startsWith('/organization/')) return;
         const session = await auth.api.getSession({
           headers: ctx.headers ?? new Headers(),
           query: { disableCookieCache: true },
         });
         if (!session?.user.emailVerified) throw forbidden();
+        if (
+          requireMfa &&
+          (!session.user.twoFactorEnabled || !session.session.mfaVerifiedAt)
+        )
+          throw new APIError('FORBIDDEN', {
+            code: 'MFA_REQUIRED',
+            message: 'Complete two-factor verification.',
+          });
         if (
           ctx.path === '/organization/update-member-role' ||
           ctx.path === '/organization/remove-member'
@@ -222,8 +312,41 @@ export function createAuth({ prisma, config, captureMail }: AuthOptions) {
             throw forbidden();
         }
       }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (
+          ctx.path !== '/two-factor/verify-totp' &&
+          ctx.path !== '/two-factor/verify-backup-code'
+        )
+          return;
+        const result: unknown = ctx.context.returned;
+        if (
+          !result ||
+          typeof result !== 'object' ||
+          typeof Reflect.get(result, 'token') !== 'string'
+        )
+          return;
+        const proof = ctx.context.newSession ?? ctx.context.session;
+        if (!proof) return;
+        const user = await prisma.user.findUnique({
+          where: { id: proof.user.id },
+        });
+        if (!user?.twoFactorEnabled) return;
+        await prisma.session.updateMany({
+          where: { id: proof.session.id, userId: proof.user.id },
+          data: { mfaVerifiedAt: new Date() },
+        });
+      }),
     },
     plugins: [
+      twoFactor({
+        issuer: 'Reconcile',
+        skipVerificationOnEnable: false,
+        accountLockout: {
+          enabled: true,
+          maxFailedAttempts: 10,
+          durationSeconds: 900,
+        },
+      }),
       organization({
         ac,
         roles,
@@ -270,6 +393,7 @@ export function createAuth({ prisma, config, captureMail }: AuthOptions) {
       }),
     ],
   });
+  if (requireMfa) requiredMfaInstances.add(auth);
   return auth;
 }
 export type Auth = ReturnType<typeof createAuth>;

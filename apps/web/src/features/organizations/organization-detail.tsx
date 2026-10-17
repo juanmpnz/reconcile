@@ -1,6 +1,8 @@
+import { organizationQueries } from './hooks';
+import { PageHeader } from '../../design-system/layout';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { authClient } from '../../lib/auth';
+import { useCancelInvitationMutation } from './hooks';
 import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import {
@@ -13,21 +15,15 @@ import {
   forgetOrganization,
   rememberOrganization,
 } from '../../app/workspace-context';
-import { Badge, Feedback, RequestError } from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+import { Badge, Feedback, RequestError } from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { AgreementList } from '../agreements/agreement-list';
 import { DocumentList } from '../documents/document-list';
 import { DocumentDetailView } from '../documents/document-detail';
 import { OperationList } from '../operations/operation-list';
 import { OperationDetailView } from '../operations/operation-detail';
 import { DashboardView } from '../dashboard/dashboard';
-import {
-  getContext,
-  listInvitations,
-  listMembers,
-  organizationKey,
-  roleLabel,
-} from './queries';
+import { organizationKey, roleLabel } from './queries';
 import { InviteDialog } from './invite-dialog';
 import { MembersTable } from './members-table';
 import { InvitationsTable } from './invitations-table';
@@ -52,6 +48,7 @@ export function OrganizationDetail({
   documentId?: string | undefined;
   page: number;
 }) {
+  const cancelInvitation = useCancelInvitationMutation(userId);
   const route = useRoute();
   const requestedSize = Number(route.searchParams.get('limit') ?? 25);
   const memberPageSize = [25, 50, 100].includes(requestedSize)
@@ -64,12 +61,13 @@ export function OrganizationDetail({
   const [message, setMessage] = useState(navigationNotice);
   const [failed, setFailed] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
-  const key = organizationKey(userId, organizationId);
   const context = useQuery({
-    queryKey: [...key, 'context'],
-    queryFn: ({ signal }) => getContext(organizationId, signal),
+    ...organizationQueries.context(userId, organizationId),
   });
-  const canRead = context.isSuccess && !context.isFetching;
+  // Initial identity/organization authorization is blocking. A background
+  // membership refresh keeps existing forms mounted; a failed refresh hides
+  // private content immediately through the error branch below.
+  const canRead = context.isSuccess;
   useEffect(() => {
     if (canRead) rememberOrganization(userId, organizationId);
     if (context.isError) {
@@ -81,13 +79,16 @@ export function OrganizationDetail({
     }
   }, [canRead, context.isError, userId, organizationId, queryClient]);
   const members = useQuery({
-    queryKey: [...key, 'members', page, memberPageSize],
-    queryFn: () => listMembers(organizationId, page, memberPageSize),
+    ...organizationQueries.members(
+      userId,
+      organizationId,
+      page,
+      memberPageSize,
+    ),
     enabled: canRead && tab === 'members',
   });
   const invitations = useQuery({
-    queryKey: [...key, 'invitations'],
-    queryFn: () => listInvitations(organizationId),
+    ...organizationQueries.invitations(userId, organizationId),
     enabled: canRead && tab === 'invitations',
   });
   async function cancel(invitationId: string) {
@@ -96,14 +97,8 @@ export function OrganizationDetail({
     setCancelling(invitationId);
     setMessage('');
     try {
-      const result = await authClient.organization.cancelInvitation({
-        invitationId,
-      });
-      if (result.error) throw new Error(result.error.message);
+      await cancelInvitation.mutateAsync([organizationId, invitationId]);
       if (!mounted.current) return;
-      await queryClient.invalidateQueries({
-        queryKey: [...key, 'invitations'],
-      });
       if (mounted.current) {
         setFailed(false);
         setMessage('Invitación cancelada.');
@@ -150,7 +145,7 @@ export function OrganizationDetail({
       : [];
   return (
     <>
-      <div className="page-header workspace-page-header">
+      <PageHeader className="page-header workspace-page-header">
         <div>
           <h1>{team ? 'Equipo' : operational ? 'Operativa' : 'Resumen'}</h1>
           <p className="organization-metadata">
@@ -170,7 +165,7 @@ export function OrganizationDetail({
             }}
           />
         )}
-      </div>
+      </PageHeader>
       <Feedback message={message} error={failed} />
       {tabs.length > 0 && (
         <nav

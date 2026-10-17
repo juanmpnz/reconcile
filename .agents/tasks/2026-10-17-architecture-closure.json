@@ -1,0 +1,237 @@
+{
+  "id": "2026-10-17-architecture-closure",
+  "summary": "One internal design system, centralized Query transport/mutations, declarative private routes and server-enforced MFA/session boundaries.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root with ds_frontend, query_http and backend_security",
+  "scope": [
+    "apps/",
+    "packages/auth/",
+    "packages/config/",
+    "packages/database/",
+    "infra/",
+    "pnpm-lock.yaml",
+    "eslint.config.mjs",
+    "docs/",
+    ".agents/",
+    ".env.example"
+  ],
+  "acceptance": [
+    "Native controls live only inside the DS and lint prevents bypasses; existing forms, tables, orange/light theme and mobile side panels remain usable.",
+    "Every application request uses same-origin transport and centralized Query factories/mutations with tenant/user keys and explicit invalidation.",
+    "Anonymous, expired or unassured sessions cannot mount tenant screens; identity changes cancel and clear cached sensitive data.",
+    "Production MFA requires real TOTP enrollment or one-use recovery with per-session server proof; stale sessions and management/trusted-device bypasses are denied.",
+    "Strict types, lint, units, actual PostgreSQL HTTP tests, browser fixtures and production-container smoke pass before merge."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "solution-architect",
+    "frontend-engineer",
+    "ui-engineer",
+    "ux-designer",
+    "visual-designer",
+    "accessibility-reviewer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "platform-engineer",
+    "qa-engineer"
+  ],
+  "semanticRouting": "Cross-cutting UI, remote data, identity, schema and deployment hardening; no change to logistics financial rules, extraction or external connectors. Product acceptance is existing requested consistency plus required MFA for sensitive-data pilot; UX and security separately reviewed.",
+  "excludedRoles": [
+    {
+      "role": "logistics-domain",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/ds_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-frontend.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/ds_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-frontend.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/backend_security",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-backend.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/backend_security",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-backend.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Implemented source with independent architecture/security/UX checkpoints and actualCIacceptance evidence; exact scope and limits in linked report.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/closure_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Independent finalCI decoding:134units,65realHTTP,18browsergroups andproductioncontainers; priorfailures retained with fixes.",
+      "evidence": [".agents/reviews/architecture-closure-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check / Quality38994395387/job117283603703",
+      "status": "passed",
+      "result": "Head26d7dda testedmergef8dc37451734af4bc62d03214be1ba8dcaffe679:134units+8harness, formatting/lint/types/builds, migrations,65actualPostgreSQLHTTPtests and API/privateS3/Redis/workersmoke pass. This evidence-collection job stopped only at task stillreviewed; no globalgreenclaim for that run."
+    },
+    {
+      "command": "Browser38994395387/job117283603962",
+      "status": "passed",
+      "result": "All18groupsPASS at26d7dda/f8dc374: actualcustomcontrols, tablequery/selection, drafts/conflicts/focus, mobile,401private removal, anonymousdeepURLzeroorgcalls, syntheticMFAsetup/recovery/gates and actualbrowseroldrequestcancellationduringidentitychange. Explicit HTTPfixtures, no realbackendclaim. Initialselectorwaitfailure andcorrection retainedQA review."
+    },
+    {
+      "command": "Production38994395383/job117283603890",
+      "status": "passed",
+      "result": "Allthreeimages, migratedprivate stack, actualTOTP enrollment/challenge, securecookies, proxyCSP/frame/permissions and strict originalsandbox, >1MiBprivatePDF/worker, API-onlyrecreation anddurablePGRedisS3recoveryPASS. APIreusedsameIP, noIPchangerecoveryproof; noSMTPdeliveryoruser-serverdeployment."
+    },
+    {
+      "command": "pnpm exec vitest run apps/web/src/app/router.test.ts",
+      "status": "passed",
+      "result": "Three cases pass, including exactsafeemailcallbacknotice/invitation and externalURLrejection. Independently rerun by security reviewer."
+    },
+    {
+      "command": "pnpm harness:gate -- --base 16e258e8a2b34ca2e5869be09fe0a9d4cb1ce82c",
+      "status": "passed",
+      "result": "Final task records cover full changed scope and allapplicable reviews; initial missing .env.example scope declaration corrected, actual gate rerun recorded by coordinator."
+    }
+  ],
+  "findings": [
+    {
+      "id": "AC1",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "MFA enrollment flag alone would allow earlier sessions and seed-management bypass.",
+      "resolution": "Server-only per-session proof and management guards, unique factor, trustDevice denial. Independent source review plus all65HTTP andactualproductionTOTP acceptance passed."
+    },
+    {
+      "id": "AC2",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Sensitive cache could survive automatic identity transitions.",
+      "resolution": "Generation-gated cancellation/clear beforeprivatechildren andidentity/user/tenantkeys. Browserrace independently reviewed andpassed actualoldrequestabort,noolddata andnewmembershipgate."
+    },
+    {
+      "id": "AC3",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Background refetch unmounted editing forms.",
+      "resolution": "Pending-only gates/narrowinvalidation; actualbrowserdirtydraftsurvives heldbackgroundrefresh."
+    },
+    {
+      "id": "AC4",
+      "severity": "medium",
+      "status": "resolved",
+      "summary": "Safe-return filtering dropped valid login email callback notices/invitations.",
+      "resolution": "Separate same-origin callback validation from post-login loop prevention; independent review and three router tests passed."
+    }
+  ],
+  "limitations": [
+    "Actual Coolify TLS, proxy topology, firewall, encrypted external backups/restore and encryption at rest require server verification.",
+    "Parser worker threads are bounded but are not an OS security sandbox.",
+    "Browser fixtures are synthetic API acceptance; real authentication is exercised separately over HTTP and production smoke."
+  ],
+  "evidence": [
+    ".agents/reviews/architecture-closure-security.md",
+    ".agents/reviews/architecture-closure-ux.md",
+    ".agents/reviews/architecture-closure-qa.md",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38994395387",
+    "https://github.com/juanmpnz/reconcile/actions/runs/38994395383",
+    "docs/architecture/architecture-closure.md",
+    "docs/adr/0007-shared-web-and-session-assurance.md"
+  ],
+  "changeClass": "security",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Separate security/architecture, UX/accessibility and QA executions review implementation and runtime acceptance."
+}

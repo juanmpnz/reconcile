@@ -1,27 +1,40 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { claimQueries } from './hooks';
+import {
+  useExportClaimMutation,
+  useDownloadClaimExportMutation,
+  useSaveClaimMutation,
+  useRecordEventMutation,
+} from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  FormActions,
+  PageHeader,
+} from '../../design-system/layout';
+import {
+  Checkbox,
+  FormField,
+  Input,
+  Textarea,
+} from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { latestDraft } from './presentation';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ClaimDetail } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
+import { Dialog } from '../../design-system/dialog';
 import {
   Badge,
   Button,
   Feedback,
   RequestError,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { useMounted } from '../../lib/use-mounted';
 import { saveOriginal, timestampLabel, documentPath } from '../documents/api';
-import {
-  ClaimConflictError,
-  exportClaim,
-  downloadClaimExport,
-  getClaim,
-  recordEvent,
-  reviewKey,
-  saveClaim,
-} from './api';
+import { ClaimConflictError } from './api';
 const statuses = {
   draft: 'Borrador',
   exported: 'Exportado · no enviado',
@@ -53,17 +66,19 @@ export function ClaimDetailView({
   onBack: () => void;
   onChanged: () => Promise<void>;
 }) {
+  const exportClaimMutation = useExportClaimMutation(userId);
+  const downloadClaimExportMutation = useDownloadClaimExportMutation();
+
   const client = useQueryClient();
   const mounted = useMounted();
-  const key = [
-    ...reviewKey(userId, organizationId, operationId),
-    'claim',
+  const key = claimQueries.detail(
+    userId,
+    organizationId,
+    operationId,
     claimId,
-  ];
+  ).queryKey;
   const query = useQuery({
-    queryKey: key,
-    queryFn: ({ signal }) =>
-      getClaim(organizationId, operationId, claimId, signal),
+    ...claimQueries.detail(userId, organizationId, operationId, claimId),
     enabled: !disabled,
   });
   const [exporting, setExporting] = useState<'text' | 'dossier' | null>(null);
@@ -104,13 +119,13 @@ export function ClaimDetailView({
     setExporting(format);
     setMessage('');
     try {
-      const blob = await exportClaim(
+      const blob = await exportClaimMutation.mutateAsync([
         organizationId,
         operationId,
         claimId,
         claim.version,
         format,
-      );
+      ]);
       if (!mounted.current) return;
       saveOriginal(
         blob,
@@ -139,7 +154,7 @@ export function ClaimDetailView({
       <Button variant="ghost" onClick={onBack}>
         Volver a reclamos
       </Button>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h4 id="claim-detail-heading" tabIndex={-1}>
             Reclamo a {claim.provider}
@@ -151,7 +166,7 @@ export function ClaimDetailView({
           </p>
         </div>
         <Badge>{statuses[claim.status]}</Badge>
-      </div>
+      </PageHeader>
       <Feedback message={message} error={failed} />
       {claim.stale && (
         <div className="document-warning">
@@ -177,6 +192,7 @@ export function ClaimDetailView({
           </div>
           {canWrite && ['draft', 'exported'].includes(claim.status) && (
             <DraftDialog
+              userId={userId}
               claim={claim}
               disabled={disabled}
               organizationId={organizationId}
@@ -246,18 +262,18 @@ export function ClaimDetailView({
             </div>
           )}
           {fallback && (
-            <div className="field">
-              <label htmlFor="manual-claim-copy">
+            <FormField className="field">
+              <Label htmlFor="manual-claim-copy">
                 Texto para copiar manualmente
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 id="manual-claim-copy"
                 value={fallback}
                 readOnly
                 rows={8}
                 onFocus={(event) => event.target.select()}
               />
-            </div>
+            </FormField>
           )}
         </>
       ) : (
@@ -268,8 +284,8 @@ export function ClaimDetailView({
         y las referencias trazables; no incluye los archivos PDF. Los originales
         siguen privados. Descargar o copiar no registra un envío.
       </p>
-      <details>
-        <summary>Fuentes del reclamo</summary>
+      <Accordion>
+        <AccordionTrigger>Fuentes del reclamo</AccordionTrigger>
         <p>{claim.finding.explanation}</p>
         {claim.finding.evidence.map((item, index) => (
           <div className="source-evidence" key={index}>
@@ -279,7 +295,7 @@ export function ClaimDetailView({
             <blockquote>{item.snippet}</blockquote>
           </div>
         ))}
-      </details>
+      </Accordion>
       <div className="claim-followup">
         <h4>Seguimiento manual</h4>
         <p className="metadata">
@@ -294,6 +310,7 @@ export function ClaimDetailView({
         )}
         {canWrite && !['resolved', 'rejected'].includes(claim.status) && (
           <EventDialog
+            userId={userId}
             claim={claim}
             disabled={disabled}
             organizationId={organizationId}
@@ -301,8 +318,10 @@ export function ClaimDetailView({
             onSaved={refresh}
           />
         )}
-        <details>
-          <summary>Historial de seguimiento ({claim.events.length})</summary>
+        <Accordion>
+          <AccordionTrigger>
+            Historial de seguimiento ({claim.events.length})
+          </AccordionTrigger>
           {claim.events.map((event) => (
             <div className="review-history-item" key={event.id}>
               <strong>{statuses[event.status]}</strong>
@@ -318,10 +337,12 @@ export function ClaimDetailView({
               </small>
             </div>
           ))}
-        </details>
+        </Accordion>
       </div>
-      <details>
-        <summary>Exportaciones guardadas ({claim.exports.length})</summary>
+      <Accordion>
+        <AccordionTrigger>
+          Exportaciones guardadas ({claim.exports.length})
+        </AccordionTrigger>
         {claim.exports.map((item) => (
           <div className="review-history-item" key={item.id}>
             <strong>
@@ -339,12 +360,12 @@ export function ClaimDetailView({
                 setMessage('');
                 void (async () => {
                   try {
-                    const blob = await downloadClaimExport(
+                    const blob = await downloadClaimExportMutation.mutateAsync([
                       organizationId,
                       operationId,
                       claimId,
                       item.id,
-                    );
+                    ]);
                     if (!mounted.current) return;
                     saveOriginal(
                       blob,
@@ -375,9 +396,11 @@ export function ClaimDetailView({
             </Button>
           </div>
         ))}
-      </details>
-      <details>
-        <summary>Historial de fuentes ({claim.sources.length})</summary>
+      </Accordion>
+      <Accordion>
+        <AccordionTrigger>
+          Historial de fuentes ({claim.sources.length})
+        </AccordionTrigger>
         {claim.sources.map((source) => (
           <div className="review-history-item" key={source.version}>
             <strong>Fuente versión {source.version}</strong>
@@ -394,9 +417,11 @@ export function ClaimDetailView({
             ))}
           </div>
         ))}
-      </details>
-      <details>
-        <summary>Versiones del borrador ({claim.drafts.length})</summary>
+      </Accordion>
+      <Accordion>
+        <AccordionTrigger>
+          Versiones del borrador ({claim.drafts.length})
+        </AccordionTrigger>
         {claim.drafts.map((item) => (
           <div className="review-history-item" key={item.id}>
             <strong>
@@ -405,30 +430,34 @@ export function ClaimDetailView({
             </strong>
             <p>{item.reason}</p>
             <small>{timestampLabel(item.createdAt)}</small>
-            <details>
-              <summary>Ver texto de esta versión</summary>
+            <Accordion>
+              <AccordionTrigger>Ver texto de esta versión</AccordionTrigger>
               <p>Destinatario: {item.recipientEmail ?? 'Sin destinatario'}</p>
               <pre className="claim-version-text">{item.body}</pre>
-            </details>
+            </Accordion>
           </div>
         ))}
-      </details>
+      </Accordion>
     </article>
   );
 }
 function DraftDialog({
+  userId,
   claim,
   disabled,
   organizationId,
   operationId,
   onSaved,
 }: {
+  userId: string;
   claim: ClaimDetail;
   disabled: boolean;
   organizationId: string;
   operationId: string;
   onSaved: () => Promise<void>;
 }) {
+  const saveClaimMutation = useSaveClaimMutation(userId);
+
   const current = latestDraft(claim);
   const [open, setOpen] = useState(false);
   const [recipient, setRecipient] = useState('');
@@ -473,13 +502,18 @@ function DraftDialog({
           setError('');
           void (async () => {
             try {
-              await saveClaim(organizationId, operationId, claim.id, {
-                expectedVersion: version,
-                recipientEmail: recipient.trim() || null,
-                subject: subject.trim(),
-                body: body.trim(),
-                reason: reason.trim(),
-              });
+              await saveClaimMutation.mutateAsync([
+                organizationId,
+                operationId,
+                claim.id,
+                {
+                  expectedVersion: version,
+                  recipientEmail: recipient.trim() || null,
+                  subject: subject.trim(),
+                  body: body.trim(),
+                  reason: reason.trim(),
+                },
+              ]);
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -501,11 +535,11 @@ function DraftDialog({
         }}
       >
         <Feedback error message={error} />
-        <div className="field">
-          <label htmlFor="claim-recipient">
+        <FormField className="field">
+          <Label htmlFor="claim-recipient">
             Correo del destinatario (opcional)
-          </label>
-          <input
+          </Label>
+          <Input
             id="claim-recipient"
             type="email"
             maxLength={254}
@@ -513,10 +547,10 @@ function DraftDialog({
             disabled={busy}
             onChange={(event) => setRecipient(event.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="claim-subject">Asunto</label>
-          <input
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-subject">Asunto</Label>
+          <Input
             id="claim-subject"
             required
             maxLength={200}
@@ -524,10 +558,10 @@ function DraftDialog({
             disabled={busy}
             onChange={(event) => setSubject(event.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="claim-body">Cuerpo del correo</label>
-          <textarea
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-body">Cuerpo del correo</Label>
+          <Textarea
             id="claim-body"
             rows={10}
             required
@@ -536,10 +570,10 @@ function DraftDialog({
             disabled={busy}
             onChange={(event) => setBody(event.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="claim-draft-reason">Motivo del cambio</label>
-          <textarea
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-draft-reason">Motivo del cambio</Label>
+          <Textarea
             id="claim-draft-reason"
             rows={2}
             required
@@ -548,16 +582,16 @@ function DraftDialog({
             disabled={busy}
             onChange={(event) => setReason(event.target.value)}
           />
-        </div>
+        </FormField>
         {conflict && (
           <div className="document-warning">
             <strong>Borrador guardado actualmente</strong>
             <p>{current?.subject}</p>
             <p>{current?.recipientEmail ?? 'Sin destinatario'}</p>
-            <details>
-              <summary>Comparar texto guardado</summary>
+            <Accordion>
+              <AccordionTrigger>Comparar texto guardado</AccordionTrigger>
               <pre className="claim-version-text">{current?.body}</pre>
-            </details>
+            </Accordion>
             <Button
               variant="outline"
               type="button"
@@ -572,7 +606,7 @@ function DraftDialog({
             </Button>
           </div>
         )}
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -589,24 +623,28 @@ function DraftDialog({
           >
             Guardar borrador
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );
 }
 function EventDialog({
+  userId,
   claim,
   disabled,
   organizationId,
   operationId,
   onSaved,
 }: {
+  userId: string;
   claim: ClaimDetail;
   disabled: boolean;
   organizationId: string;
   operationId: string;
   onSaved: () => Promise<void>;
 }) {
+  const recordEventMutation = useRecordEventMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<
     'sent' | 'in_review' | 'follow_up' | 'resolved' | 'rejected'
@@ -685,22 +723,29 @@ function EventDialog({
           setError('');
           void (async () => {
             try {
-              await recordEvent(organizationId, operationId, claim.id, {
-                expectedVersion: version,
-                status,
-                reason: reason.trim(),
-                occurredAt: occurredAt.toISOString(),
-                dueDate: dueDate || null,
-                ...(status === 'sent' ? { recipientConfirmed: confirmed } : {}),
-                ...(status === 'resolved' || status === 'rejected'
-                  ? {
-                      outcome:
-                        status === 'rejected'
-                          ? 'rejected'
-                          : outcome || undefined,
-                    }
-                  : {}),
-              });
+              await recordEventMutation.mutateAsync([
+                organizationId,
+                operationId,
+                claim.id,
+                {
+                  expectedVersion: version,
+                  status,
+                  reason: reason.trim(),
+                  occurredAt: occurredAt.toISOString(),
+                  dueDate: dueDate || null,
+                  ...(status === 'sent'
+                    ? { recipientConfirmed: confirmed }
+                    : {}),
+                  ...(status === 'resolved' || status === 'rejected'
+                    ? {
+                        outcome:
+                          status === 'rejected'
+                            ? 'rejected'
+                            : outcome || undefined,
+                      }
+                    : {}),
+                },
+              ]);
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -722,8 +767,8 @@ function EventDialog({
         }}
       >
         <Feedback error message={error} />
-        <div className="field">
-          <label htmlFor="claim-status">Acción realizada</label>
+        <FormField className="field">
+          <Label htmlFor="claim-status">Acción realizada</Label>
           <Select
             id="claim-status"
             value={status}
@@ -751,10 +796,10 @@ function EventDialog({
               </>
             )}
           </Select>
-        </div>
-        <div className="field">
-          <label htmlFor="claim-event-date">Fecha y hora de la acción</label>
-          <input
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-event-date">Fecha y hora de la acción</Label>
+          <Input
             id="claim-event-date"
             type="datetime-local"
             step="1"
@@ -764,10 +809,10 @@ function EventDialog({
             disabled={busy}
             onChange={(event) => setDate(event.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="claim-event-note">Nota o motivo</label>
-          <textarea
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-event-note">Nota o motivo</Label>
+          <Textarea
             id="claim-event-note"
             rows={3}
             required
@@ -776,13 +821,13 @@ function EventDialog({
             disabled={busy}
             onChange={(event) => setReason(event.target.value)}
           />
-        </div>
-        <div className="field">
-          <label htmlFor="claim-due-date">
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor="claim-due-date">
             Próximo seguimiento
             {status === 'follow_up' ? ' (obligatorio)' : ' (opcional)'}
-          </label>
-          <input
+          </Label>
+          <Input
             id="claim-due-date"
             type="date"
             value={dueDate}
@@ -790,11 +835,10 @@ function EventDialog({
             disabled={busy}
             onChange={(event) => setDueDate(event.target.value)}
           />
-        </div>
+        </FormField>
         {status === 'sent' && (
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
+          <Label className="checkbox-label">
+            <Checkbox
               required
               checked={confirmed}
               disabled={busy}
@@ -804,14 +848,14 @@ function EventDialog({
             destinatario{' '}
             {latestDraft(claim)?.recipientEmail ??
               '(falta guardar el destinatario en el borrador)'}
-          </label>
+          </Label>
         )}
         {status === 'rejected' && (
           <p className="permission-note">Resultado del registro: Rechazado.</p>
         )}
         {status === 'resolved' && (
-          <div className="field">
-            <label htmlFor="claim-outcome">Resultado registrado</label>
+          <FormField className="field">
+            <Label htmlFor="claim-outcome">Resultado registrado</Label>
             <Select
               id="claim-outcome"
               required
@@ -839,7 +883,7 @@ function EventDialog({
                 Retirado según el motivo registrado
               </option>
             </Select>
-          </div>
+          </FormField>
         )}
         {conflict && (
           <div className="document-warning">
@@ -860,7 +904,7 @@ function EventDialog({
             </Button>
           </div>
         )}
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -883,7 +927,7 @@ function EventDialog({
           >
             Guardar seguimiento
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

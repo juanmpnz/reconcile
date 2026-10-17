@@ -32,6 +32,9 @@ export async function chooseSelect(page, trigger, value) {
   const label = (await option.textContent()).replace('✓', '').trim();
   await option.click();
   await page.getByRole('listbox').waitFor({ state: 'hidden' });
+  // Router-controlled values may settle after the menu closes. Require the
+  // visible label to arrive rather than reading the previous render once.
+  await trigger.filter({ hasText: label }).waitFor({ state: 'visible' });
   assert.ok(
     (await trigger.textContent()).includes(label),
     `selected option ${value} is displayed`,

@@ -1,10 +1,16 @@
+import { Label } from '../../design-system/controls';
+import { useRebaseClaimMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { FormField, Textarea } from '../../design-system/controls';
+
 import { useState } from 'react';
 import type { AnalysisRun, OperationReview } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
-import { ClaimConflictError, rebaseClaim } from './api';
+import { ClaimConflictError } from './api';
 export function RebaseDialog({
+  userId,
   claim,
   run,
   findingIndex,
@@ -13,6 +19,7 @@ export function RebaseDialog({
   onSaved,
   onRefresh,
 }: {
+  userId: string;
   claim: OperationReview['claims'][number];
   run: AnalysisRun;
   findingIndex: number;
@@ -21,6 +28,8 @@ export function RebaseDialog({
   onSaved: (id: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
+  const rebaseClaimMutation = useRebaseClaimMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -63,7 +72,7 @@ export function RebaseDialog({
           setError('');
           void (async () => {
             try {
-              const result = await rebaseClaim(
+              const result = await rebaseClaimMutation.mutateAsync([
                 review.organizationId,
                 review.operationId,
                 claim.id,
@@ -75,7 +84,7 @@ export function RebaseDialog({
                   findingIndex,
                   reason: reason.trim(),
                 },
-              );
+              ]);
               if (!mounted.current) return;
               await onSaved(result.id);
               if (mounted.current) setOpen(false);
@@ -111,11 +120,11 @@ export function RebaseDialog({
           Se usará la confirmación humana vigente de este hallazgo. El servidor
           comprobará los importes y la identidad de la factura.
         </p>
-        <div className="field">
-          <label htmlFor={`rebase-reason-${findingIndex}`}>
+        <FormField className="field">
+          <Label htmlFor={`rebase-reason-${findingIndex}`}>
             Motivo de la actualización
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id={`rebase-reason-${findingIndex}`}
             required
             rows={3}
@@ -124,7 +133,7 @@ export function RebaseDialog({
             disabled={busy}
             onChange={(event) => setReason(event.target.value)}
           />
-        </div>
+        </FormField>
         {conflict && (
           <div className="document-warning">
             <p>
@@ -148,7 +157,7 @@ export function RebaseDialog({
             </Button>
           </div>
         )}
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -160,7 +169,7 @@ export function RebaseDialog({
           <Button pending={busy} disabled={conflict || !reason.trim()}>
             Actualizar respaldo
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

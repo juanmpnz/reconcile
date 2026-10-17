@@ -1,11 +1,16 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { useSaveFactsMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { FormField, Input, Textarea } from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { useId, useState } from 'react';
 import type { AnalysisDocumentInput } from '@reconcile/contracts';
 import { analysisDocumentSchema } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
-import { saveFacts } from './api';
+
 const textFields = [
   ['provider', 'Proveedor'],
   ['operationReference', 'Referencia de operación'],
@@ -26,6 +31,7 @@ const services = [
   ['pickup', 'Recogida'],
 ] as const;
 export function FactsEditor({
+  userId,
   organizationId,
   operationId,
   document,
@@ -34,6 +40,7 @@ export function FactsEditor({
   disabled,
   onSaved,
 }: {
+  userId: string;
   organizationId: string;
   operationId: string;
   document: AnalysisDocumentInput;
@@ -42,6 +49,8 @@ export function FactsEditor({
   disabled: boolean;
   onSaved: () => Promise<void>;
 }) {
+  const saveFactsMutation = useSaveFactsMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(document);
   const [reason, setReason] = useState('');
@@ -87,13 +96,13 @@ export function FactsEditor({
           setError('');
           void (async () => {
             try {
-              await saveFacts(
+              await saveFactsMutation.mutateAsync([
                 organizationId,
                 operationId,
                 editingFingerprint,
                 parsed.data,
                 reason.trim(),
-              );
+              ]);
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -135,9 +144,9 @@ export function FactsEditor({
                 draft.kind !== 'operational-record'),
           )
           .map(([key, label]) => (
-            <div className="field" key={key}>
-              <label htmlFor={`${id}-${key}`}>{label}</label>
-              <input
+            <FormField className="field" key={key}>
+              <Label htmlFor={`${id}-${key}`}>{label}</Label>
+              <Input
                 id={`${id}-${key}`}
                 value={draft[key] ?? ''}
                 disabled={busy}
@@ -146,11 +155,11 @@ export function FactsEditor({
                   setDraft({ ...draft, [key]: event.target.value || null })
                 }
               />
-            </div>
+            </FormField>
           ))}
         {draft.kind === 'agreement' && (
-          <div className="field">
-            <label htmlFor={`${id}-basis`}>Base del acuerdo</label>
+          <FormField className="field">
+            <Label htmlFor={`${id}-basis`}>Base del acuerdo</Label>
             <Select
               id={`${id}-basis`}
               value={draft.agreementBasis}
@@ -169,11 +178,11 @@ export function FactsEditor({
               <option value="accepted">Acuerdo aceptado por las partes</option>
               <option value="internal-estimate">Estimación interna</option>
             </Select>
-          </div>
+          </FormField>
         )}
         {draft.kind === 'operational-record' && (
-          <div className="field">
-            <label htmlFor={`${id}-completed`}>Estado del servicio</label>
+          <FormField className="field">
+            <Label htmlFor={`${id}-completed`}>Estado del servicio</Label>
             <Select
               id={`${id}-completed`}
               value={draft.serviceStatus}
@@ -189,7 +198,7 @@ export function FactsEditor({
               <option value="unknown">Sin verificar</option>
               <option value="completed">Realizado según la evidencia</option>
             </Select>
-          </div>
+          </FormField>
         )}
         <h3>Partidas</h3>
         {draft.lines.length === 0 && (
@@ -210,9 +219,9 @@ export function FactsEditor({
                 ['amount', 'Importe'],
               ] as const
             ).map(([key, label]) => (
-              <div className="field" key={key}>
-                <label htmlFor={`${id}-${index}-${key}`}>{label}</label>
-                <input
+              <FormField className="field" key={key}>
+                <Label htmlFor={`${id}-${index}-${key}`}>{label}</Label>
+                <Input
                   id={`${id}-${index}-${key}`}
                   value={line[key] ?? ''}
                   disabled={busy}
@@ -235,10 +244,10 @@ export function FactsEditor({
                     })
                   }
                 />
-              </div>
+              </FormField>
             ))}
-            <div className="field">
-              <label htmlFor={`${id}-${index}-service`}>Servicio</label>
+            <FormField className="field">
+              <Label htmlFor={`${id}-${index}-service`}>Servicio</Label>
               <Select
                 id={`${id}-${index}-service`}
                 value={line.service}
@@ -264,7 +273,7 @@ export function FactsEditor({
                   </option>
                 ))}
               </Select>
-            </div>
+            </FormField>
             {line.evidence.map((item, evidenceIndex) => (
               <blockquote className="source-evidence" key={evidenceIndex}>
                 Página {item.page}: {item.snippet}
@@ -284,10 +293,10 @@ export function FactsEditor({
               draft.excludedServices.map((item, index) => (
                 <fieldset className="analysis-line-editor" key={index}>
                   <legend>Exclusión {index + 1}</legend>
-                  <div className="field">
-                    <label htmlFor={`${id}-exclude-${index}`}>
+                  <FormField className="field">
+                    <Label htmlFor={`${id}-exclude-${index}`}>
                       Servicio excluido
-                    </label>
+                    </Label>
                     <Select
                       id={`${id}-exclude-${index}`}
                       value={item.service}
@@ -316,12 +325,12 @@ export function FactsEditor({
                         </option>
                       ))}
                     </Select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor={`${id}-exclude-route-${index}`}>
+                  </FormField>
+                  <FormField className="field">
+                    <Label htmlFor={`${id}-exclude-route-${index}`}>
                       Ruta o tramo de la exclusión
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id={`${id}-exclude-route-${index}`}
                       value={item.route ?? ''}
                       disabled={busy}
@@ -337,7 +346,7 @@ export function FactsEditor({
                         })
                       }
                     />
-                  </div>
+                  </FormField>
                   {item.evidence.map((entry, position) => (
                     <blockquote key={position} className="source-evidence">
                       Página {entry.page}: {entry.snippet}
@@ -348,9 +357,9 @@ export function FactsEditor({
             )}
           </>
         )}
-        <div className="field">
-          <label htmlFor={`${id}-reason`}>Motivo de la revisión</label>
-          <textarea
+        <FormField className="field">
+          <Label htmlFor={`${id}-reason`}>Motivo de la revisión</Label>
+          <Textarea
             id={`${id}-reason`}
             required
             maxLength={500}
@@ -359,8 +368,8 @@ export function FactsEditor({
             disabled={busy}
             onChange={(event) => setReason(event.target.value)}
           />
-        </div>
-        <div className="dialog-actions">
+        </FormField>
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -372,7 +381,7 @@ export function FactsEditor({
           <Button pending={busy} disabled={!reason.trim()}>
             {busy ? 'Guardando…' : 'Guardar revisión'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

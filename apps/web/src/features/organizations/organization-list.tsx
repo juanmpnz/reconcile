@@ -1,24 +1,25 @@
-import { DataTable, renderLink } from '../../components/ui/data-table';
-import { Loading } from '../../components/ui/loading';
+import { organizationQueries } from './hooks';
+import { PageHeader } from '../../design-system/layout';
+import { DataTable, renderLink } from '../../design-system/data-table';
+import { Loading } from '../../design-system/loading';
 import { useQuery } from '@tanstack/react-query';
-import { EmptyState, RequestError } from '../../components/ui/primitives';
+import { EmptyState, RequestError } from '../../design-system/primitives';
 import { organizationPath, navigate } from '../../app/router';
 import { CreateOrganizationDialog } from './create-dialog';
-import { identityKey, listOrganizations } from './queries';
+
 export function OrganizationList({ userId }: { userId: string }) {
   const organizations = useQuery({
-    queryKey: identityKey(userId),
-    queryFn: listOrganizations,
+    ...organizationQueries.list(userId),
   });
   return (
     <>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h1>Organizaciones</h1>
           <p>Gestioná tus espacios y el acceso de tu equipo.</p>
         </div>
         <CreateOrganizationDialog userId={userId} />
-      </div>
+      </PageHeader>
       {organizations.isPending ? (
         <Loading label="Cargando organizaciones…" rows={4} />
       ) : organizations.isError ? (

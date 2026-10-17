@@ -1,3 +1,4 @@
+import { httpFetch, HttpError, parseHttpResponse } from '../../lib/http';
 import { serverListParams, type ServerListOptions } from '../../lib/list-query';
 import { z } from 'zod';
 import {
@@ -20,12 +21,12 @@ export const operationPath = (organizationId: string, operationId: string) =>
   `/organizations/${encodeURIComponent(organizationId)}/operations/${encodeURIComponent(operationId)}`;
 const endpoint = (organizationId: string, operationId?: string) =>
   `/api/v1/organizations/${encodeURIComponent(organizationId)}/operations${operationId ? `/${encodeURIComponent(operationId)}` : ''}`;
-export class OperationConflictError extends Error {
+export class OperationConflictError extends HttpError {
   constructor(
-    readonly code: string,
+    override readonly code: string,
     message: string,
   ) {
-    super(message);
+    super(409, message, code);
     this.name = 'OperationConflictError';
   }
 }
@@ -40,7 +41,7 @@ const conflictMessages: Record<string, string> = {
     'Ya existe una operación con esa referencia. Elegí otra referencia.',
 };
 async function request(url: string, init: RequestInit = {}) {
-  const response = await fetch(url, { ...init, credentials: 'include' });
+  const response = await httpFetch(url, { ...init, credentials: 'include' });
   if (response.status === 409) {
     const body: unknown = await response.json().catch(() => null);
     const parsed = z
@@ -56,7 +57,8 @@ async function request(url: string, init: RequestInit = {}) {
     );
   }
   if (!response.ok)
-    throw new Error(
+    throw new HttpError(
+      response.status,
       response.status === 401
         ? 'Tu sesión expiró. Volvé a iniciar sesión.'
         : response.status === 403 || response.status === 404
@@ -75,12 +77,11 @@ async function request(url: string, init: RequestInit = {}) {
   return body;
 }
 function parseResponse<T>(schema: z.ZodType<T>, body: unknown): T {
-  const parsed = schema.safeParse(body);
-  if (!parsed.success)
-    throw new Error(
-      'La respuesta del servicio no es válida. Actualizá o volvé a intentar.',
-    );
-  return parsed.data;
+  return parseHttpResponse(
+    schema,
+    body,
+    'La respuesta del servicio no es válida. Actualizá o volvé a intentar.',
+  );
 }
 const json = (body: unknown, method = 'POST'): RequestInit => ({
   method,

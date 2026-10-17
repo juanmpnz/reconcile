@@ -3,8 +3,8 @@ import {
   DataTable,
   renderDate,
   renderStatus,
-} from '../../components/ui/data-table';
-import { Button } from '../../components/ui/primitives';
+} from '../../design-system/data-table';
+import { Button } from '../../design-system/primitives';
 import { roleLabel } from './queries';
 import type { invitationsSchema } from './queries';
 type Invitation = z.infer<typeof invitationsSchema>[number];

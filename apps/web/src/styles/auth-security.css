@@ -1,0 +1,47 @@
+/* Sensitive enrollment data remains readable and contained on small screens. */
+.account-card {
+  min-width: 0;
+}
+.account-card img {
+  max-width: 100%;
+  height: auto;
+}
+.mfa-secret {
+  display: block;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.mfa-backup-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  list-style: none;
+  padding: 12px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.mfa-backup-codes li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mfa-backup-codes code {
+  font-size: 12px;
+  user-select: all;
+}
+@media (max-width: 420px) {
+  .mfa-backup-codes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-card > .button {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

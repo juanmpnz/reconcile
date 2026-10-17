@@ -1,11 +1,14 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { FormActions } from '../../design-system/layout';
+import { FormField } from '../../design-system/controls';
+import { Select } from '../../design-system/select';
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { authClient } from '../../lib/auth';
+
+import { useInviteMemberMutation } from './hooks';
 import { errorMessage, value } from '../../lib/forms';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback, Field } from '../../components/ui/primitives';
-import { organizationKey } from './queries';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback, Field } from '../../design-system/primitives';
+
 export function InviteDialog({
   userId,
   organizationId,
@@ -19,7 +22,7 @@ export function InviteDialog({
   disabled: boolean;
   onSuccess: (message: string) => void;
 }) {
-  const queryClient = useQueryClient();
+  const inviteMember = useInviteMemberMutation(userId);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -47,18 +50,7 @@ export function InviteDialog({
           setError('');
           void (async () => {
             try {
-              const result = await authClient.organization.inviteMember({
-                organizationId,
-                email,
-                role,
-              });
-              if (result.error) throw new Error(result.error.message);
-              await queryClient.invalidateQueries({
-                queryKey: [
-                  ...organizationKey(userId, organizationId),
-                  'invitations',
-                ],
-              });
+              await inviteMember.mutateAsync([organizationId, { email, role }]);
               setOpen(false);
               onSuccess('Invitación enviada.');
             } catch (error) {
@@ -76,14 +68,14 @@ export function InviteDialog({
           type="email"
           autoComplete="email"
         />
-        <div className="field">
-          <label htmlFor="invite-role">Permiso</label>
+        <FormField className="field">
+          <Label htmlFor="invite-role">Permiso</Label>
           <Select id="invite-role" name="invite-role">
             <option value="analyst">Analista</option>
             <option value="viewer">Lector</option>
           </Select>
-        </div>
-        <div className="dialog-actions">
+        </FormField>
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -98,7 +90,7 @@ export function InviteDialog({
           <Button pending={busy} disabled={busy || disabled}>
             {busy ? 'Enviando…' : 'Enviar invitación'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

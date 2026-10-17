@@ -1,24 +1,22 @@
-import { DataTable, renderLink } from '../../components/ui/data-table';
+import { operationQueries } from './hooks';
+import { useCreateOperationMutation } from './hooks';
+import { FormActions, PageHeader } from '../../design-system/layout';
+import { DataTable, renderLink } from '../../design-system/data-table';
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Button,
   Feedback,
   Field,
   RequestError,
-} from '../../components/ui/primitives';
-import { Dialog } from '../../components/ui/dialog';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Loading } from '../../design-system/loading';
 import { navigate, useRoute } from '../../app/router';
 import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import { timestampLabel } from '../documents/api';
-import {
-  createOperation,
-  listOperations,
-  operationPath,
-  operationsKey,
-} from './api';
+import { operationPath } from './api';
 export function OperationList({
   userId,
   organizationId,
@@ -32,6 +30,8 @@ export function OperationList({
   canWrite: boolean;
   disabled: boolean;
 }) {
+  const createOperationMutation = useCreateOperationMutation(userId);
+
   const route = useRoute();
   const q = (route.searchParams.get('q') ?? '').slice(0, 200);
   const sortValue = route.searchParams.get('sort');
@@ -64,29 +64,18 @@ export function OperationList({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const mounted = useMounted();
-  const client = useQueryClient();
   const query = useQuery({
-    queryKey: [
-      ...operationsKey(userId, organizationId),
-      'list',
-      page,
+    ...operationQueries.list(userId, organizationId, page, {
       q,
       sort,
       direction,
       limit,
-    ],
-    queryFn: ({ signal }) =>
-      listOperations(organizationId, page, signal, {
-        q,
-        sort,
-        direction,
-        limit,
-      }),
+    }),
     enabled: !disabled,
   });
   return (
     <section>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h2>Operaciones</h2>
           <p>
@@ -119,14 +108,16 @@ export function OperationList({
                 setError('');
                 void (async () => {
                   try {
-                    const operation = await createOperation(organizationId, {
-                      reference: reference.trim(),
-                      name: name.trim(),
-                    });
+                    const operation = await createOperationMutation.mutateAsync(
+                      [
+                        organizationId,
+                        {
+                          reference: reference.trim(),
+                          name: name.trim(),
+                        },
+                      ],
+                    );
                     if (!mounted.current) return;
-                    await client.invalidateQueries({
-                      queryKey: operationsKey(userId, organizationId),
-                    });
                     if (mounted.current)
                       navigate(operationPath(organizationId, operation.id));
                   } catch (error) {
@@ -154,7 +145,7 @@ export function OperationList({
                 onChange={(event) => setName(event.target.value)}
                 disabled={busy}
               />
-              <div className="dialog-actions">
+              <FormActions className="dialog-actions">
                 <Button
                   type="button"
                   variant="outline"
@@ -169,11 +160,11 @@ export function OperationList({
                 >
                   {busy ? 'Creando…' : 'Crear operación'}
                 </Button>
-              </div>
+              </FormActions>
             </form>
           </Dialog>
         )}
-      </div>
+      </PageHeader>
       {!canWrite && (
         <p className="permission-note">
           Tu rol permite consultar operaciones y resultados. No permite

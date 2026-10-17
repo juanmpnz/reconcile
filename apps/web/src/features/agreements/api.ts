@@ -1,3 +1,4 @@
+import { httpFetch, HttpError, readHttpJson } from '../../lib/http';
 import { serverListParams, type ServerListOptions } from '../../lib/list-query';
 import { z } from 'zod';
 import {
@@ -14,13 +15,17 @@ export const agreementsKey = (userId: string, organizationId: string) => [
 ];
 const endpoint = (organizationId: string) =>
   `/api/v1/organizations/${encodeURIComponent(organizationId)}/agreements`;
-export class AgreementConflictError extends Error {}
+export class AgreementConflictError extends HttpError {
+  constructor(message: string) {
+    super(409, message);
+  }
+}
 async function request<T>(
   url: string,
   schema: z.ZodType<T>,
   init: RequestInit,
 ) {
-  const response = await fetch(url, { ...init, credentials: 'include' });
+  const response = await httpFetch(url, { ...init, credentials: 'include' });
   if (response.status === 409)
     throw new AgreementConflictError(
       'Los datos cambiaron o hay un análisis activo. Recargá y revisá tu selección antes de guardar.',
@@ -44,7 +49,8 @@ async function request<T>(
       INVALID_AGREEMENT_EVIDENCE:
         'La cita no corresponde al texto de la página original. Revisá la evidencia.',
     };
-    throw new Error(
+    throw new HttpError(
+      response.status,
       parsed.success
         ? (messages[parsed.data.code] ??
             'Revisá los campos, las vigencias y la evidencia del PDF.')
@@ -52,14 +58,18 @@ async function request<T>(
     );
   }
   if (!response.ok)
-    throw new Error(
+    throw new HttpError(
+      response.status,
       response.status === 403 || response.status === 404
         ? 'El acuerdo no está disponible o cambió tu acceso.'
         : response.status === 400 || response.status === 422
           ? 'Revisá los campos, las vigencias y la evidencia del PDF.'
           : 'No se pudo completar la solicitud. Volvé a intentar.',
     );
-  const body: unknown = await response.json();
+  const body: unknown = await readHttpJson(
+    response,
+    'La respuesta de acuerdos no es válida. Recargá los datos.',
+  );
   const result = schema.safeParse(body);
   if (!result.success)
     throw new Error(

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useMounted } from '../../lib/use-mounted';
-import { useQueryClient } from '@tanstack/react-query';
-import { authClient } from '../../lib/auth';
+
+import { useAcceptInvitationMutation } from '../organizations/hooks';
 import { errorMessage } from '../../lib/forms';
 import { navigate, organizationPath } from '../../app/router';
-import { Button, Feedback } from '../../components/ui/primitives';
-import { identityKey } from '../organizations/queries';
+import { Button, Feedback } from '../../design-system/primitives';
+
 export function Invitation({
   id,
   userId,
@@ -15,11 +15,11 @@ export function Invitation({
   userId: string;
   email: string;
 }) {
+  const acceptInvitation = useAcceptInvitationMutation(userId);
   const mounted = useMounted();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
-  const queryClient = useQueryClient();
   return (
     <section className="invitation-page">
       <h1>Aceptar invitación</h1>
@@ -43,18 +43,11 @@ export function Invitation({
             setMessage('');
             void (async () => {
               try {
-                const result = await authClient.organization.acceptInvitation({
-                  invitationId: id,
-                });
-                if (!mounted.current) return;
-                if (result.error) throw new Error(result.error.message);
-                await queryClient.invalidateQueries({
-                  queryKey: identityKey(userId),
-                });
+                const result = await acceptInvitation.mutateAsync(id);
                 if (!mounted.current) return;
                 setFailed(false);
                 setMessage('Invitación aceptada.');
-                const orgId = result.data?.member.organizationId;
+                const orgId = result?.member.organizationId;
                 if (orgId)
                   navigate(organizationPath(orgId), false, {
                     notice: 'invitation-accepted',

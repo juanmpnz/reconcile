@@ -31,7 +31,9 @@ After `pnpm infra:up`, open http://localhost:8025 for local verification/reset/i
 
 `pnpm test:integration` requires migrated isolated PostgreSQL and service environment variables. Use the CI environment as reference. Tests call real Better Auth through Fastify inject and capture only test mail in memory. NODE_ENV=test is set by vitest.integration.config.ts. The suite creates unique synthetic users/orgs and removes them afterward; never run it against a client database.
 
-Production remains gated on privileged MFA, trusted proxy/rate-limit deployment configuration, transactional email delivery validation, backups/recovery and security review of real infrastructure. Current code does not enable corporate SSO or social login. Native controls/CSS provide functional auth screens; Obra is accepted as the design reference, but precise Figma nodes and visual fidelity still require verification.
+Local `.env.example` uses `AUTH_REQUIRE_MFA=false` so synthetic development does not require enrollment. Set it to `true` to exercise the complete authenticator flow. Production Compose enforces MFA before workspace access: enroll a TOTP authenticator, store the one-use recovery codes privately, then verify a code. Existing password-only sessions cannot access organization data or manage an enabled factor. Losing both the authenticator and recovery codes has no automatic administrator bypass.
+
+Production still requires trusted proxy/rate-limit deployment verification, transactional email delivery validation, backups/recovery and security review of real infrastructure. Current code does not enable corporate SSO or social login. The design reference and precise Figma fidelity are documented separately in `docs/design/reference.md`.
 
 ## API startup diagnostics
 

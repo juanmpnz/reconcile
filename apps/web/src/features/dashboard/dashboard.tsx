@@ -1,11 +1,13 @@
+import { dashboardQueries } from './hooks';
+import { Accordion, AccordionTrigger } from '../../design-system/layout';
 import { useQuery } from '@tanstack/react-query';
-import { Loading } from '../../components/ui/loading';
-import { Button, RequestError } from '../../components/ui/primitives';
+import { Loading } from '../../design-system/loading';
+import { Button, RequestError } from '../../design-system/primitives';
 import { navigate, organizationPath } from '../../app/router';
-import { organizationKey } from '../organizations/queries';
+
 import { documentPath, statusLabels, timestampLabel } from '../documents/api';
 import { operationPath } from '../operations/api';
-import { getDashboard } from './api';
+
 export function DashboardView({
   userId,
   organizationId,
@@ -16,8 +18,7 @@ export function DashboardView({
   disabled: boolean;
 }) {
   const query = useQuery({
-    queryKey: [...organizationKey(userId, organizationId), 'dashboard'],
-    queryFn: ({ signal }) => getDashboard(organizationId, signal),
+    ...dashboardQueries.detail(userId, organizationId),
     enabled: !disabled,
   });
   if (query.isPending)
@@ -127,8 +128,10 @@ export function DashboardView({
                   </div>
                 ))}
               </div>
-              <details>
-                <summary>Consultar cifras del gráfico</summary>
+              <Accordion>
+                <AccordionTrigger>
+                  Consultar cifras del gráfico
+                </AccordionTrigger>
                 <dl className="chart-values">
                   {distribution.map(([status, count]) => (
                     <div key={status}>
@@ -139,7 +142,7 @@ export function DashboardView({
                     </div>
                   ))}
                 </dl>
-              </details>
+              </Accordion>
             </>
           )}
         </section>

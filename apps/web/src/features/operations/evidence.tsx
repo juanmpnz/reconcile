@@ -1,3 +1,4 @@
+import { Accordion, AccordionTrigger } from '../../design-system/layout';
 import type { AnalysisRun } from '@reconcile/contracts';
 import { documentPath } from '../documents/api';
 type Evidence = NonNullable<
@@ -47,10 +48,12 @@ export function EvidenceList({
           {filenames.get(group.documentId) ?? 'Documento original'}
         </a>
         {group.items.map((item, index) => (
-          <details className="source-evidence" key={index}>
-            <summary>Página {item.page} · Leer fragmento completo</summary>
+          <Accordion className="source-evidence" key={index}>
+            <AccordionTrigger>
+              Página {item.page} · Leer fragmento completo
+            </AccordionTrigger>
             <p>{item.snippet}</p>
-          </details>
+          </Accordion>
         ))}
       </div>
     ));
@@ -60,10 +63,12 @@ export function EvidenceList({
       <span className="metadata">Evidencias del hallazgo ({count})</span>
       {render(preview)}
       {remaining.length > 0 && (
-        <details>
-          <summary>Ver {remaining.length} evidencias más</summary>
+        <Accordion>
+          <AccordionTrigger>
+            Ver {remaining.length} evidencias más
+          </AccordionTrigger>
           {render(remaining)}
-        </details>
+        </Accordion>
       )}
     </div>
   );

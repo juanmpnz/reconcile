@@ -1,4 +1,10 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { agreementQueries } from './hooks';
+import { useSetOperationAgreementsMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { FormField, Input } from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { useId, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { operationAgreementsSchema } from '@reconcile/contracts';
@@ -8,24 +14,19 @@ import type {
   AnalysisDocumentInput,
   OperationDetail,
 } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
+import { Dialog } from '../../design-system/dialog';
 import {
   Button,
   Feedback,
   Field,
   RequestError,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import { documentPath } from '../documents/api';
 import { operationsKey } from '../operations/api';
-import {
-  AgreementConflictError,
-  agreementsKey,
-  listAgreements,
-  setOperationAgreements,
-} from './api';
+import { AgreementConflictError } from './api';
 import { CreateAgreementDialog } from './create-dialog';
 import { applicabilityNotes, pricingLabel } from './presentation';
 export function OperationAgreements({
@@ -218,6 +219,9 @@ function SelectAgreementDialog({
   disabled: boolean;
   created: AgreementVersion | undefined;
 }) {
+  const setOperationAgreementsMutation =
+    useSetOperationAgreementsMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState(
@@ -240,8 +244,7 @@ function SelectAgreementDialog({
   const client = useQueryClient();
   const id = useId();
   const query = useQuery({
-    queryKey: [...agreementsKey(userId, organizationId), 'list', page],
-    queryFn: ({ signal }) => listAgreements(organizationId, page, signal),
+    ...agreementQueries.list(userId, organizationId, page),
     enabled: open && !disabled,
   });
   const items = new Map<string, AgreementVersion>();
@@ -306,10 +309,11 @@ function SelectAgreementDialog({
     setBusy(true);
     setError('');
     try {
-      await setOperationAgreements(organizationId, operation.id, parsed.data);
-      await client.invalidateQueries({
-        queryKey: operationsKey(userId, organizationId),
-      });
+      await setOperationAgreementsMutation.mutateAsync([
+        organizationId,
+        operation.id,
+        parsed.data,
+      ]);
       if (mounted.current) setOpen(false);
     } catch (error) {
       if (mounted.current) {
@@ -396,10 +400,10 @@ function SelectAgreementDialog({
             />
           ) : (
             <>
-              <div className="field">
-                <label htmlFor={`${id}-agreement`}>
+              <FormField className="field">
+                <Label htmlFor={`${id}-agreement`}>
                   Tarifa guardada o spot de esta operación
-                </label>
+                </Label>
                 <Select
                   id={`${id}-agreement`}
                   required
@@ -419,7 +423,7 @@ function SelectAgreementDialog({
                     </option>
                   ))}
                 </Select>
-              </div>
+              </FormField>
               <div className="pagination">
                 <Button
                   type="button"
@@ -461,29 +465,29 @@ function SelectAgreementDialog({
               </a>
             </div>
           )}
-          <div className="field">
-            <label htmlFor={`${id}-date`}>Fecha del servicio</label>
-            <input
+          <FormField className="field">
+            <Label htmlFor={`${id}-date`}>Fecha del servicio</Label>
+            <Input
               id={`${id}-date`}
               type="date"
               required
               value={serviceDate}
               onChange={(event) => setDate(event.target.value)}
             />
-          </div>
-          <div className="field">
-            <label htmlFor={`${id}-route`}>Ruta o ámbito revisado</label>
-            <input
+          </FormField>
+          <FormField className="field">
+            <Label htmlFor={`${id}-route`}>Ruta o ámbito revisado</Label>
+            <Input
               id={`${id}-route`}
               required
               maxLength={500}
               value={route}
               onChange={(event) => setRoute(event.target.value)}
             />
-          </div>
-          <div className="field">
-            <label htmlFor={`${id}-distance`}>Distancia revisada (km)</label>
-            <input
+          </FormField>
+          <FormField className="field">
+            <Label htmlFor={`${id}-distance`}>Distancia revisada (km)</Label>
+            <Input
               id={`${id}-distance`}
               inputMode="decimal"
               value={distance}
@@ -494,7 +498,7 @@ function SelectAgreementDialog({
               Obligatoria para precio por km o tramos. No se estima
               automáticamente.
             </small>
-          </div>
+          </FormField>
           <Field
             name="reason"
             label="Motivo de selección, cambio o retirada"
@@ -513,7 +517,7 @@ function SelectAgreementDialog({
             </div>
           )}
         </fieldset>
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -540,7 +544,7 @@ function SelectAgreementDialog({
           >
             Confirmar versión y contexto
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

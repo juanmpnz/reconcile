@@ -2,6 +2,8 @@ import { createElement as h, Fragment, isValidElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { splitPanelForm } from './side-panel';
+import { FormActions } from './layout';
+import { Button } from './primitives';
 function NullFeedback() {
   return null;
 }
@@ -41,6 +43,29 @@ describe('SidePanel single scroll body and semantic form', () => {
     expect(html.match(/class="side-panel-scroll"/g)).toHaveLength(1);
     expect(html.match(/class="side-panel-footer"/g)).toHaveLength(1);
     expect(html.indexOf('Información de respaldo')).toBeLessThan(
+      html.indexOf('side-panel-footer'),
+    );
+    expect(html).toContain('type="submit"');
+  });
+  it('recognizes DS actions without requiring a consumer CSS class', () => {
+    const html = renderToStaticMarkup(
+      splitPanelForm(
+        h(
+          'form',
+          null,
+          h('p', { key: 'body' }, 'Contenido'),
+          h(
+            FormActions,
+            { key: 'actions' },
+            h(Button, { type: 'button', key: 'cancel' }, 'Cancelar'),
+            h(Button, { type: 'submit', key: 'save' }, 'Guardar'),
+          ),
+        ),
+        vi.fn(),
+      ),
+    );
+    expect(html).toContain('side-panel-footer');
+    expect(html.indexOf('Contenido')).toBeLessThan(
       html.indexOf('side-panel-footer'),
     );
     expect(html).toContain('type="submit"');

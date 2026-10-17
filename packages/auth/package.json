@@ -20,7 +20,8 @@
   "dependencies": {
     "@reconcile/database": "workspace:*",
     "better-auth": "1.7.8",
-    "nodemailer": "^7.0.12"
+    "nodemailer": "^7.0.12",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/nodemailer": "^7.0.11"

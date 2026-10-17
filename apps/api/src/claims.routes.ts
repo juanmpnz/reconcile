@@ -1,13 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { fromNodeHeaders } from 'better-auth/node';
+import { createBusinessRequestContext } from './request-context.js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Auth } from '@reconcile/auth';
 import { Prisma, type PrismaClient } from '@reconcile/database';
-import {
-  createClaimService,
-  authorizeDocuments,
-  DocumentError,
-} from '@reconcile/application';
+import { createClaimService, DocumentError } from '@reconcile/application';
 import {
   findingDecisionInputSchema,
   claimCreateInputSchema,
@@ -28,64 +23,11 @@ export function registerClaimRoutes(
     exportId?: string;
     runId?: string;
   };
-  async function actor(
-    req: FastifyRequest<{ Params: Params }>,
-    reply: FastifyReply,
-    write = false,
-  ) {
-    reply.header('cache-control', 'private, no-store');
-    reply.header('x-content-type-options', 'nosniff');
-    if (
-      Object.values(req.params).some(
-        (v) =>
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            v,
-          ),
-      )
-    )
-      throw new DocumentError(404, 'NOT_FOUND');
-    if (write) {
-      const origins = new Set([
-        new URL(auth.options.baseURL ?? 'http://invalid.local').origin,
-        ...(Array.isArray(auth.options.trustedOrigins)
-          ? auth.options.trustedOrigins.filter(
-              (o): o is string => typeof o === 'string',
-            )
-          : []),
-      ]);
-      if (
-        !req.headers.origin ||
-        !origins.has(req.headers.origin) ||
-        req.headers['sec-fetch-site'] === 'cross-site'
-      )
-        throw new DocumentError(403, 'UNTRUSTED_ORIGIN');
-    }
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-      query: { disableCookieCache: true },
-    });
-    if (!session?.user.emailVerified)
-      throw new DocumentError(401, 'UNAUTHORIZED');
-    await authorizeDocuments(
-      prisma,
-      req.params.organizationId,
-      session.user.id,
-      write,
-    );
-    if (write) {
-      const now = BigInt(Date.now()),
-        cutoff = now - 60000n,
-        key = 'claim-mutation:' + session.user.id;
-      const counts = await prisma.$queryRaw<
-        { count: number }[]
-      >`INSERT INTO auth_rate_limits (id,key,count,"lastRequest") VALUES (${randomUUID()}::uuid,${key},1,${now}) ON CONFLICT (key) DO UPDATE SET count=CASE WHEN auth_rate_limits."lastRequest" < ${cutoff} THEN 1 ELSE auth_rate_limits.count+1 END,"lastRequest"=CASE WHEN auth_rate_limits."lastRequest" < ${cutoff} THEN ${now} ELSE auth_rate_limits."lastRequest" END RETURNING count`;
-      if ((counts[0]?.count ?? 101) > 100) {
-        reply.header('retry-after', '60');
-        throw new DocumentError(429, 'RATE_LIMITED');
-      }
-    }
-    return session.user.id;
-  }
+  const actor = createBusinessRequestContext({
+    auth,
+    prisma,
+    mutationBucket: 'claim',
+  });
   async function bounded(reply: FastifyReply, fn: () => Promise<unknown>) {
     try {
       return await fn();
