@@ -1,0 +1,56 @@
+{
+  "id": "2026-10-17-orange-visual-polish",
+  "summary": "Polish the existing web workspace with restrained vivid-orange accents and subtle interaction effects without changing structure or behavior.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root/css_polish (ui-engineer)",
+  "scope": [
+    "apps/web/src/styles/workspace.css",
+    "apps/web/src/design-system/theme.css",
+    "docs/status.md",
+    ".agents/tasks/2026-10-17-orange-visual-polish.json"
+  ],
+  "acceptance": [
+    "Existing DOM, content, navigation and application behavior remain unchanged.",
+    "Orange accents provide a clearer visual hierarchy in the workspace without obscuring financial status colors or dense data.",
+    "Hover and focus effects are subtle, responsive, and respect reduced-motion preferences."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "accessibility-reviewer",
+    "qa-engineer"
+  ],
+  "semanticRouting": "Visual-only CSS polish. No business rules, user flow, identity, data, integrations, AI, deployment or component structure changes; visual design consultation precedes CSS implementation.",
+  "excludedRoles": [
+    {"role": "solution-architect", "reason": "The task record triggers the harness route, but no architectural boundary, contract, or component structure changes."},
+    {"role": "ux-designer", "reason": "No flow or information hierarchy changes; existing workspace structure is explicitly preserved."},
+    {"role": "product-manager", "reason": "No product capability or business acceptance rules change."},
+    {"role": "logistics-domain", "reason": "No charge, tariff or discrepancy semantics change."},
+    {"role": "security-engineer", "reason": "No identity, tenant, document, credential or network handling changes."},
+    {"role": "platform-engineer", "reason": "No dependency, build, CI or deployment change."}
+  ],
+  "reviews": [
+    {"role": "visual-designer", "reviewer": "/root/visual_direction", "mode": "independent", "status": "passed", "examined": "Existing palette, workspace CSS, design guidance and task brief before implementation; planning direction only, not final diff.", "evidence": ["Agent planning report in this task session"]},
+    {"role": "ui-engineer", "reviewer": "/root/css_polish", "mode": "sequential", "status": "passed", "examined": "Implemented and inspected the final CSS diff; no runtime review.", "evidence": ["git diff -- apps/web/src/styles/workspace.css apps/web/src/design-system/theme.css"]},
+    {"role": "frontend-engineer", "reviewer": "/root/frontend_css_review", "mode": "independent", "status": "passed", "examined": "Final CSS diff, import cascade, hover gating, workspace scoping and reduced-motion override; two earlier low findings closed on re-review.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "accessibility-reviewer", "reviewer": "/root/a11y_css_review", "mode": "independent", "status": "passed", "examined": "Final CSS diff, focus visibility, active cues and reduced-motion styles; static source only.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "qa-engineer", "reviewer": "/root/qa_static_review", "mode": "independent", "status": "passed", "examined": "Final CSS diff and task/status documentation; no runtime or test execution.", "evidence": ["Agent final static review in this task session"]},
+    {"role": "principal-engineer", "reviewer": "/root", "mode": "sequential", "status": "passed", "examined": "Final CSS diff and task/status documentation; no tests or browser execution.", "evidence": ["git diff -- apps/web/src/styles/workspace.css apps/web/src/design-system/theme.css"]}
+  ],
+  "checks": [
+    {"command": "Tests and check commands", "status": "not-run", "result": "User explicitly requested no tests."}
+  ],
+  "findings": [
+    {"id": "OVP-1", "severity": "low", "status": "resolved", "summary": "New hover effects could persist on touch devices.", "resolution": "All newly added hover effects moved under hover-capable media query; independent frontend and accessibility re-review passed."},
+    {"id": "OVP-2", "severity": "low", "status": "resolved", "summary": "New primary-button effect reached authentication pages outside the workspace.", "resolution": "New button effect scoped to .app-shell; independent frontend re-review passed."}
+  ],
+  "limitations": ["Tests, pnpm check, service smoke and browser visual checks were not run, per user request; measured contrast, responsive appearance and runtime motion remain unverified."],
+  "evidence": ["Final CSS diff inspected by /root and independent frontend/accessibility agents in this task session."],
+  "changeClass": "ui",
+  "risk": "low",
+  "independentReviewRequired": false,
+  "independenceRationale": "CSS-only styling with no markup, state, data, financial semantics or security boundary changes; independent visual/accessibility review is still requested."
+}

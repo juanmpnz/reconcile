@@ -15,6 +15,16 @@ h1 {
   background: #ed6c0c;
   color: #2f3238;
 }
+@media (hover: hover) {
+  .app-shell .button-default {
+    transition: background-color 180ms ease-out, border-color 180ms ease-out, box-shadow 180ms ease-out, transform 180ms ease-out;
+  }
+  .app-shell .button-default:hover:not(:disabled) {
+    border-color: #ed6c0c;
+    box-shadow: 0 5px 14px rgb(184 85 10 / 18%);
+    transform: translateY(-1px);
+  }
+}
 .button-outline {
   background: #fff;
 }
@@ -23,7 +33,7 @@ h1 {
   gap: 24px;
 }
 .tabs a[aria-current='page'] {
-  border-color: #cf5b06;
+  border-color: #ff7a18;
 }
 .side-panel {
   position: fixed;
@@ -142,5 +152,11 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .side-panel {
     animation: none;
+  }
+  .app-shell .button-default {
+    transition: none;
+  }
+  .app-shell .button-default:hover:not(:disabled) {
+    transform: none;
   }
 }
