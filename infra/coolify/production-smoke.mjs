@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { URL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { PrismaClient } from '../../packages/database/dist/index.js';
 import { hashPassword } from '../../apps/api/node_modules/better-auth/dist/crypto/index.mjs';
@@ -52,6 +52,29 @@ const email = `smoke-${id}@ci.example.org`,
   password = 'Synthetic-Smoke-Only-83Dk9fV!';
 const objectKey = `production-smoke/${id}.txt`,
   redisKey = `production-smoke:${id}`;
+function totpCode(uri) {
+  const secret = new URL(uri).searchParams.get('secret');
+  assert.ok(secret, 'Synthetic authenticator secret required');
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const bits = [...secret.replace(/=+$/, '').toUpperCase()]
+    .map((character) => {
+      const value = alphabet.indexOf(character);
+      assert.ok(value >= 0);
+      return value.toString(2).padStart(5, '0');
+    })
+    .join('');
+  const key = Buffer.from(
+    Array.from({ length: Math.floor(bits.length / 8) }, (_, index) =>
+      Number.parseInt(bits.slice(index * 8, index * 8 + 8), 2),
+    ),
+  );
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+  const digest = createHmac('sha1', key).update(counter).digest();
+  return ((digest.readUInt32BE(digest.at(-1) & 15) & 0x7fffffff) % 1000000)
+    .toString()
+    .padStart(6, '0');
+}
 function pdf() {
   const content =
     'BT /F1 12 Tf 40 700 Td (Provider: Synthetic CI) Tj 0 -20 Td (Operation reference: CI-SMOKE) Tj ET';
@@ -78,6 +101,28 @@ function pdf() {
 try {
   const home = await fetch(web);
   assert.equal(home.status, 200);
+  const policy = home.headers.get('content-security-policy');
+  for (const directive of [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+  ])
+    assert.ok(
+      policy?.includes(directive),
+      'Missing production CSP directive: ' + directive,
+    );
+  assert.equal(home.headers.get('x-frame-options'), 'DENY');
+  assert.equal(
+    home.headers.get('permissions-policy'),
+    'camera=(), microphone=(), geolocation=()',
+  );
   assert.match(await home.text(), /<div id="root"><\/div>/);
   const live = await fetch('http://127.0.0.1:3000/api/v1/health/ready');
   assert.equal(live.status, 200, await live.text());
@@ -143,7 +188,8 @@ try {
     headers: { origin, 'content-type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  assert.equal(login.status, 200, await login.text());
+  const loginBody = await login.json();
+  assert.equal(login.status, 200, 'Synthetic login failed');
   const cookies = login.headers.getSetCookie();
   assert.ok(
     cookies.some(
@@ -154,7 +200,74 @@ try {
     ),
     'Production auth cookie must be Secure, HttpOnly and SameSite',
   );
-  const cookie = cookies.map((c) => c.split(';')[0]).join('; ');
+  const cookieJar = new Map();
+  function absorb(responseCookies) {
+    for (const value of responseCookies) {
+      const pair = value.split(';')[0];
+      const separator = pair.indexOf('=');
+      const key = pair.slice(0, separator),
+        valuePart = pair.slice(separator + 1);
+      if (!valuePart || /max-age=0/i.test(value)) cookieJar.delete(key);
+      else cookieJar.set(key, valuePart);
+    }
+  }
+  absorb(cookies);
+  let cookie = [...cookieJar]
+    .map(([key, value]) => `${key}=${value}`)
+    .join('; ');
+  async function authPost(path, payload) {
+    const response = await fetch(web + '/api/auth/' + path, {
+      method: 'POST',
+      headers: { origin, cookie, 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    absorb(response.headers.getSetCookie());
+    cookie = [...cookieJar].map(([key, value]) => `${key}=${value}`).join('; ');
+    assert.equal(
+      response.status,
+      200,
+      'Synthetic MFA operation failed: ' + path,
+    );
+    return response.json();
+  }
+  const mfaKey = redisKey + ':mfa';
+  let totpURI;
+  if (phase === 'seed') {
+    const unenrolled = await fetch(
+      web + `/api/v1/organizations/${id}/dashboard`,
+      { headers: { cookie } },
+    );
+    assert.equal(unenrolled.status, 403, 'Production must require MFA');
+    assert.equal((await unenrolled.json()).code, 'MFA_REQUIRED');
+    const enrollment = await authPost('two-factor/enable', {
+      password,
+      method: 'totp',
+    });
+    assert.ok(enrollment.totpURI?.startsWith('otpauth://'));
+    assert.equal(enrollment.backupCodes.length, 10);
+    totpURI = enrollment.totpURI;
+    await connection.set(mfaKey, totpURI);
+  } else {
+    assert.equal(
+      loginBody.twoFactorRedirect,
+      true,
+      'Restart sign-in requires an actual MFA challenge',
+    );
+    totpURI = await connection.get(mfaKey);
+    assert.ok(totpURI);
+  }
+  await authPost('two-factor/verify-totp', {
+    code: totpCode(totpURI),
+    trustDevice: false,
+  });
+  const assurance = await fetch(web + '/api/v1/session-assurance', {
+    headers: { cookie },
+  });
+  assert.deepEqual(await assurance.json(), {
+    required: true,
+    enrolled: true,
+    verified: true,
+  });
   const session = await fetch(web + '/api/auth/get-session', {
     headers: { cookie },
   });
@@ -203,6 +316,12 @@ try {
     headers: { cookie },
   });
   assert.equal(original.status, 200);
+  assert.equal(
+    original.headers.get('content-security-policy'),
+    "sandbox; default-src 'none'",
+    'Original download must preserve its stricter API sandbox',
+  );
+  assert.equal(original.headers.get('cache-control'), 'private, no-store');
   const originalBytes = Buffer.from(await original.arrayBuffer());
   assert.equal(
     createHash('sha256').update(originalBytes).digest('hex'),
@@ -230,7 +349,7 @@ try {
     await s3.send(
       new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: objectKey }),
     );
-    await connection.del(redisKey);
+    await connection.del(redisKey, redisKey + ':mfa');
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
     await prisma.identityAuditEvent.deleteMany({
       where: { OR: [{ organizationId: id }, { actorId: user.id }] },

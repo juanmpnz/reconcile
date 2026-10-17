@@ -1,15 +1,11 @@
-import { Select } from './ui/select';
+import { Label } from '../design-system/controls';
+import { Select } from '../design-system/select';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  getContext,
-  identityKey,
-  listOrganizations,
-  organizationKey,
-} from '../features/organizations/queries';
+import { organizationQueries } from '../features/organizations/hooks';
 import { navigate, organizationPath } from '../app/router';
-import { Button } from './ui/primitives';
+import { Button } from '../design-system/primitives';
 export function AppShell({
   children,
   name,
@@ -37,13 +33,11 @@ export function AppShell({
 }) {
   const [mobile, setMobile] = useState(false);
   const organizations = useQuery({
-    queryKey: identityKey(userId),
-    queryFn: listOrganizations,
+    ...organizationQueries.list(userId),
     enabled: verified,
   });
   const context = useQuery({
-    queryKey: [...organizationKey(userId, organizationId ?? ''), 'context'],
-    queryFn: ({ signal }) => getContext(organizationId ?? '', signal),
+    ...organizationQueries.context(userId, organizationId ?? ''),
     enabled: false,
   });
   const current =
@@ -86,7 +80,7 @@ export function AppShell({
           {mobile ? 'Cerrar menú' : 'Menú'}
         </Button>
         <div className="workspace-selector">
-          <label htmlFor="workspace-organization">Organización</label>
+          <Label htmlFor="workspace-organization">Organización</Label>
           <Select
             id="workspace-organization"
             value={
@@ -112,14 +106,15 @@ export function AppShell({
           {organizations.isError && (
             <p className="metadata">
               No se pudo cargar el selector.{' '}
-              <button
+              <Button
+                variant="unstyled"
                 className="text-button"
                 onClick={() => {
                   void organizations.refetch();
                 }}
               >
                 Reintentar
-              </button>
+              </Button>
             </p>
           )}
         </div>

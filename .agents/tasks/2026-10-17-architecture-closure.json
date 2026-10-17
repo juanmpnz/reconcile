@@ -1,0 +1,183 @@
+{
+  "id": "2026-10-17-architecture-closure",
+  "summary": "One internal design system, centralized Query transport/mutations, declarative private routes and server-enforced MFA/session boundaries.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root with ds_frontend, query_http and backend_security",
+  "scope": [
+    "apps/",
+    "packages/auth/",
+    "packages/config/",
+    "packages/database/",
+    "infra/",
+    "pnpm-lock.yaml",
+    "eslint.config.mjs",
+    "docs/",
+    ".agents/"
+  ],
+  "acceptance": [
+    "Native controls live only inside the DS and lint prevents bypasses; existing forms, tables, orange/light theme and mobile side panels remain usable.",
+    "Every application request uses same-origin transport and centralized Query factories/mutations with tenant/user keys and explicit invalidation.",
+    "Anonymous, expired or unassured sessions cannot mount tenant screens; identity changes cancel and clear cached sensitive data.",
+    "Production MFA requires real TOTP enrollment or one-use recovery with per-session server proof; stale sessions and management/trusted-device bypasses are denied.",
+    "Strict types, lint, units, actual PostgreSQL HTTP tests, browser fixtures and production-container smoke pass before merge."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "solution-architect",
+    "frontend-engineer",
+    "ui-engineer",
+    "ux-designer",
+    "visual-designer",
+    "accessibility-reviewer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "platform-engineer",
+    "qa-engineer"
+  ],
+  "semanticRouting": "Cross-cutting UI, remote data, identity, schema and deployment hardening; no change to logistics financial rules, extraction or external connectors. Product acceptance is existing requested consistency plus required MFA for sensitive-data pilot; UX and security separately reviewed.",
+  "excludedRoles": [
+    {
+      "role": "logistics-domain",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No logistics financial rule, extraction/parser or external connector changes."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-main.md"]
+    },
+    {
+      "role": "product-manager",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-main.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/ds_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-frontend.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/ds_frontend",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-frontend.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/backend_security",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-backend.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/backend_security",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-backend.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/security_architecture",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-security.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/ux_ds_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-ux.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/closure_qa",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Source checkpoint; runtime CI acceptance remains pending.",
+      "evidence": [".agents/reviews/architecture-closure-qa.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "133 unit tests, 8 harness regressions, formatting, lint, strict types and production builds pass locally; PostgreSQL/browser/container acceptance pending CI."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Actual Coolify TLS, proxy topology, firewall, encrypted external backups/restore and encryption at rest require server verification.",
+    "Parser worker threads are bounded but are not an OS security sandbox.",
+    "Browser fixtures are synthetic API acceptance; real authentication is exercised separately over HTTP and production smoke."
+  ],
+  "evidence": [
+    ".agents/reviews/architecture-closure-security.md",
+    ".agents/reviews/architecture-closure-ux.md",
+    ".agents/reviews/architecture-closure-qa.md"
+  ],
+  "changeClass": "security",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Separate security/architecture, UX/accessibility and QA executions review implementation and runtime acceptance."
+}

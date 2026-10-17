@@ -10,6 +10,8 @@ model User {
  name String
  email String @unique
  emailVerified Boolean @default(false)
+ twoFactorEnabled Boolean @default(false)
+ twoFactors TwoFactor[]
  image String?
  createdAt DateTime @default(now())
  updatedAt DateTime @updatedAt
@@ -29,6 +31,7 @@ model Session {
  userAgent String?
  userId String @db.Uuid
  activeOrganizationId String? @db.Uuid
+ mfaVerifiedAt DateTime? @db.Timestamptz(3)
  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
  @@index([userId])
  @@map("auth_sessions")
@@ -455,4 +458,16 @@ model OperationAgreementBinding {
  agreement AgreementVersion @relation(fields:[organizationId,agreementVersionId],references:[organizationId,id],onDelete:NoAction)
  @@id([organizationId,operationId,invoiceDocumentId])
  @@map("operation_agreement_bindings")
+}
+
+model TwoFactor {
+ id String @id @default(uuid()) @db.Uuid
+ userId String @unique @db.Uuid
+ secret String
+ backupCodes String
+ verified Boolean @default(false)
+ failedVerificationCount Int @default(0)
+ lockedUntil DateTime? @db.Timestamptz(3)
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@map("auth_two_factors")
 }

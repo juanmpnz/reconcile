@@ -1,10 +1,23 @@
+import { Card } from '../../design-system/layout';
 import { useState } from 'react';
 import { useMounted } from '../../lib/use-mounted';
 import type { FormEvent } from 'react';
-import { authClient } from '../../lib/auth';
-import { callback, navigate, useRoute } from '../../app/router';
+import {
+  AuthMutationError,
+  useSignInMutation,
+  useSignUpMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
+  useSendVerificationEmailMutation,
+} from './hooks';
+import {
+  callback,
+  internalDestination,
+  navigate,
+  useRoute,
+} from '../../app/router';
 import { value, password } from '../../lib/forms';
-import { Button, Field, Feedback } from '../../components/ui/primitives';
+import { Button, Field, Feedback } from '../../design-system/primitives';
 export function Account() {
   const route = useRoute();
   const mounted = useMounted();
@@ -14,67 +27,69 @@ export function Account() {
   const forgot = path === '/forgot-password';
   const reset = path === '/reset-password';
   const verify = path === '/verify-email';
-  const [busy, setBusy] = useState(false);
+  const signIn = useSignInMutation();
+  const signUp = useSignUpMutation();
+  const requestReset = useRequestPasswordResetMutation();
+  const resetPassword = useResetPasswordMutation();
+  const sendVerification = useSendVerificationEmailMutation();
+  const busy = [
+    signIn,
+    signUp,
+    requestReset,
+    resetPassword,
+    sendVerification,
+  ].some((mutation) => mutation.isPending);
   const [message, setMessage] = useState(
     params.has('error')
       ? 'El enlace no es válido o ha caducado. Solicitá uno nuevo.'
       : params.get('notice') === 'verification-processed'
         ? 'El enlace fue procesado. Iniciá sesión para continuar.'
-        : '',
+        : params.get('notice') === 'session-expired'
+          ? 'Tu sesión terminó. Iniciá sesión nuevamente.'
+          : '',
   );
   const [failed, setFailed] = useState(params.has('error'));
   const invitation = params.get('invitationId') ?? params.get('id');
   const destination = invitation
     ? `/accept-invitation?id=${encodeURIComponent(invitation)}`
-    : '/';
+    : internalDestination(params.get('returnTo'));
   const verificationDestination = `/login?notice=verification-processed${invitation ? `&invitationId=${encodeURIComponent(invitation)}` : ''}`;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     const form = event.currentTarget;
-    setBusy(true);
     setMessage('');
     try {
       const email = value(form, 'email');
       const result = registering
-        ? await authClient.signUp.email({
+        ? await signUp.mutateAsync({
             name: value(form, 'name'),
             email,
             password: password(form),
             callbackURL: callback(verificationDestination),
           })
         : forgot
-          ? await authClient.requestPasswordReset({
+          ? await requestReset.mutateAsync({
               email,
               redirectTo: callback(
                 `/reset-password${invitation ? `?invitationId=${encodeURIComponent(invitation)}` : ''}`,
               ),
             })
           : reset
-            ? await authClient.resetPassword({
+            ? await resetPassword.mutateAsync({
                 newPassword: password(form),
                 token: params.get('token') ?? '',
               })
             : verify
-              ? await authClient.sendVerificationEmail({
+              ? await sendVerification.mutateAsync({
                   email,
                   callbackURL: callback(verificationDestination),
                 })
-              : await authClient.signIn.email({
+              : await signIn.mutateAsync({
                   email,
                   password: password(form),
                 });
       if (!mounted.current) return;
-      if (result.error) {
-        setFailed(true);
-        setMessage(
-          result.error.code === 'EMAIL_NOT_VERIFIED'
-            ? 'Verificá tu correo antes de ingresar. Podés solicitar otro enlace abajo.'
-            : (result.error.message ??
-                'No se pudo completar la solicitud. Intentá nuevamente.'),
-        );
-        return;
-      }
       setFailed(false);
       if (registering)
         navigate(
@@ -86,12 +101,23 @@ export function Account() {
         );
       else if (reset) {
         setMessage('Contraseña actualizada. Ya podés iniciar sesión.');
+      } else if (
+        result &&
+        typeof result === 'object' &&
+        'twoFactorRedirect' in result &&
+        result.twoFactorRedirect === true
+      ) {
+        navigate(`/two-factor?returnTo=${encodeURIComponent(destination)}`);
       } else navigate(destination);
-    } catch {
+    } catch (error) {
+      if (!mounted.current) return;
       setFailed(true);
-      setMessage('No pudimos conectar. Revisá tu conexión y volvé a intentar.');
-    } finally {
-      setBusy(false);
+      setMessage(
+        error instanceof AuthMutationError &&
+          error.code === 'EMAIL_NOT_VERIFIED'
+          ? 'Verificá tu correo antes de ingresar. Podés solicitar otro enlace abajo.'
+          : 'No pudimos completar la solicitud. Revisá los datos y volvé a intentar.',
+      );
     }
   }
   const title = registering
@@ -109,7 +135,7 @@ export function Account() {
   return (
     <div className="auth-page">
       <main tabIndex={-1} id="main" className="account-layout">
-        <section className="card account-card" aria-labelledby="account-title">
+        <Card className="card account-card" aria-labelledby="account-title">
           <a className="brand auth-brand" href="/">
             Reconcile
           </a>
@@ -213,7 +239,7 @@ export function Account() {
               .
             </p>
           )}
-        </section>
+        </Card>
       </main>
     </div>
   );

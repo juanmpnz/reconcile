@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { DataTable, renderStatus } from '../../components/ui/data-table';
+import { DataTable, renderStatus } from '../../design-system/data-table';
 import { roleLabel } from './queries';
 import type { membersSchema } from './queries';
 type Member = z.infer<typeof membersSchema>['members'][number];

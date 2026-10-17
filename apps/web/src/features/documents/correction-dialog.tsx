@@ -1,11 +1,21 @@
+import { Label } from '../../design-system/controls';
+import { useCorrectDocumentMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import {
+  Checkbox,
+  FormField,
+  Input,
+  Textarea,
+} from '../../design-system/controls';
+
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ExtractionResult } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback } from '../../design-system/primitives';
 import { errorMessage } from '../../lib/forms';
 import { useMounted } from '../../lib/use-mounted';
-import { correctDocument, documentsKey } from './api';
+import { documentsKey } from './api';
 export function CorrectionDialog({
   userId,
   organizationId,
@@ -27,6 +37,8 @@ export function CorrectionDialog({
   disabled: boolean;
   onSaved: () => void;
 }) {
+  const correctDocumentMutation = useCorrectDocumentMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [edited, setEdited] = useState(currentValue ?? '');
   const [missing, setMissing] = useState(currentValue === null);
@@ -70,16 +82,16 @@ export function CorrectionDialog({
           setError('');
           void (async () => {
             try {
-              await correctDocument(organizationId, documentId, {
-                extractionRunId: runId,
-                field: field.name,
-                value: missing ? null : edited.trim(),
-                reason: reason.trim(),
-              });
-              if (!mounted.current) return;
-              await queryClient.invalidateQueries({
-                queryKey: documentsKey(userId, organizationId),
-              });
+              await correctDocumentMutation.mutateAsync([
+                organizationId,
+                documentId,
+                {
+                  extractionRunId: runId,
+                  field: field.name,
+                  value: missing ? null : edited.trim(),
+                  reason: reason.trim(),
+                },
+              ]);
               if (!mounted.current) return;
               setOpen(false);
               onSaved();
@@ -111,9 +123,9 @@ export function CorrectionDialog({
         <p className="source-value">
           <strong>Valor extraído:</strong> {field.value ?? 'Sin dato'}
         </p>
-        <div className="field">
-          <label htmlFor={`${id}-value`}>Valor corregido</label>
-          <input
+        <FormField className="field">
+          <Label htmlFor={`${id}-value`}>Valor corregido</Label>
+          <Input
             id={`${id}-value`}
             value={edited}
             onChange={(event) => setEdited(event.target.value)}
@@ -121,19 +133,18 @@ export function CorrectionDialog({
             required={!missing}
             maxLength={500}
           />
-        </div>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
+        </FormField>
+        <Label className="checkbox-label">
+          <Checkbox
             checked={missing}
             onChange={(event) => setMissing(event.target.checked)}
             disabled={busy}
           />
           Marcar sin dato verificable
-        </label>
-        <div className="field">
-          <label htmlFor={`${id}-reason`}>Motivo de la corrección</label>
-          <textarea
+        </Label>
+        <FormField className="field">
+          <Label htmlFor={`${id}-reason`}>Motivo de la corrección</Label>
+          <Textarea
             id={`${id}-reason`}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
@@ -141,8 +152,8 @@ export function CorrectionDialog({
             maxLength={500}
             rows={3}
           />
-        </div>
-        <div className="dialog-actions">
+        </FormField>
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -159,7 +170,7 @@ export function CorrectionDialog({
           >
             {busy ? 'Guardando…' : 'Guardar corrección'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

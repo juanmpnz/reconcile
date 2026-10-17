@@ -1,8 +1,12 @@
-/* global URL, document, window, getComputedStyle */
+/* global URL, document, window, getComputedStyle, Event */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { chooseSelect } from './select.browser-helper.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
+import {
+  setTimeout as deadline,
+  clearTimeout as clearDeadline,
+} from 'node:timers';
 // Explicit synthetic HTTP fixtures: browser/UI proof only, not authorization or aggregate correctness.
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const org = id(101),
@@ -100,37 +104,101 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 let readonly = false,
-  dashboardError = false;
+  dashboardError = false,
+  authenticated = true,
+  expireDashboard = false,
+  assuranceRequired = false,
+  assuranceEnrolled = false,
+  assuranceVerified = false;
+const mfaWrites = [];
+let sessionUser = user,
+  heldContext = null,
+  heldDashboard = null;
+function requestGate() {
+  let arrive, release;
+  const arrived = new Promise((resolve, reject) => {
+    const timer = deadline(
+      () => reject(new Error('Expected gated HTTP request was not observed')),
+      10000,
+    );
+    arrive = () => {
+      clearDeadline(timer);
+      resolve();
+    };
+  });
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  return {
+    arrived,
+    release,
+    wait: () => {
+      arrive();
+      return pending;
+    },
+  };
+}
 const requests = [],
-  errors = [];
+  errors = [],
+  organizationRequests = [];
 page.on('pageerror', (e) => errors.push(e.message));
 await page.route('**/api/**', async (route) => {
   const req = route.request(),
     url = new URL(req.url()),
-    path = url.pathname;
+    path = url.pathname,
+    requestUser = sessionUser;
   let result,
     status = 200;
+  if (path.startsWith('/api/v1/organizations/'))
+    organizationRequests.push(path);
   if (path === '/api/auth/get-session')
+    result = authenticated
+      ? {
+          session: {
+            id: id(104),
+            token: 'synthetic',
+            userId: requestUser,
+            expiresAt: '2027-01-01T00:00:00Z',
+            createdAt: now,
+            updatedAt: now,
+          },
+          user: {
+            id: requestUser,
+            name: requestUser === user ? 'QA' : 'QA Second Identity',
+            email:
+              requestUser === user ? 'qa@example.test' : 'second@example.test',
+            emailVerified: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+        }
+      : null;
+  else if (path === '/api/v1/session-assurance')
     result = {
-      session: {
-        id: id(104),
-        token: 'synthetic',
-        userId: user,
-        expiresAt: '2027-01-01T00:00:00Z',
-        createdAt: now,
-        updatedAt: now,
-      },
-      user: {
-        id: user,
-        name: 'QA',
-        email: 'qa@example.test',
-        emailVerified: true,
-        createdAt: now,
-        updatedAt: now,
-      },
+      required: assuranceRequired,
+      enrolled: assuranceEnrolled,
+      verified: assuranceVerified,
     };
-  else if (path === '/api/auth/organization/list') result = organizations;
+  else if (path === '/api/auth/two-factor/enable') {
+    const body = req.postDataJSON();
+    mfaWrites.push({ path, body });
+    result = {
+      totpURI:
+        'otpauth://totp/Reconcile:qa@example.test?secret=JBSWY3DPEHPK3PXP&issuer=Reconcile',
+      backupCodes: ['synthetic-backup-one', 'synthetic-backup-two'],
+    };
+  } else if (
+    path === '/api/auth/two-factor/verify-totp' ||
+    path === '/api/auth/two-factor/verify-backup-code'
+  ) {
+    const body = req.postDataJSON();
+    mfaWrites.push({ path, body });
+    assuranceEnrolled = true;
+    assuranceVerified = true;
+    result = { status: true };
+  } else if (path === '/api/auth/organization/list') result = organizations;
   else if (path.endsWith('/context')) {
+    if (heldContext) await heldContext.wait();
     const organization = organizations.find((o) => path.includes(o.id));
     result = {
       organization,
@@ -143,10 +211,18 @@ await page.route('**/api/**', async (route) => {
       },
     };
   } else if (path.endsWith('/dashboard')) {
-    if (dashboardError) {
+    if (heldDashboard && requestUser === user) await heldDashboard.wait();
+    if (expireDashboard) {
+      authenticated = false;
+      status = 401;
+      result = { code: 'UNAUTHENTICATED' };
+    } else if (dashboardError) {
       status = 503;
       result = { code: 'DASHBOARD_UNAVAILABLE' };
-    } else result = dashboard(path.includes(other) ? other : org);
+    } else {
+      result = dashboard(path.includes(other) ? other : org);
+      if (requestUser !== user) result.operations = dashboard(other).operations;
+    }
   } else if (path.endsWith('/operations') && req.method() === 'POST') {
     await delay(500);
     status = 503;
@@ -334,6 +410,35 @@ try {
   await panel
     .getByLabel('Referencia de operación', { exact: true })
     .fill('DRAFT-KEPT');
+  const focusGate = requestGate();
+  heldContext = focusGate;
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('visibilitychange')),
+  );
+  await focusGate.arrived;
+  assert.equal(
+    await panel.isVisible(),
+    true,
+    'background authorization refresh keeps dirty form mounted',
+  );
+  assert.equal(
+    await panel
+      .getByLabel('Referencia de operación', { exact: true })
+      .inputValue(),
+    'DRAFT-KEPT',
+  );
+  const refreshedContext = page.waitForResponse((response) =>
+    response.url().endsWith('/context'),
+  );
+  heldContext = null;
+  focusGate.release();
+  await refreshedContext;
+  assert.equal(
+    await panel
+      .getByLabel('Referencia de operación', { exact: true })
+      .inputValue(),
+    'DRAFT-KEPT',
+  );
   await page.keyboard.press('Escape');
   await visible(panel.getByText('Hay cambios sin guardar.', { exact: true }));
   await panel
@@ -538,6 +643,201 @@ try {
   assert.deepEqual(errors, []);
   console.log(
     'PASS organization switch isolation, aggregate error state, viewer boundaries and 200% layout',
+  );
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = '1';
+  });
+  readonly = false;
+  await page.goto(orgUrl);
+  await visible(page.getByText('53', { exact: true }).first());
+  expireDashboard = true;
+  await page
+    .getByRole('button', { name: 'Actualizar resumen', exact: true })
+    .click();
+  await page.waitForURL('**/login**');
+  await visible(
+    page.getByRole('heading', { name: 'Bienvenido de nuevo', exact: true }),
+  );
+  assert.equal(await page.getByText('53', { exact: true }).count(), 0);
+  assert.equal(
+    await page.getByRole('navigation', { name: 'Espacio de trabajo' }).count(),
+    0,
+  );
+  console.log(
+    'PASS API 401 hides loaded private organization content and requires a fresh login',
+  );
+  const privateRequestsBefore = organizationRequests.length;
+  await page.goto(`${orgUrl}/operations/${operations[0].id}`);
+  await page.waitForURL('**/login**');
+  await visible(
+    page.getByRole('heading', { name: 'Bienvenido de nuevo', exact: true }),
+  );
+  assert.equal(
+    organizationRequests.length,
+    privateRequestsBefore,
+    'anonymous private deep link does not request organization data',
+  );
+  assert.equal(
+    await page.getByRole('navigation', { name: 'Espacio de trabajo' }).count(),
+    0,
+  );
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS anonymous operation deep URL redirects before requesting tenant content',
+  );
+  authenticated = true;
+  expireDashboard = false;
+  assuranceRequired = true;
+  for (const enrolled of [false, true]) {
+    assuranceEnrolled = enrolled;
+    const beforeAssurance = organizationRequests.length;
+    await page.goto(`${orgUrl}/operations/${operations[0].id}`);
+    await page.waitForURL('**/security**');
+    assert.equal(
+      organizationRequests.length,
+      beforeAssurance,
+      'required MFA blocks tenant queries before enrollment and before this session is verified',
+    );
+    assert.equal(
+      await page
+        .getByRole('navigation', { name: 'Espacio de trabajo' })
+        .count(),
+      0,
+    );
+  }
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS required MFA blocks private deep links for unenrolled accounts and enrolled but unverified sessions',
+  );
+  assuranceEnrolled = false;
+  await page.goto(
+    `${base}/security?returnTo=${encodeURIComponent(`/organizations/${org}`)}`,
+  );
+  await page
+    .getByLabel('Contraseña actual', { exact: true })
+    .fill('synthetic-password-only');
+  await page
+    .getByRole('button', {
+      name: 'Configurar aplicación autenticadora',
+      exact: true,
+    })
+    .click();
+  await visible(page.getByText('synthetic-backup-one', { exact: true }));
+  const enrollmentQr = page.getByRole('img', {
+    name: 'QR para configurar tu aplicación autenticadora',
+    exact: true,
+  });
+  await visible(enrollmentQr);
+  assert.match(
+    await enrollmentQr.getAttribute('src'),
+    /^data:image\/png;base64,/,
+  );
+  await visible(page.getByText('JBSWY3DPEHPK3PXP', { exact: true }));
+  assert.equal(mfaWrites.at(-1).body.password, 'synthetic-password-only');
+  const activate = page.getByRole('button', {
+    name: 'Verificar y activar protección',
+    exact: true,
+  });
+  assert.equal(
+    await activate.isDisabled(),
+    true,
+    'recovery acknowledgment precedes activation',
+  );
+  await page
+    .getByRole('checkbox', {
+      name: 'Guardé mis códigos de recuperación',
+      exact: true,
+    })
+    .check();
+  await page
+    .getByLabel('Código de verificación', { exact: true })
+    .fill('123456');
+  await activate.click();
+  await visible(
+    page.getByRole('status').filter({ hasText: 'Protección activada.' }),
+  );
+  assert.equal(mfaWrites.at(-1).body.code, '123456');
+  assert.equal(mfaWrites.at(-1).body.trustDevice, false);
+  const persisted = await page.evaluate(() =>
+    JSON.stringify({
+      local: { ...window.localStorage },
+      session: { ...window.sessionStorage },
+    }),
+  );
+  assert.equal(persisted.includes('JBSWY3DPEHPK3PXP'), false);
+  assert.equal(persisted.includes('synthetic-backup-one'), false);
+  await page
+    .getByRole('button', { name: 'Continuar a la aplicación', exact: true })
+    .click();
+  await visible(page.getByRole('heading', { name: 'Resumen', exact: true }));
+  assert.equal(
+    await page.getByText('synthetic-backup-one', { exact: true }).count(),
+    0,
+  );
+  console.log(
+    'PASS MFA enrollment uses shared controls, requires recovery acknowledgment and clears secret UI after activation',
+  );
+  await page.goto(
+    `${base}/two-factor?returnTo=${encodeURIComponent(`/organizations/${org}`)}`,
+  );
+  await page
+    .getByRole('button', { name: 'Usar código de recuperación', exact: true })
+    .click();
+  await page
+    .getByLabel('Código de recuperación', { exact: true })
+    .fill('synthetic-backup-one');
+  await page
+    .getByRole('button', { name: 'Verificar acceso', exact: true })
+    .click();
+  await visible(page.getByRole('heading', { name: 'Resumen', exact: true }));
+  assert.equal(
+    mfaWrites.at(-1).path,
+    '/api/auth/two-factor/verify-backup-code',
+  );
+  assert.equal(mfaWrites.at(-1).body.code, 'synthetic-backup-one');
+  assert.equal(mfaWrites.at(-1).body.trustDevice, false);
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS MFA backup challenge submits explicit recovery code and returns to authorized workspace',
+  );
+  const oldDashboard = requestGate();
+  heldDashboard = oldDashboard;
+  await page
+    .getByRole('button', { name: 'Actualizar resumen', exact: true })
+    .click();
+  await oldDashboard.arrived;
+  const secondContext = requestGate();
+  heldContext = secondContext;
+  sessionUser = id(999);
+  const oldRequestCancelled = page.waitForEvent('requestfailed', (request) =>
+    request.url().endsWith('/dashboard'),
+  );
+  // Exercise the actual shared authentication transition signal while an old
+  // identity request is in flight; the mocked server now returns user B.
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('reconcile:authentication-changed')),
+  );
+  await secondContext.arrived;
+  await oldRequestCancelled;
+  assert.equal(
+    await page.getByText('53', { exact: true }).count(),
+    0,
+    'old identity data is hidden while new membership is pending',
+  );
+  heldDashboard = null;
+  oldDashboard.release();
+  assert.equal(
+    await page.getByText('53', { exact: true }).count(),
+    0,
+    'late old-identity response does not restore private data',
+  );
+  heldContext = null;
+  secondContext.release();
+  await visible(page.getByText('7', { exact: true }).first());
+  assert.equal(await page.getByText('53', { exact: true }).count(), 0);
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS same-tab identity switch hides cached private data, cancels in-flight old scope and waits for new membership',
   );
 } finally {
   await browser.close();

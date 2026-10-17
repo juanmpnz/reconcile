@@ -1,13 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { fromNodeHeaders } from 'better-auth/node';
+import { createBusinessRequestContext } from './request-context.js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Auth } from '@reconcile/auth';
 import { Prisma, type PrismaClient } from '@reconcile/database';
-import {
-  createDocumentService,
-  DocumentError,
-  authorizeDocuments,
-} from '@reconcile/application';
+import { createDocumentService, DocumentError } from '@reconcile/application';
 import {
   DOCUMENT_MAX_BYTES,
   documentKindSchema,
@@ -16,7 +11,6 @@ import {
   documentListQuerySchema,
 } from '@reconcile/contracts';
 import type { PrivateDocumentStorage } from '@reconcile/document-processing';
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function registerDocumentRoutes(
   server: FastifyInstance,
   {
@@ -26,71 +20,17 @@ export function registerDocumentRoutes(
   }: { auth: Auth; prisma: PrismaClient; storage: PrivateDocumentStorage },
 ) {
   const service = createDocumentService({ prisma, storage });
-  const requestActors = new WeakMap<object, string>();
   server.addContentTypeParser(
     'application/pdf',
     { parseAs: 'buffer', bodyLimit: DOCUMENT_MAX_BYTES },
     (_request, body, done) => done(null, body),
   );
   type Params = { organizationId: string; documentId?: string };
-  async function context(
-    request: FastifyRequest<{ Params: Params }>,
-    reply: FastifyReply,
-    write = false,
-  ) {
-    reply.header('cache-control', 'private, no-store');
-    reply.header('x-content-type-options', 'nosniff');
-    const cachedActor = requestActors.get(request);
-    if (cachedActor) return cachedActor;
-    if (
-      !uuid.test(request.params.organizationId) ||
-      (request.params.documentId && !uuid.test(request.params.documentId))
-    )
-      throw new DocumentError(404, 'NOT_FOUND');
-    if (write) {
-      const origin = request.headers.origin;
-      const allowed = new Set([
-        new URL(auth.options.baseURL ?? 'http://invalid.local').origin,
-        ...(Array.isArray(auth.options.trustedOrigins)
-          ? auth.options.trustedOrigins.filter(
-              (o): o is string => typeof o === 'string',
-            )
-          : []),
-      ]);
-      if (
-        !origin ||
-        !allowed.has(origin) ||
-        request.headers['sec-fetch-site'] === 'cross-site'
-      )
-        throw new DocumentError(403, 'UNTRUSTED_ORIGIN');
-    }
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(request.headers),
-      query: { disableCookieCache: true },
-    });
-    if (!session?.user.emailVerified)
-      throw new DocumentError(401, 'UNAUTHORIZED');
-    await authorizeDocuments(
-      prisma,
-      request.params.organizationId,
-      session.user.id,
-      write,
-    );
-    if (write) {
-      const now = BigInt(Date.now());
-      const cutoff = now - 60000n;
-      const key = `document-mutation:${session.user.id}`;
-      const counts = await prisma.$queryRaw<
-        { count: number }[]
-      >`INSERT INTO auth_rate_limits (id,key,count,"lastRequest") VALUES (${randomUUID()}::uuid,${key},1,${now}) ON CONFLICT (key) DO UPDATE SET count=CASE WHEN auth_rate_limits."lastRequest" < ${cutoff} THEN 1 ELSE auth_rate_limits.count+1 END,"lastRequest"=CASE WHEN auth_rate_limits."lastRequest" < ${cutoff} THEN ${now} ELSE auth_rate_limits."lastRequest" END RETURNING count`;
-      if ((counts[0]?.count ?? 101) > 100) {
-        reply.header('retry-after', '60');
-        throw new DocumentError(429, 'RATE_LIMITED');
-      }
-    }
-    requestActors.set(request, session.user.id);
-    return session.user.id;
-  }
+  const context = createBusinessRequestContext({
+    auth,
+    prisma,
+    mutationBucket: 'document',
+  });
   async function bounded(reply: FastifyReply, action: () => Promise<unknown>) {
     try {
       return await action();

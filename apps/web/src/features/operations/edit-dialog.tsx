@@ -1,9 +1,12 @@
+import { useUpdateOperationMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
 import { useState } from 'react';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback, Field } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback, Field } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
-import { OperationConflictError, updateOperation } from './api';
+import { OperationConflictError } from './api';
 export function EditOperationDialog({
+  userId,
   organizationId,
   operationId,
   name,
@@ -13,6 +16,7 @@ export function EditOperationDialog({
   activeRun,
   onSaved,
 }: {
+  userId: string;
   organizationId: string;
   operationId: string;
   name: string;
@@ -22,6 +26,8 @@ export function EditOperationDialog({
   activeRun: boolean;
   onSaved: () => Promise<void>;
 }) {
+  const updateOperationMutation = useUpdateOperationMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [draftName, setName] = useState(name);
   const [draftReference, setReference] = useState(reference);
@@ -61,11 +67,15 @@ export function EditOperationDialog({
           setError('');
           void (async () => {
             try {
-              await updateOperation(organizationId, operationId, {
-                name: draftName.trim(),
-                reference: draftReference.trim(),
-                expectedFingerprint,
-              });
+              await updateOperationMutation.mutateAsync([
+                organizationId,
+                operationId,
+                {
+                  name: draftName.trim(),
+                  reference: draftReference.trim(),
+                  expectedFingerprint,
+                },
+              ]);
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -131,7 +141,7 @@ export function EditOperationDialog({
             Revisé los datos actualizados; conservar mi borrador
           </Button>
         )}
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -151,7 +161,7 @@ export function EditOperationDialog({
           >
             {busy ? 'Guardando…' : 'Guardar operación'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

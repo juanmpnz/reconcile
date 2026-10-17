@@ -1,3 +1,4 @@
+import { httpFetch, HttpError, readHttpJson } from '../../lib/http';
 import { z } from 'zod';
 import { authClient } from '../../lib/auth';
 export const organizationSchema = z.object({
@@ -61,24 +62,32 @@ export async function listOrganizations() {
 export async function getContext(id: string, signal: AbortSignal) {
   let response: Response;
   try {
-    response = await fetch(
+    response = await httpFetch(
       `/api/v1/organizations/${encodeURIComponent(id)}/context`,
       { signal, credentials: 'include' },
     );
-  } catch {
+  } catch (error) {
+    if (signal.aborted) throw error;
     throw new Error(
       'No pudimos conectar con el servicio. Comprobá tu conexión e intentá nuevamente.',
+      { cause: error },
     );
   }
   if (!response.ok)
-    throw new Error(
+    throw new HttpError(
+      response.status,
       response.status === 401
         ? 'Tu sesión expiró. Volvé a iniciar sesión.'
         : response.status === 403 || response.status === 404
           ? 'Esta organización no está disponible para tu cuenta.'
           : 'El servicio no pudo comprobar el acceso. Volvé a intentar.',
     );
-  const context = contextSchema.parse(await response.json());
+  const context = contextSchema.parse(
+    await readHttpJson(
+      response,
+      'La respuesta del acceso no es válida. Volvé a intentar.',
+    ),
+  );
   if (context.organization.id !== id)
     throw new Error(
       'La respuesta no corresponde a la organización seleccionada.',

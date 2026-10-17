@@ -1,3 +1,9 @@
+import {
+  httpFetch,
+  HttpError,
+  parseHttpResponse,
+  readHttpJson,
+} from '../../lib/http';
 import { z } from 'zod';
 import {
   correctionInputSchema,
@@ -21,21 +27,20 @@ export function documentsEndpoint(organizationId: string, documentId?: string) {
 export function documentPath(organizationId: string, documentId: string) {
   return `/organizations/${encodeURIComponent(organizationId)}/documents/${encodeURIComponent(documentId)}`;
 }
-export class DocumentConflictError extends Error {
+export class DocumentConflictError extends HttpError {
   constructor(
-    readonly code: string,
+    override readonly code: string,
     message: string,
   ) {
-    super(message);
+    super(409, message, code);
   }
 }
-function parseDocumentResponse<T>(schema: z.ZodType<T>, body: unknown) {
-  const result = schema.safeParse(body);
-  if (!result.success)
-    throw new Error(
-      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
-    );
-  return result.data;
+function parseDocumentResponse<T>(schema: z.ZodType<T>, body: unknown): T {
+  return parseHttpResponse(
+    schema,
+    body,
+    'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+  );
 }
 async function checked(response: Response) {
   if (response.status === 409) {
@@ -47,7 +52,8 @@ async function checked(response: Response) {
     );
   }
   if (!response.ok)
-    throw new Error(
+    throw new HttpError(
+      response.status,
       response.status === 401
         ? 'Tu sesión expiró. Volvé a iniciar sesión.'
         : response.status === 403 || response.status === 404
@@ -85,14 +91,17 @@ export async function listDocuments(
     ...filters,
   });
   const response = await checked(
-    await fetch(`${documentsEndpoint(organizationId)}?${params}`, {
+    await httpFetch(`${documentsEndpoint(organizationId)}?${params}`, {
       signal,
       credentials: 'include',
     }),
   );
   const result = parseDocumentResponse(
     documentListSchema,
-    await response.json(),
+    await readHttpJson(
+      response,
+      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+    ),
   );
   if (result.items.some((item) => item.organizationId !== organizationId))
     throw new Error('La respuesta no corresponde a esta organización.');
@@ -104,14 +113,17 @@ export async function getDocument(
   signal: AbortSignal,
 ) {
   const response = await checked(
-    await fetch(documentsEndpoint(organizationId, documentId), {
+    await httpFetch(documentsEndpoint(organizationId, documentId), {
       signal,
       credentials: 'include',
     }),
   );
   const result = parseDocumentResponse(
     documentDetailSchema,
-    await response.json(),
+    await readHttpJson(
+      response,
+      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+    ),
   );
   if (result.id !== documentId || result.organizationId !== organizationId)
     throw new Error('La respuesta no corresponde al documento solicitado.');
@@ -123,7 +135,7 @@ export async function uploadDocument(
   kind: DocumentKind,
 ) {
   const response = await checked(
-    await fetch(documentsEndpoint(organizationId), {
+    await httpFetch(documentsEndpoint(organizationId), {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -136,7 +148,10 @@ export async function uploadDocument(
   );
   const result = parseDocumentResponse(
     documentDetailSchema,
-    await response.json(),
+    await readHttpJson(
+      response,
+      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+    ),
   );
   if (result.organizationId !== organizationId)
     throw new Error('La respuesta no corresponde a esta organización.');
@@ -147,7 +162,7 @@ export async function retryDocument(
   documentId: string,
 ) {
   await checked(
-    await fetch(`${documentsEndpoint(organizationId, documentId)}/retry`, {
+    await httpFetch(`${documentsEndpoint(organizationId, documentId)}/retry`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
@@ -161,7 +176,7 @@ export async function correctDocument(
   input: CorrectionInput,
 ) {
   await checked(
-    await fetch(
+    await httpFetch(
       `${documentsEndpoint(organizationId, documentId)}/corrections`,
       {
         method: 'POST',
@@ -177,9 +192,12 @@ export async function downloadDocument(
   documentId: string,
 ) {
   const response = await checked(
-    await fetch(`${documentsEndpoint(organizationId, documentId)}/download`, {
-      credentials: 'include',
-    }),
+    await httpFetch(
+      `${documentsEndpoint(organizationId, documentId)}/download`,
+      {
+        credentials: 'include',
+      },
+    ),
   );
   return response.blob();
 }
@@ -229,7 +247,7 @@ export async function updateDocumentMetadata(
   input: z.infer<typeof documentMetadataInputSchema>,
 ) {
   const response = await checked(
-    await fetch(documentsEndpoint(organizationId, documentId), {
+    await httpFetch(documentsEndpoint(organizationId, documentId), {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
@@ -238,7 +256,10 @@ export async function updateDocumentMetadata(
   );
   const result = parseDocumentResponse(
     documentDetailSchema,
-    await response.json(),
+    await readHttpJson(
+      response,
+      'La respuesta de documentos no es válida. Recargá y volvé a intentar.',
+    ),
   );
   if (result.organizationId !== organizationId || result.id !== documentId)
     throw new Error('La respuesta no corresponde al documento solicitado.');

@@ -1,12 +1,14 @@
+import { documentQueries } from './hooks';
+import { PageHeader } from '../../design-system/layout';
 import {
   DataTable,
   renderLink,
   renderStatus,
-} from '../../components/ui/data-table';
+} from '../../design-system/data-table';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Feedback, RequestError } from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+import { Button, Feedback, RequestError } from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { navigate, useRoute } from '../../app/router';
 import { UploadDialog } from './upload-dialog';
 import { MetadataDialog } from './metadata-dialog';
@@ -15,10 +17,8 @@ import { documentListPath, documentListState } from './list-state';
 import {
   bytesLabel,
   documentPath,
-  documentsKey,
   isProcessing,
   kindLabels,
-  listDocuments,
   statusLabels,
   timestampLabel,
 } from './api';
@@ -39,17 +39,7 @@ export function DocumentList({
   const options = documentListState(route.searchParams);
   const [message, setMessage] = useState('');
   const documents = useQuery({
-    queryKey: [
-      ...documentsKey(userId, organizationId),
-      'list',
-      options.q,
-      options.sort,
-      options.direction,
-      options.limit,
-      page,
-    ],
-    queryFn: ({ signal }) =>
-      listDocuments(organizationId, page, signal, options),
+    ...documentQueries.list(userId, organizationId, page, options),
     enabled: !disabled,
     refetchInterval: (query) =>
       query.state.data?.items.some((item) => isProcessing(item.status))
@@ -58,7 +48,7 @@ export function DocumentList({
   });
   return (
     <section>
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h2>Documentos</h2>
           <p>
@@ -73,7 +63,7 @@ export function DocumentList({
             disabled={disabled}
           />
         )}
-      </div>
+      </PageHeader>
       <Feedback message={message} />
       {!canWrite && (
         <p className="permission-note">

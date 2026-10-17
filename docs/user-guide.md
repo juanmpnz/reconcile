@@ -133,3 +133,9 @@ La sesión inicial y las primeras consultas muestran un indicador y texto. Las a
 ## Qué falta
 
 El siguiente paso es preparar el servidor con HTTPS, secretos, almacenamiento privado, backups y restauración comprobada (fase 5). No hay OCR, reconocimiento universal de facturas, importación JSON operativa ni integración real con CargoWise/correo. La prueba con documentos confidenciales reales requiere validación adicional del experto y los controles acordados.
+
+## Protección adicional de la cuenta
+
+En producción, después de verificar el correo y antes de abrir una organización, configurá una aplicación autenticadora. Ingresá tu contraseña actual, escaneá el QR o copiá la clave manual, guardá los códigos de recuperación y confirmá con el código de seis dígitos. Los códigos de recuperación se muestran durante el alta y cada uno sirve una sola vez.
+
+En los próximos accesos se pedirá contraseña y código de la aplicación. Si perdiste el teléfono, elegí «Usar código de recuperación». Una sesión abierta antes de activar MFA también necesita verificar el segundo factor. No compartas el QR, la clave manual ni los códigos de recuperación.

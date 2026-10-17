@@ -1,10 +1,16 @@
-import { DataTable } from '../../components/ui/data-table';
+import { agreementQueries } from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  PageHeader,
+} from '../../design-system/layout';
+import { DataTable } from '../../design-system/data-table';
 import { navigate, useRoute } from '../../app/router';
 import { useQuery } from '@tanstack/react-query';
-import { RequestError } from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
+import { RequestError } from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
 import { documentPath } from '../documents/api';
-import { agreementsKey, listAgreements } from './api';
+
 import { CreateAgreementDialog } from './create-dialog';
 import { pricingLabel } from './presentation';
 export function AgreementList({
@@ -54,27 +60,17 @@ export function AgreementList({
   }
 
   const query = useQuery({
-    queryKey: [
-      ...agreementsKey(userId, organizationId),
-      'list',
-      page,
+    ...agreementQueries.list(userId, organizationId, page, {
       q,
       sort,
       direction,
       limit,
-    ],
-    queryFn: ({ signal }) =>
-      listAgreements(organizationId, page, signal, {
-        q,
-        sort,
-        direction,
-        limit,
-      }),
+    }),
     enabled: !disabled,
   });
   return (
     <section aria-labelledby="agreements-title">
-      <div className="page-header">
+      <PageHeader className="page-header">
         <div>
           <h2 id="agreements-title">Tarifas y acuerdos</h2>
           <p>
@@ -89,7 +85,7 @@ export function AgreementList({
             disabled={disabled}
           />
         )}
-      </div>
+      </PageHeader>
       {!canWrite && (
         <p className="permission-note">
           Tu rol permite consultar acuerdos y originales; no permite publicar
@@ -193,15 +189,15 @@ export function AgreementList({
                   <a href={documentPath(organizationId, item.sourceDocumentId)}>
                     Ver PDF original
                   </a>
-                  <details>
-                    <summary>Condiciones revisadas</summary>
+                  <Accordion>
+                    <AccordionTrigger>Condiciones revisadas</AccordionTrigger>
                     {item.terms.evidence.map((evidence, index) => (
                       <blockquote key={index}>
                         Página {evidence.page}: {evidence.snippet}
                       </blockquote>
                     ))}
                     <p>Revisión manual: {item.reason}</p>
-                  </details>
+                  </Accordion>
                 </>
               ),
             },

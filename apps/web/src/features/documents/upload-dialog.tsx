@@ -1,19 +1,18 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { useUploadDocumentMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { FileInput, FormField } from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { useId, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+
 import { DOCUMENT_MAX_BYTES, documentKindSchema } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import { navigate } from '../../app/router';
-import {
-  bytesLabel,
-  documentPath,
-  documentsKey,
-  kindLabels,
-  uploadDocument,
-} from './api';
+import { bytesLabel, documentPath, kindLabels } from './api';
 export function UploadDialog({
   userId,
   organizationId,
@@ -27,6 +26,8 @@ export function UploadDialog({
   defaultKind?: string;
   onUploaded?: (documentId: string) => void;
 }) {
+  const uploadDocumentMutation = useUploadDocumentMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState(defaultKind);
   const [file, setFile] = useState<File | null>(null);
@@ -35,7 +36,6 @@ export function UploadDialog({
   const mounted = useMounted();
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
-  const queryClient = useQueryClient();
   function reset() {
     setFile(null);
     setKind(defaultKind);
@@ -78,15 +78,16 @@ export function UploadDialog({
           setError('');
           void (async () => {
             try {
-              const document = await uploadDocument(organizationId, file, kind);
+              const document = await uploadDocumentMutation.mutateAsync([
+                organizationId,
+                file,
+                kind,
+              ]);
               if (!mounted.current) return;
               if (document.organizationId !== organizationId)
                 throw new Error(
                   'La respuesta no corresponde a esta organización.',
                 );
-              await queryClient.invalidateQueries({
-                queryKey: documentsKey(userId, organizationId),
-              });
               if (!mounted.current) return;
               setOpen(false);
               if (onUploaded) onUploaded(document.id);
@@ -100,12 +101,12 @@ export function UploadDialog({
         }}
       >
         <Feedback message={error} error />
-        <div className="field">
-          <label htmlFor={`${id}-file`}>Archivo PDF</label>
-          <input
+        <FormField className="field">
+          <Label htmlFor={`${id}-file`}>Archivo PDF</Label>
+          <FileInput
             ref={input}
             id={`${id}-file`}
-            type="file"
+
             accept=".pdf,application/pdf"
             required={!file}
             onChange={(event) => {
@@ -118,7 +119,7 @@ export function UploadDialog({
             Solo PDF. Máximo {bytesLabel(DOCUMENT_MAX_BYTES)}. El servidor
             validará el contenido.
           </small>
-        </div>
+        </FormField>
         {file && (
           <div className="selected-file">
             <span>
@@ -138,8 +139,8 @@ export function UploadDialog({
             </Button>
           </div>
         )}
-        <div className="field">
-          <label htmlFor={`${id}-kind`}>Tipo de documento</label>
+        <FormField className="field">
+          <Label htmlFor={`${id}-kind`}>Tipo de documento</Label>
           <Select
             id={`${id}-kind`}
             name="kind"
@@ -152,8 +153,8 @@ export function UploadDialog({
               </option>
             ))}
           </Select>
-        </div>
-        <div className="dialog-actions">
+        </FormField>
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -168,7 +169,7 @@ export function UploadDialog({
           <Button pending={busy} disabled={disabled || !file}>
             {busy ? 'Subiendo…' : 'Subir documento'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

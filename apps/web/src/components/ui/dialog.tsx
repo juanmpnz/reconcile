@@ -1,2 +1,2 @@
-// Compatibility entry point: all task dialogs share the accessible right SidePanel.
-export { SidePanel as Dialog } from './side-panel';
+// Compatibility entry; implementation belongs to the internal design system.
+export * from '../../design-system/dialog';

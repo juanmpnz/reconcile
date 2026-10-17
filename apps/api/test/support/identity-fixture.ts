@@ -37,7 +37,11 @@ export function records(value: unknown): Record<string, unknown>[] {
 }
 
 export function useIdentityFixture(
-  options: { addressPrefix?: string; beforeCleanup?: () => Promise<void> } = {},
+  options: {
+    addressPrefix?: string;
+    requireMfa?: boolean;
+    beforeCleanup?: () => Promise<void>;
+  } = {},
 ) {
   const origin = 'http://localhost:3000';
   const password = 'Synthetic-Identity-Password-837!';
@@ -62,6 +66,7 @@ export function useIdentityFixture(
       AUTH_SECRET:
         'synthetic-integration-secret-at-least-thirty-two-characters',
       MAIL_MODE: 'capture',
+      AUTH_REQUIRE_MFA: options.requireMfa ? 'true' : 'false',
       MAIL_FROM: 'demo@example.invalid',
     });
     const auth = createAuth({

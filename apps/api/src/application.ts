@@ -17,11 +17,22 @@ import {
   type NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import type { PrismaClient } from '@reconcile/database';
-import { capabilities, isOrganizationRole, type Auth } from '@reconcile/auth';
+import {
+  authRequiresMfa,
+  capabilities,
+  isOrganizationRole,
+  type Auth,
+} from '@reconcile/auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyInstance } from 'fastify';
 import { HealthController } from './health.controller.js';
 import { HealthService } from './health.service.js';
+import {
+  privateResponse,
+  requireVerifiedSession,
+  trustedOrigins,
+} from './request-context.js';
+import { DocumentError } from '@reconcile/application';
 @Module({ controllers: [HealthController], providers: [HealthService] })
 class AppModule {}
 export async function createApplication({
@@ -45,6 +56,11 @@ export async function createApplication({
   );
   app.setGlobalPrefix('api/v1');
   const server: FastifyInstance = adapter.getInstance();
+  // Covers successful auth responses, redirects, failures, and framework errors.
+  server.addHook('onSend', async (request, reply, payload) => {
+    if (request.url.startsWith('/api/')) privateResponse(reply);
+    return payload;
+  });
   server.route({
     method: ['GET', 'POST'],
     url: '/api/auth/*',
@@ -64,19 +80,12 @@ export async function createApplication({
       if (url.origin !== configuredBase.origin)
         return reply.status(400).send({ code: 'INVALID_AUTH_URL' });
       const origin = headers.get('origin');
-      const trustedOrigins = new Set([
-        configuredBase.origin,
-        ...(Array.isArray(auth.options.trustedOrigins)
-          ? auth.options.trustedOrigins.filter(
-              (value): value is string => typeof value === 'string',
-            )
-          : []),
-      ]);
+      const allowedOrigins = trustedOrigins(auth);
       // Browser auth writes require an explicit exact origin. Referer is not a fallback.
       // Email verification/reset GET links intentionally work without an Origin header.
       if (
         (request.method === 'POST' && !origin) ||
-        (origin !== null && !trustedOrigins.has(origin)) ||
+        (origin !== null && !allowedOrigins.has(origin)) ||
         (request.method === 'POST' &&
           headers.get('sec-fetch-site') === 'cross-site')
       ) {
@@ -114,16 +123,38 @@ export async function createApplication({
       );
     },
   });
+  server.get('/api/v1/session-assurance', async (request, reply) => {
+    try {
+      const session = await requireVerifiedSession(
+        auth,
+        request.headers,
+        false,
+      );
+      return {
+        required:
+          authRequiresMfa(auth) || session.user.twoFactorEnabled === true,
+        enrolled: session.user.twoFactorEnabled === true,
+        verified:
+          session.user.twoFactorEnabled === true &&
+          Boolean(session.session.mfaVerifiedAt),
+      };
+    } catch (error) {
+      if (error instanceof DocumentError)
+        return reply.status(error.status).send({ code: error.code });
+      return reply.status(503).send({ code: 'IDENTITY_UNAVAILABLE' });
+    }
+  });
   server.get<{ Params: { organizationId: string } }>(
     '/api/v1/organizations/:organizationId/context',
     async (request, reply) => {
-      reply.header('cache-control', 'no-store');
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(request.headers),
-        query: { disableCookieCache: true },
-      });
-      if (!session?.user.emailVerified)
-        return reply.status(401).send({ code: 'UNAUTHORIZED' });
+      let session;
+      try {
+        session = await requireVerifiedSession(auth, request.headers);
+      } catch (error) {
+        if (error instanceof DocumentError)
+          return reply.status(error.status).send({ code: error.code });
+        return reply.status(503).send({ code: 'IDENTITY_UNAVAILABLE' });
+      }
       const deny = async () => {
         await prisma.identityAuditEvent.create({
           data: {

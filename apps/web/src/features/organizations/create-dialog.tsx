@@ -1,15 +1,16 @@
+import { FormActions } from '../../design-system/layout';
 import { useState } from 'react';
 import { useMounted } from '../../lib/use-mounted';
-import { useQueryClient } from '@tanstack/react-query';
-import { authClient } from '../../lib/auth';
+
+import { useCreateOrganizationMutation } from './hooks';
 import { errorMessage, value } from '../../lib/forms';
 import { navigate, organizationPath } from '../../app/router';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback, Field } from '../../components/ui/primitives';
-import { identityKey, organizationSchema } from './queries';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback, Field } from '../../design-system/primitives';
+
 export function CreateOrganizationDialog({ userId }: { userId: string }) {
+  const createOrganization = useCreateOrganizationMutation(userId);
   const mounted = useMounted();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -37,15 +38,9 @@ export function CreateOrganizationDialog({ userId }: { userId: string }) {
           setError('');
           void (async () => {
             try {
-              const result = await authClient.organization.create({
+              const organization = await createOrganization.mutateAsync({
                 name,
                 slug,
-              });
-              if (!mounted.current) return;
-              if (result.error) throw new Error(result.error.message);
-              const organization = organizationSchema.parse(result.data);
-              await queryClient.invalidateQueries({
-                queryKey: identityKey(userId),
               });
               if (!mounted.current) return;
               setOpen(false);
@@ -74,7 +69,7 @@ export function CreateOrganizationDialog({ userId }: { userId: string }) {
           maxLength={80}
           hint="Letras minúsculas, números y guiones. Ejemplo: mi-empresa."
         />
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -89,7 +84,7 @@ export function CreateOrganizationDialog({ userId }: { userId: string }) {
           <Button pending={busy} disabled={busy}>
             {busy ? 'Creando…' : 'Crear organización'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

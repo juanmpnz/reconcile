@@ -1,26 +1,36 @@
-import { Select } from '../../components/ui/select';
+import { Label } from '../../design-system/controls';
+import { documentQueries } from '../documents/hooks';
+import { useCreateAgreementMutation } from './hooks';
+import {
+  Accordion,
+  AccordionTrigger,
+  FormActions,
+} from '../../design-system/layout';
+import {
+  Checkbox,
+  FormField,
+  Input,
+  Textarea,
+} from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { useId, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { agreementCreateSchema } from '@reconcile/contracts';
 import type { AgreementVersion } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
+import { Dialog } from '../../design-system/dialog';
 import {
   Button,
   Feedback,
   Field,
   RequestError,
-} from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
-import {
-  documentsKey,
-  getDocument,
-  listDocuments,
-  documentPath,
-} from '../documents/api';
+} from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
+import { documentPath } from '../documents/api';
 import { UploadDialog } from '../documents/upload-dialog';
 import { errorMessage } from '../../lib/forms';
 import { useMounted } from '../../lib/use-mounted';
-import { agreementsKey, createAgreement } from './api';
+
 type BandDraft = {
   fromKm: string;
   toKm: string;
@@ -42,6 +52,8 @@ export function CreateAgreementDialog({
   label?: string;
   onCreated?: (agreement: AgreementVersion) => void;
 }) {
+  const createAgreementMutation = useCreateAgreementMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [sourceId, setSourceId] = useState('');
   const [page, setPage] = useState(0);
@@ -54,20 +66,13 @@ export function CreateAgreementDialog({
   const [evidencePage, setEvidencePage] = useState('');
   const [snippet, setSnippet] = useState('');
   const mounted = useMounted();
-  const client = useQueryClient();
   const id = useId();
   const sources = useQuery({
-    queryKey: [
-      ...documentsKey(userId, organizationId),
-      'agreement-sources',
-      page,
-    ],
-    queryFn: ({ signal }) => listDocuments(organizationId, page, signal),
+    ...documentQueries.list(userId, organizationId, page),
     enabled: open && !disabled,
   });
   const source = useQuery({
-    queryKey: [...documentsKey(userId, organizationId), 'detail', sourceId],
-    queryFn: ({ signal }) => getDocument(organizationId, sourceId, signal),
+    ...documentQueries.detail(userId, organizationId, sourceId),
     enabled: open && !disabled && Boolean(sourceId),
     refetchInterval: (query) =>
       query.state.data?.status === 'queued' ||
@@ -166,13 +171,10 @@ export function CreateAgreementDialog({
           setError('');
           void (async () => {
             try {
-              const agreement = await createAgreement(
+              const agreement = await createAgreementMutation.mutateAsync([
                 organizationId,
                 parsed.data,
-              );
-              await client.invalidateQueries({
-                queryKey: agreementsKey(userId, organizationId),
-              });
+              ]);
               if (mounted.current) {
                 setOpen(false);
                 onCreated?.(agreement);
@@ -209,8 +211,8 @@ export function CreateAgreementDialog({
             />
           ) : (
             <>
-              <div className="field">
-                <label htmlFor={`${id}-source`}>Usar un PDF ya cargado</label>
+              <FormField className="field">
+                <Label htmlFor={`${id}-source`}>Usar un PDF ya cargado</Label>
                 <Select
                   id={`${id}-source`}
                   required
@@ -241,7 +243,7 @@ export function CreateAgreementDialog({
                       </option>
                     ))}
                 </Select>
-              </div>
+              </FormField>
               <div className="pagination">
                 <Button
                   type="button"
@@ -320,21 +322,21 @@ export function CreateAgreementDialog({
             maxLength={500}
             hint="Se comparará con el ámbito revisado de la operación."
           />
-          <div className="field">
-            <label htmlFor={`${id}-service`}>Servicio</label>
+          <FormField className="field">
+            <Label htmlFor={`${id}-service`}>Servicio</Label>
             <Select id={`${id}-service`} name="service">
               <option value="pickup">Recogida / transporte terrestre</option>
               <option value="ocean-handling">Servicio base marítimo</option>
             </Select>
-          </div>
+          </FormField>
           <Field
             name="currency"
             label="Moneda ISO (EUR, USD…)"
             pattern="[A-Z]{3}"
             maxLength={3}
           />
-          <div className="field">
-            <label htmlFor={`${id}-pricing`}>Cómo se calcula el precio</label>
+          <FormField className="field">
+            <Label htmlFor={`${id}-pricing`}>Cómo se calcula el precio</Label>
             <Select
               id={`${id}-pricing`}
               value={pricingType}
@@ -344,7 +346,7 @@ export function CreateAgreementDialog({
               <option value="per-km">Precio por kilómetro</option>
               <option value="distance-bands">Tramos de distancia</option>
             </Select>
-          </div>
+          </FormField>
           {pricingType !== 'distance-bands' ? (
             <Field
               name="amount"
@@ -367,15 +369,15 @@ export function CreateAgreementDialog({
                 <fieldset key={index}>
                   <legend>Tramo {index + 1}</legend>
                   {(['fromKm', 'toKm', 'amount'] as const).map((key) => (
-                    <div className="field" key={key}>
-                      <label htmlFor={`${id}-${key}-${index}`}>
+                    <FormField className="field" key={key}>
+                      <Label htmlFor={`${id}-${key}-${index}`}>
                         {key === 'fromKm'
                           ? 'Desde km (incluido)'
                           : key === 'toKm'
                             ? 'Hasta km (excluido)'
                             : 'Precio'}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         id={`${id}-${key}-${index}`}
                         required
                         inputMode="decimal"
@@ -390,12 +392,12 @@ export function CreateAgreementDialog({
                           )
                         }
                       />
-                    </div>
+                    </FormField>
                   ))}
-                  <div className="field">
-                    <label htmlFor={`${id}-basis-${index}`}>
+                  <FormField className="field">
+                    <Label htmlFor={`${id}-basis-${index}`}>
                       Base del precio del tramo
-                    </label>
+                    </Label>
                     <Select
                       id={`${id}-basis-${index}`}
                       value={band.basis}
@@ -418,7 +420,7 @@ export function CreateAgreementDialog({
                       <option value="fixed-trip">Total por viaje</option>
                       <option value="per-km">Por kilómetro</option>
                     </Select>
-                  </div>
+                  </FormField>
                   <Button
                     type="button"
                     variant="ghost"
@@ -461,8 +463,8 @@ export function CreateAgreementDialog({
             el PDF completo; el sistema no deduce una tabla arbitraria
             automáticamente.
           </p>
-          <div className="field">
-            <label htmlFor={`${id}-page`}>Página de evidencia</label>
+          <FormField className="field">
+            <Label htmlFor={`${id}-page`}>Página de evidencia</Label>
             <Select
               id={`${id}-page`}
               required
@@ -479,39 +481,41 @@ export function CreateAgreementDialog({
                 </option>
               ))}
             </Select>
-          </div>
+          </FormField>
           {selectedPage && (
-            <details>
-              <summary>Texto original de página {selectedPage.page}</summary>
+            <Accordion>
+              <AccordionTrigger>
+                Texto original de página {selectedPage.page}
+              </AccordionTrigger>
               <pre className="agreement-source-text">{selectedPage.text}</pre>
-            </details>
+            </Accordion>
           )}
-          <div className="field">
-            <label htmlFor={`${id}-snippet`}>
+          <FormField className="field">
+            <Label htmlFor={`${id}-snippet`}>
               Cita literal que respalda estas condiciones
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id={`${id}-snippet`}
               required
               maxLength={500}
               value={snippet}
               onChange={(event) => setSnippet(event.target.value)}
             />
-          </div>
+          </FormField>
           <Field
             name="reason"
             label="Motivo de publicación / revisión"
             maxLength={500}
           />
-          <label className="document-choice">
-            <input type="checkbox" required />
+          <Label className="document-choice">
+            <Checkbox required />
             <span>
               Revisé las condiciones y precios contra el original y confirmé que
               están aceptados por las partes.
             </span>
-          </label>
+          </Label>
         </fieldset>
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -526,7 +530,7 @@ export function CreateAgreementDialog({
           >
             Publicar versión revisada
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

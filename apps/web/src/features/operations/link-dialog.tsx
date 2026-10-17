@@ -1,16 +1,16 @@
+import { Label } from '../../design-system/controls';
+import { documentQueries } from '../documents/hooks';
+import { useLinkDocumentsMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { Checkbox } from '../../design-system/controls';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback, RequestError } from '../../components/ui/primitives';
-import { Loading } from '../../components/ui/loading';
-import {
-  documentsKey,
-  listDocuments,
-  kindLabels,
-  statusLabels,
-} from '../documents/api';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback, RequestError } from '../../design-system/primitives';
+import { Loading } from '../../design-system/loading';
+import { kindLabels, statusLabels } from '../documents/api';
 import { useMounted } from '../../lib/use-mounted';
-import { linkDocuments, OperationConflictError } from './api';
+import { OperationConflictError } from './api';
 export function LinkDialog({
   userId,
   organizationId,
@@ -30,6 +30,8 @@ export function LinkDialog({
   disabled: boolean;
   onSaved: () => Promise<void>;
 }) {
+  const linkDocumentsMutation = useLinkDocumentsMutation(userId);
+
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState(documentIds);
@@ -39,8 +41,7 @@ export function LinkDialog({
   const [conflict, setConflict] = useState(false);
   const mounted = useMounted();
   const documents = useQuery({
-    queryKey: [...documentsKey(userId, organizationId), 'list', page],
-    queryFn: ({ signal }) => listDocuments(organizationId, page, signal),
+    ...documentQueries.list(userId, organizationId, page),
     enabled: open && !disabled,
   });
   return (
@@ -74,12 +75,12 @@ export function LinkDialog({
           setError('');
           void (async () => {
             try {
-              await linkDocuments(
+              await linkDocumentsMutation.mutateAsync([
                 organizationId,
                 operationId,
                 selected,
                 expectedFingerprint,
-              );
+              ]);
               if (!mounted.current) return;
               await onSaved();
               if (mounted.current) setOpen(false);
@@ -143,9 +144,8 @@ export function LinkDialog({
           </p>
         ) : (
           documents.data.items.map((item) => (
-            <label className="document-choice" key={item.id}>
-              <input
-                type="checkbox"
+            <Label className="document-choice" key={item.id}>
+              <Checkbox
                 checked={selected.includes(item.id)}
                 disabled={
                   busy || (!selected.includes(item.id) && selected.length >= 20)
@@ -167,7 +167,7 @@ export function LinkDialog({
                   {kindLabels[item.kind]} · {statusLabels[item.status]}
                 </small>
               </span>
-            </label>
+            </Label>
           ))
         )}
         <div className="pagination">
@@ -194,7 +194,7 @@ export function LinkDialog({
             Siguiente
           </Button>
         </div>
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -211,7 +211,7 @@ export function LinkDialog({
           >
             {busy ? 'Guardando…' : 'Guardar documentos'}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );

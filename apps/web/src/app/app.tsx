@@ -1,22 +1,16 @@
 import { WorkspaceEntry } from './workspace-entry';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router';
+import { useSignOutMutation } from '../features/auth/hooks';
 import { authClient } from '../lib/auth';
 import { navigate, useRoute } from './router';
-import { Account } from '../features/auth/account';
 import { Invitation } from '../features/auth/invitation';
 import { OrganizationList } from '../features/organizations/organization-list';
 import { OrganizationDetail } from '../features/organizations/organization-detail';
 import { AppShell } from '../components/app-shell';
-import { Loading } from '../components/ui/loading';
-import { Button, Feedback } from '../components/ui/primitives';
-const publicPaths = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
-];
+import { Loading } from '../design-system';
+import { Button, Feedback } from '../design-system';
 export function App() {
   const route = useRoute();
   const focusPath =
@@ -36,26 +30,12 @@ export function App() {
   const [logoutError, setLogoutError] = useState('');
   const invitationId =
     route.searchParams.get('invitationId') ?? route.searchParams.get('id');
-  const orgMatch =
-    /^\/organizations\/([^/]+)(?:\/(documents|operations)\/([^/]+))?$/.exec(
-      route.pathname,
-    );
-  let organizationId = '';
-  let documentId = '';
-  let operationId = '';
-  try {
-    organizationId = orgMatch?.[1] ? decodeURIComponent(orgMatch[1]) : '';
-    documentId =
-      orgMatch?.[2] === 'documents' && orgMatch[3]
-        ? decodeURIComponent(orgMatch[3])
-        : '';
-    operationId =
-      orgMatch?.[2] === 'operations' && orgMatch[3]
-        ? decodeURIComponent(orgMatch[3])
-        : '';
-  } catch {
-    /* Invalid paths render not-found below. */
-  }
+  const {
+    organizationId = '',
+    documentId = '',
+    operationId = '',
+  } = useParams();
+  const signOut = useSignOutMutation();
   const pageValue = Number(route.searchParams.get('page') ?? 0);
   const page =
     Number.isSafeInteger(pageValue) && pageValue >= 0 && pageValue < 100000
@@ -78,8 +58,7 @@ export function App() {
     setBusy(true);
     setLogoutError('');
     try {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error('Sign out failed');
+      await signOut.mutateAsync();
       client.clear();
       navigate('/login');
     } catch {
@@ -88,8 +67,6 @@ export function App() {
       setBusy(false);
     }
   }
-  if (publicPaths.includes(route.pathname))
-    return <Account key={route.pathname + route.search} />;
   if (session.isPending)
     return (
       <main tabIndex={-1} id="main" className="session-state">
@@ -110,7 +87,7 @@ export function App() {
         </Button>
       </main>
     );
-  if (!session.data) return <Account key={route.pathname + route.search} />;
+  if (!session.data) return <Loading label="Comprobando tu sesión…" />;
   const user = session.data.user;
   return (
     <AppShell

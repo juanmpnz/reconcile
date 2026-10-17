@@ -1,4 +1,10 @@
-import { Select } from '../../components/ui/select';
+import { documentQueries } from './hooks';
+import { Label } from '../../design-system/controls';
+import { useUpdateDocumentMetadataMutation } from './hooks';
+import { FormActions } from '../../design-system/layout';
+import { FormField, Textarea } from '../../design-system/controls';
+
+import { Select } from '../../design-system/select';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DocumentKind, DocumentSummary } from '@reconcile/contracts';
@@ -6,18 +12,11 @@ import {
   documentKindSchema,
   documentMetadataInputSchema,
 } from '@reconcile/contracts';
-import { Dialog } from '../../components/ui/dialog';
-import { Button, Feedback, Field } from '../../components/ui/primitives';
+import { Dialog } from '../../design-system/dialog';
+import { Button, Feedback, Field } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
-import { operationsKey } from '../operations/api';
-import { organizationKey } from '../organizations/queries';
-import {
-  DocumentConflictError,
-  documentsKey,
-  getDocument,
-  kindLabels,
-  updateDocumentMetadata,
-} from './api';
+
+import { DocumentConflictError, kindLabels } from './api';
 export function MetadataDialog({
   userId,
   organizationId,
@@ -31,6 +30,9 @@ export function MetadataDialog({
   disabled: boolean;
   onSaved?: () => void;
 }) {
+  const updateDocumentMetadataMutation =
+    useUpdateDocumentMetadataMutation(userId);
+
   const client = useQueryClient();
   const mounted = useMounted();
   const [open, setOpen] = useState(false);
@@ -46,11 +48,10 @@ export function MetadataDialog({
   async function reload() {
     setChecking(true);
     try {
-      const current = await getDocument(
-        organizationId,
-        document.id,
-        new AbortController().signal,
-      );
+      const current = await client.fetchQuery({
+        ...documentQueries.detail(userId, organizationId, document.id),
+        staleTime: 0,
+      });
       if (!mounted.current) return;
       setConflict(current);
     } catch (error) {
@@ -114,28 +115,14 @@ export function MetadataDialog({
           setError('');
           void (async () => {
             try {
-              await updateDocumentMetadata(
+              await updateDocumentMetadataMutation.mutateAsync([
                 organizationId,
                 document.id,
                 parsed.data,
-              );
+              ]);
               if (!mounted.current) return;
               setOpen(false);
               onSaved?.();
-              await Promise.all([
-                client.invalidateQueries({
-                  queryKey: documentsKey(userId, organizationId),
-                }),
-                client.invalidateQueries({
-                  queryKey: operationsKey(userId, organizationId),
-                }),
-                client.invalidateQueries({
-                  queryKey: [
-                    ...organizationKey(userId, organizationId),
-                    'review',
-                  ],
-                }),
-              ]);
             } catch (error) {
               if (!mounted.current) return;
               setError(
@@ -163,10 +150,10 @@ export function MetadataDialog({
           hint="Conservá la extensión .pdf."
           onChange={(event) => setFilename(event.target.value)}
         />
-        <div className="field">
-          <label htmlFor={`metadata-kind-${document.id}`}>
+        <FormField className="field">
+          <Label htmlFor={`metadata-kind-${document.id}`}>
             Tipo de documento
-          </label>
+          </Label>
           <Select
             id={`metadata-kind-${document.id}`}
             value={kind}
@@ -182,12 +169,12 @@ export function MetadataDialog({
               </option>
             ))}
           </Select>
-        </div>
-        <div className="field">
-          <label htmlFor={`metadata-reason-${document.id}`}>
+        </FormField>
+        <FormField className="field">
+          <Label htmlFor={`metadata-reason-${document.id}`}>
             Motivo del cambio
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id={`metadata-reason-${document.id}`}
             rows={3}
             required
@@ -196,7 +183,7 @@ export function MetadataDialog({
             disabled={busy || checking}
             onChange={(event) => setReason(event.target.value)}
           />
-        </div>
+        </FormField>
         {checking && <p role="status">Recargando los datos actuales…</p>}
         {conflict && (
           <div className="document-warning">
@@ -233,7 +220,7 @@ export function MetadataDialog({
             Recargar datos vigentes
           </Button>
         )}
-        <div className="dialog-actions">
+        <FormActions className="dialog-actions">
           <Button
             type="button"
             variant="outline"
@@ -254,7 +241,7 @@ export function MetadataDialog({
           >
             Guardar datos
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Dialog>
   );
