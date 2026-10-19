@@ -16,7 +16,13 @@ import {
 import { Select } from '../../design-system/select';
 import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { agreementCreateSchema } from '@reconcile/contracts';
+import {
+  agreementCreateSchema,
+  agreementApplicabilitySchema,
+  analysisLineSchema,
+  agreementReferenceSchema,
+} from '@reconcile/contracts';
+import { z } from 'zod';
 import type { AgreementVersion } from '@reconcile/contracts';
 import { Dialog } from '../../design-system/dialog';
 import {
@@ -65,6 +71,7 @@ export function CreateAgreementDialog({
   ]);
   const [evidencePage, setEvidencePage] = useState('');
   const [snippet, setSnippet] = useState('');
+  const [structuredTerms, setStructuredTerms] = useState('');
   const mounted = useMounted();
   const id = useId();
   const sources = useQuery({
@@ -137,26 +144,59 @@ export function CreateAgreementDialog({
               snippet: normalizedSnippet,
             },
           ];
+          let advanced: unknown = {};
+          if (structuredTerms.trim()) {
+            try {
+              advanced = JSON.parse(structuredTerms);
+            } catch {
+              setError('Las condiciones estructuradas deben ser JSON válido.');
+              return;
+            }
+          }
+          const advancedResult = z
+            .object({
+              agreementIdentity: z
+                .string()
+                .trim()
+                .min(1)
+                .max(500)
+                .nullable()
+                .optional(),
+              references: z.array(agreementReferenceSchema).max(100).optional(),
+              applicability: agreementApplicabilitySchema.optional(),
+              lines: z.array(analysisLineSchema).max(100).optional(),
+            })
+            .strict()
+            .safeParse(advanced);
+          if (!advancedResult.success) {
+            setError(
+              'Revisá identidad, aplicabilidad, partidas y evidencia de las condiciones estructuradas.',
+            );
+            return;
+          }
           const parsed = agreementCreateSchema.safeParse({
             name: value('name'),
             scope: operationId ? 'spot' : 'reusable',
             operationId: operationId ?? null,
             sourceDocumentId: sourceId,
             terms: {
+              ...advancedResult.data,
               agreementBasis: 'accepted',
               provider: value('provider'),
-              currency: value('currency'),
+              currency: value('currency') || null,
               validFrom: value('validFrom'),
               validUntil: value('validUntil'),
               route: value('route'),
               service: value('service'),
               pricing:
-                pricingType === 'distance-bands'
-                  ? {
-                      type: pricingType,
-                      bands: bands.map((band) => ({ ...band, evidence })),
-                    }
-                  : { type: pricingType, amount: value('amount'), evidence },
+                pricingType === 'line-items'
+                  ? { type: 'line-items' }
+                  : pricingType === 'distance-bands'
+                    ? {
+                        type: pricingType,
+                        bands: bands.map((band) => ({ ...band, evidence })),
+                      }
+                    : { type: pricingType, amount: value('amount'), evidence },
               evidence,
             },
             reason: value('reason'),
@@ -187,6 +227,25 @@ export function CreateAgreementDialog({
           })();
         }}
       >
+        <FormField className="field">
+          <Label htmlFor={`${id}-structured-terms`}>
+            Identidad, aplicabilidad y partidas estructuradas (opcional)
+          </Label>
+          <p className="metadata">
+            JSON con agreementIdentity, references, applicability y lines.
+            Permite documentar condiciones, columnas por equipo, bases por
+            contenedor/BL/envío, monedas e inclusiones sin sumar columnas. Cada
+            evidencia debe citar el PDF seleccionado. Si falta un dato,
+            mantenelo desconocido.
+          </p>
+          <Textarea
+            id={`${id}-structured-terms`}
+            rows={10}
+            value={structuredTerms}
+            disabled={busy}
+            onChange={(event) => setStructuredTerms(event.target.value)}
+          />
+        </FormField>
         <fieldset disabled={busy || disabled}>
           <legend>1. PDF de origen</legend>
           <UploadDialog
@@ -331,6 +390,7 @@ export function CreateAgreementDialog({
           </FormField>
           <Field
             name="currency"
+            required={pricingType !== 'line-items'}
             label="Moneda ISO (EUR, USD…)"
             pattern="[A-Z]{3}"
             maxLength={3}
@@ -342,12 +402,15 @@ export function CreateAgreementDialog({
               value={pricingType}
               onValueChange={(selectedValue) => setPricingType(selectedValue)}
             >
+              <option value="line-items">
+                Partidas por unidad, equipo y moneda
+              </option>
               <option value="fixed-trip">Precio total por viaje</option>
               <option value="per-km">Precio por kilómetro</option>
               <option value="distance-bands">Tramos de distancia</option>
             </Select>
           </FormField>
-          {pricingType !== 'distance-bands' ? (
+          {pricingType !== 'distance-bands' && pricingType !== 'line-items' ? (
             <Field
               name="amount"
               label={
@@ -358,7 +421,7 @@ export function CreateAgreementDialog({
               inputMode="decimal"
               hint="Usá punto decimal. Sin conversión de moneda ni impuestos implícitos."
             />
-          ) : (
+          ) : pricingType === 'distance-bands' ? (
             <>
               <p className="metadata">
                 Cada tramo incluye el límite inferior y excluye el superior: [0,
@@ -454,6 +517,11 @@ export function CreateAgreementDialog({
                 Agregar tramo
               </Button>
             </>
+          ) : (
+            <p>
+              Informá las partidas documentadas en las condiciones
+              estructuradas. No hace falta un precio global ni una moneda común.
+            </p>
           )}
         </fieldset>
         <fieldset disabled={busy || disabled || !eligible}>

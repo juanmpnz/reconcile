@@ -139,3 +139,19 @@ El siguiente paso es preparar el servidor con HTTPS, secretos, almacenamiento pr
 En producción, después de verificar el correo y antes de abrir una organización, configurá una aplicación autenticadora. Ingresá tu contraseña actual, escaneá el QR o copiá la clave manual, guardá los códigos de recuperación y confirmá con el código de seis dígitos. Los códigos de recuperación se muestran durante el alta y cada uno sirve una sola vez.
 
 En los próximos accesos se pedirá contraseña y código de la aplicación. Si perdiste el teléfono, elegí «Usar código de recuperación». Una sesión abierta antes de activar MFA también necesita verificar el segundo factor. No compartas el QR, la clave manual ni los códigos de recuperación.
+
+## Acuerdos genéricos y aplicabilidad
+
+La referencia de un contrato o cotización identifica el acuerdo; no tiene que ser el número de envío, booking o BL. Un acuerdo reutilizable puede seleccionarse para distintas operaciones. Las referencias operativas se contrastan por tipo: un booking distinto de un BL no constituye por sí solo una contradicción.
+
+Para revisar un caso:
+
+1. En la organización correcta, subí la factura, el acuerdo y el respaldo operativo. Vinculá los documentos de la operación sin cambiar artificialmente el número de la cotización para hacerlo coincidir con la factura.
+2. Abrí la operación y revisá los datos contra los PDFs. El editor avanzado permite completar referencias tipadas, origen/destino, modalidad, equipo, cantidades reales, fechas y condiciones documentadas. Un dato desconocido debe quedar nulo o desconocido; usá «sin restricción» únicamente con evidencia explícita.
+3. En «Acuerdos por factura», seleccioná una versión guardada y registrá el motivo. Podés conservar una selección pendiente o contradictoria para revisarla: seleccionar no verifica sus condiciones. El sistema conserva usuario, fecha y motivo; las selecciones históricas previas a esta ampliación pueden no tener esos datos.
+4. Ejecutá un nuevo análisis. Revisá por separado la vinculación documental, la aplicabilidad (candidatos, condiciones y faltantes) y los hallazgos económicos. Si hay varios candidatos compatibles, elegí una versión explícitamente. Una contradicción debe corregirse con evidencia, no ocultarse mediante selección.
+5. Si cambian datos, documentos o selección, el resultado anterior queda desactualizado y conserva su snapshot. Recalculá para obtener una nueva ejecución; consultá el historial para comparar las versiones.
+
+Para el escenario Q2603BCN00826, revisá Valencia → Mundra, vigencia 01/04/2026–31/12/2026 y la fecha que el acuerdo exige. Elegí el tipo y cantidad reales de contenedores; no sumes las columnas 20’STD, 40’STD y 40’HC. Cada concepto conserva su moneda y su base por BL, envío o contenedor. Un componente incluido en un paquete no se vuelve a sumar. El ejemplo no contiene precios autorizados: deben salir del documento y de su revisión.
+
+La extracción sigue siendo acotada: reconoce etiquetas explícitas como `Booking reference:`, `BL reference:`, `Quotation reference:`, `Origin:`, `Destination:`, `Equipment type:`, `Validity date basis:` (`service-date`, `shipment-date`, `booking-date` o `invoice-date`) y las fechas correspondientes en formato ISO. Una matriz arbitraria de proveedor requiere revisión; no se interpreta automáticamente como tres servicios sumables. Las condiciones adicionales que el motor no puede verificar quedan pendientes. No existe conversión automática entre USD, EUR e INR sin respaldo de cambio aplicable.

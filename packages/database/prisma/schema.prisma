@@ -450,8 +450,11 @@ model OperationAgreementBinding {
  operationId String @db.Uuid
  invoiceDocumentId String @db.Uuid
  agreementVersionId String @db.Uuid
- serviceDate String @db.VarChar(10)
- route String @db.VarChar(500)
+ serviceDate String? @db.VarChar(10)
+ route String? @db.VarChar(500)
+ selectedBy String? @db.Uuid
+ selectedAt DateTime? @db.Timestamptz(3)
+ selectionReason String? @db.VarChar(500)
  distanceKm Decimal? @db.Decimal(20,8)
  operation Operation @relation(fields:[organizationId,operationId],references:[organizationId,id],onDelete:Cascade)
  invoiceLink OperationDocument @relation(fields:[organizationId,operationId,invoiceDocumentId],references:[organizationId,operationId,documentId],onDelete:Cascade)

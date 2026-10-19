@@ -6,6 +6,7 @@ import {
   agreementListSchema,
   operationDetailSchema,
   analysisRunSchema,
+  extractionResultSchema,
 } from '@reconcile/contracts';
 import {
   useIdentityFixture,
@@ -148,6 +149,45 @@ describe('reviewed reusable and spot agreements through authenticated API and Po
       reason: 'Reviewed accepted signed contract',
       terms: {
         agreementBasis: 'accepted',
+        applicability: {
+          dateBasis: 'service-date',
+          provider: {
+            state: 'restricted',
+            value: 'Traginers',
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          service: {
+            state: 'restricted',
+            value: 'pickup',
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          contractingParty: {
+            state: 'unrestricted',
+            value: null,
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          origin: {
+            state: 'unrestricted',
+            value: null,
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          destination: {
+            state: 'unrestricted',
+            value: null,
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          transportMode: {
+            state: 'unrestricted',
+            value: null,
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          equipmentType: {
+            state: 'unrestricted',
+            value: null,
+            evidence: [{ ...evidence, revisionId: null }],
+          },
+          restrictions: [],
+        },
         provider: 'Traginers',
         currency: 'EUR',
         validFrom: '2026-01-01',
@@ -206,6 +246,10 @@ describe('reviewed reusable and spot agreements through authenticated API and Po
     expect(selection.statusCode, selection.body).toBe(200);
     let current = operationDetailSchema.parse(body(selection));
     expect(current.fingerprint).not.toBe(first.fingerprint);
+    expect(current.agreementBindings[0]?.selectedBy).toBe(member.userId);
+    expect(current.agreementBindings[0]?.selectionReason).toBe(
+      'Apply annual agreement',
+    );
     expect(current.agreementBindings[0]?.agreement.sourceExtractionRunId).toBe(
       tariff.runId,
     );
@@ -362,6 +406,293 @@ describe('reviewed reusable and spot agreements through authenticated API and Po
       }),
     ).rejects.toThrow();
   });
+  it('keeps publication with omitted applicability pending instead of accepting missing dimensions as unrestricted', async () => {
+    const who = await verifiedUser(),
+      org = await organization(who);
+    const member = await prisma.member.findFirstOrThrow({
+      where: { organizationId: org },
+    });
+    const source = await seed(org, member.userId, 'tariff'),
+      invoice = await seed(org, member.userId, 'invoice');
+    const input = createInput(source);
+    const published = await request(base(org) + '/agreements', who, {
+      ...input,
+      terms: { ...input.terms, applicability: undefined },
+    });
+    expect(published.statusCode, published.body).toBe(201);
+    const agreement = agreementVersionSchema.parse(body(published));
+    expect(agreement.terms.applicability?.equipmentType?.state).toBe('unknown');
+    expect(agreement.terms.applicability?.contractingParty?.state).toBe(
+      'unknown',
+    );
+    const operation = await op(org, who, [invoice.id], 'OP-AGREEMENT');
+    const selected = await put(org, operation.id, who, 'agreements', {
+      expectedFingerprint: operation.fingerprint,
+      reason: 'Record choice with unknown conditions',
+      bindings: [
+        {
+          invoiceDocumentId: invoice.id,
+          agreementVersionId: agreement.id,
+          serviceDate: '2026-06-15',
+          route: 'Barcelona',
+          distanceKm: '25',
+        },
+      ],
+    });
+    expect(selected.statusCode, selected.body).toBe(200);
+    const queued = analysisRunSchema.parse(
+      body(
+        await request(base(org) + `/operations/${operation.id}/analyses`, who, {
+          idempotencyKey: randomUUID(),
+        }),
+      ),
+    );
+    const outbox = await prisma.analysisOutbox.findFirstOrThrow({
+      where: { runId: queued.id },
+    });
+    await processAnalysisRun({
+      prisma,
+      payload: {
+        outboxId: outbox.id,
+        organizationId: org,
+        operationId: operation.id,
+        runId: queued.id,
+        actorId: member.userId,
+      },
+    });
+    const run = analysisRunSchema.parse(
+      body(
+        await request(
+          base(org) + `/operations/${operation.id}/analyses/${queued.id}`,
+          who,
+        ),
+      ),
+    );
+    expect(
+      run.result?.agreementDecisions?.some(
+        (decision) => decision.state === 'pending',
+      ),
+    ).toBe(true);
+    expect(
+      run.result?.findings.some(
+        (finding) => finding.status === 'matched' && finding.expected === '50',
+      ),
+    ).toBe(false);
+  });
+  it('pins operational references from the publication source even when omitted from submitted terms', async () => {
+    const who = await verifiedUser(),
+      org = await organization(who);
+    const member = await prisma.member.findFirstOrThrow({
+      where: { organizationId: org },
+    });
+    const source = await seed(org, member.userId, 'tariff');
+    const run = await prisma.extractionRun.findUniqueOrThrow({
+      where: { id: source.runId },
+    });
+    const result = extractionResultSchema.parse(run.result);
+    await prisma.extractionRun.update({
+      where: { id: source.runId },
+      data: {
+        result: {
+          ...result,
+          pages: [
+            { page: 1, text: source.page + '\nBooking reference: BOOK-SOURCE' },
+          ],
+        },
+      },
+    });
+    const response = await request(
+      base(org) + '/agreements',
+      who,
+      createInput(source),
+    );
+    expect(response.statusCode, response.body).toBe(201);
+    const published = agreementVersionSchema.parse(body(response));
+    expect(published.terms.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'booking', value: 'BOOK-SOURCE' }),
+      ]),
+    );
+    const { applicability: explicitModel, ...legacyTerms } =
+      createInput(source).terms;
+    expect(explicitModel).toBeDefined();
+    const legacy = await prisma.agreementVersion.create({
+      data: {
+        organizationId: org,
+        name: 'Historical version without model',
+        scope: 'reusable',
+        sourceDocumentId: source.id,
+        sourceExtractionRunId: source.runId,
+        sourceSha256: source.id.replaceAll('-', '').repeat(2),
+        sourceMetadataVersion: 0,
+        sourceCorrectionRevision: 0,
+        terms: legacyTerms,
+        actorId: member.userId,
+        reason: 'Legacy fixture',
+      },
+    });
+    const newerRunId = randomUUID();
+    await prisma.extractionRun.create({
+      data: {
+        id: newerRunId,
+        organizationId: org,
+        documentId: source.id,
+        actorId: member.userId,
+        version: 2,
+        status: 'ready',
+        result: {
+          ...result,
+          pages: [
+            { page: 1, text: source.page + '\nBooking reference: BOOK-NEW' },
+          ],
+        },
+      },
+    });
+    await prisma.document.update({
+      where: { id: source.id },
+      data: { currentRunId: newerRunId, runCount: 2 },
+    });
+    const invoice = await seed(org, member.userId, 'invoice');
+    const operation = await op(org, who, [invoice.id], 'OP-AGREEMENT');
+    const selection = await put(org, operation.id, who, 'agreements', {
+      expectedFingerprint: operation.fingerprint,
+      reason: 'Review legacy version',
+      bindings: [
+        {
+          invoiceDocumentId: invoice.id,
+          agreementVersionId: legacy.id,
+          serviceDate: '2026-06-15',
+          route: 'Barcelona',
+          distanceKm: '25',
+        },
+      ],
+    });
+    expect(selection.statusCode, selection.body).toBe(200);
+    const selected = operationDetailSchema.parse(body(selection))
+      .agreementBindings[0]?.agreement;
+    expect(selected?.terms.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'booking', value: 'BOOK-SOURCE' }),
+      ]),
+    );
+    expect(
+      selected?.terms.references?.some(
+        (reference) => reference.value === 'BOOK-NEW',
+      ),
+    ).toBe(false);
+    expect(selected?.terms.applicability?.equipmentType?.state).toBe('unknown');
+    const storedLegacy = await prisma.agreementVersion.findUniqueOrThrow({
+      where: { id: legacy.id },
+    });
+    expect(
+      agreementVersionSchema.parse({
+        ...storedLegacy,
+        createdAt: storedLegacy.createdAt.toISOString(),
+      }).terms.applicability,
+    ).toBeUndefined();
+  });
+  it('records unknown and contradictory selections without certifying applicability, and audits user/time', async () => {
+    const who = await verifiedUser(),
+      org = await organization(who);
+    const member = await prisma.member.findFirstOrThrow({
+      where: { organizationId: org },
+    });
+    const source = await seed(org, member.userId, 'tariff'),
+      invoice = await seed(org, member.userId, 'invoice');
+    const published = await request(
+      base(org) + '/agreements',
+      who,
+      createInput(source),
+    );
+    const agreement = agreementVersionSchema.parse(body(published));
+    const target = await op(org, who, [invoice.id], 'OP-AGREEMENT');
+    const selected = await put(org, target.id, who, 'agreements', {
+      expectedFingerprint: target.fingerprint,
+      reason: 'Missing context remains pending',
+      bindings: [
+        {
+          invoiceDocumentId: invoice.id,
+          agreementVersionId: agreement.id,
+          serviceDate: null,
+          route: null,
+          distanceKm: null,
+        },
+      ],
+    });
+    expect(selected.statusCode, selected.body).toBe(200);
+    const pending = operationDetailSchema.parse(body(selected));
+    expect(pending.agreementBindings[0]).toMatchObject({
+      serviceDate: null,
+      route: null,
+      selectedBy: member.userId,
+      selectionReason: 'Missing context remains pending',
+    });
+    expect(pending.agreementBindings[0]?.selectedAt).toBeTruthy();
+    const sameSelection = pending.agreementBindings[0];
+    if (!sameSelection) throw new Error('Missing persisted selection');
+    // Selecting another invoice must not rewrite the first confirmation.
+    const extraInvoice = await seed(org, member.userId, 'invoice');
+    const linkedResponse = await put(org, target.id, who, 'documents', {
+      expectedFingerprint: pending.fingerprint,
+      documentIds: [invoice.id, extraInvoice.id],
+    });
+    const linked = operationDetailSchema.parse(body(linkedResponse));
+    const secondSelection = await put(org, target.id, who, 'agreements', {
+      expectedFingerprint: linked.fingerprint,
+      reason: 'Choose second invoice',
+      bindings: [
+        {
+          invoiceDocumentId: invoice.id,
+          agreementVersionId: agreement.id,
+          serviceDate: null,
+          route: null,
+          distanceKm: null,
+        },
+        {
+          invoiceDocumentId: extraInvoice.id,
+          agreementVersionId: agreement.id,
+          serviceDate: null,
+          route: null,
+          distanceKm: null,
+        },
+      ],
+    });
+    expect(secondSelection.statusCode, secondSelection.body).toBe(200);
+    const both = operationDetailSchema.parse(body(secondSelection));
+    expect(
+      both.agreementBindings.find(
+        (binding) => binding.invoiceDocumentId === invoice.id,
+      ),
+    ).toEqual(sameSelection);
+    const contradicted = await put(org, target.id, who, 'agreements', {
+      expectedFingerprint: both.fingerprint,
+      reason: 'Preserve contradiction for engine review',
+      bindings: [
+        {
+          invoiceDocumentId: invoice.id,
+          agreementVersionId: agreement.id,
+          serviceDate: '2027-01-01',
+          route: 'Opposite direction',
+          distanceKm: null,
+        },
+      ],
+    });
+    expect(contradicted.statusCode, contradicted.body).toBe(200);
+    const current = operationDetailSchema.parse(body(contradicted));
+    expect(current.fingerprint).not.toBe(pending.fingerprint);
+    expect(current.agreementBindings[0]?.route).toBe('Opposite direction');
+    const other = await verifiedUser(),
+      otherOrg = await organization(other);
+    expect(
+      (
+        await put(otherOrg, target.id, other, 'agreements', {
+          expectedFingerprint: current.fingerprint,
+          reason: 'Cross tenant',
+          bindings: [],
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
   it('rejects cross-tenant sources, fabricated evidence, untrusted writes, invalid pricing, spot reuse and stale selection', async () => {
     const who = await verifiedUser(),
       org = await organization(who);
@@ -446,24 +777,6 @@ describe('reviewed reusable and spot agreements through authenticated API and Po
         })
       ).statusCode,
     ).toBe(409);
-    expect(
-      (
-        await put(org, target.id, who, 'agreements', {
-          expectedFingerprint: target.fingerprint,
-          reason: 'Missing distance',
-          bindings: [{ ...binding, distanceKm: null }],
-        })
-      ).statusCode,
-    ).toBe(422);
-    expect(
-      (
-        await put(org, target.id, who, 'agreements', {
-          expectedFingerprint: target.fingerprint,
-          reason: 'Expired agreement',
-          bindings: [{ ...binding, serviceDate: '2027-01-01' }],
-        })
-      ).statusCode,
-    ).toBe(422);
     await prisma.document.update({
       where: { id: source.id },
       data: { kind: 'invoice' },

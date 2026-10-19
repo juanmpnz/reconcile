@@ -475,7 +475,7 @@ export function OperationDetailView({
           aria-labelledby="operation-documents"
         >
           <PageHeader className="page-header">
-            <h3 id="operation-documents">Documentos</h3>
+            <h3 id="operation-documents">Vinculación documental</h3>
             {data.capabilities.canWrite && (
               <LinkDialog
                 userId={userId}
@@ -831,15 +831,71 @@ function ResultTable({
   organizationId: string;
 }) {
   if (!run.result) return null;
-  if (!run.result.findings.length)
-    return (
-      <p>
-        No se encontraron partidas analizables. Revisá los datos y la evidencia
-        disponible.
-      </p>
-    );
   return (
     <>
+      <section
+        className="operation-section"
+        aria-label="Aplicabilidad de acuerdos"
+      >
+        <h4>Aplicabilidad de acuerdos</h4>
+        <p>
+          La vinculación documental identifica el origen. La selección humana no
+          elimina condiciones pendientes o contradictorias.
+        </p>
+        {(run.result.agreementDecisions ?? []).map((decision, index) => (
+          <article className="comparison-fact" key={index}>
+            <h5>
+              {filenames.get(decision.agreementDocumentId) ??
+                'Acuerdo candidato'}{' '}
+              ·{' '}
+              {decision.state === 'applicable'
+                ? 'Aplicable'
+                : decision.state === 'pending'
+                  ? 'Pendiente de confirmar'
+                  : 'No aplicable'}
+            </h5>
+            <p>
+              Versión:{' '}
+              {decision.agreementVersionId ?? 'Datos documentales del análisis'}{' '}
+              · Partida: {decision.lineId}
+            </p>
+            <p>{decision.reason}</p>
+            <ul>
+              {decision.conditions.map((condition, position) => (
+                <li key={position}>
+                  <strong>{conditionLabel(condition.name)}</strong>:{' '}
+                  {condition.state === 'verified'
+                    ? 'Verificada'
+                    : condition.state === 'unknown'
+                      ? 'Dato pendiente'
+                      : condition.state === 'contradictory'
+                        ? 'Contradicción'
+                        : 'Sin restricción'}{' '}
+                  · {condition.reason}
+                </li>
+              ))}
+            </ul>
+            <EvidenceList
+              evidence={decision.evidence}
+              filenames={filenames}
+              organizationId={organizationId}
+            />
+          </article>
+        ))}
+        {!run.result.agreementDecisions?.length && (
+          <p>
+            Este análisis no registra decisiones estructuradas de aplicabilidad.
+            Conserva su resultado original.
+          </p>
+        )}
+      </section>
+      <h4>Hallazgos económicos</h4>
+      {!run.result.findings.length && (
+        <p>
+          No hay partidas analizables. Revisá los datos y la evidencia
+          disponible.
+        </p>
+      )}
       {(['arithmetic', 'service'] as const).map((group) => {
         const findings =
           run.result?.findings.filter(
@@ -933,4 +989,20 @@ function ResultTable({
       })}
     </>
   );
+}
+
+function conditionLabel(name: string): string {
+  const labels: Record<string, string> = {
+    provider: 'Proveedor',
+    contractingParty: 'Parte contratante',
+    origin: 'Origen',
+    destination: 'Destino',
+    service: 'Servicio',
+    transportMode: 'Modalidad de transporte',
+    equipmentType: 'Tipo de equipo',
+    validity: 'Vigencia',
+    operationReference: 'Referencia operativa',
+    dateBasis: 'Fecha relevante',
+  };
+  return labels[name] ?? name;
 }

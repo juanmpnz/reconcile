@@ -200,14 +200,24 @@ describe('logistics comparison versioned rules', () => {
     const data = snapshot();
     get(data, 'carrier').serviceDate = '2026-02-31';
     expect(
-      carrierFindings(data).every((item) => item.code === 'AGREEMENT_MISSING'),
+      carrierFindings(data).every((item) =>
+        [
+          'AGREEMENT_MISSING',
+          'AGREEMENT_PENDING',
+          'AGREEMENT_NOT_APPLICABLE',
+        ].includes(item.code),
+      ),
     ).toBe(true);
     const second = snapshot();
     get(second, 'carrier').provider = ' ';
     get(second, 'agreement').provider = ' ';
     expect(
-      carrierFindings(second).every(
-        (item) => item.code === 'AGREEMENT_MISSING',
+      carrierFindings(second).every((item) =>
+        [
+          'AGREEMENT_MISSING',
+          'AGREEMENT_PENDING',
+          'AGREEMENT_NOT_APPLICABLE',
+        ].includes(item.code),
       ),
     ).toBe(true);
   });
@@ -314,7 +324,7 @@ describe('logistics comparison versioned rules', () => {
     const first = evaluateLogistics(data);
     expect(evaluateLogistics(data)).toEqual(first);
     expect(JSON.stringify(data)).toBe(before);
-    expect(first.ruleVersion).toBe('logistics-v2');
+    expect(first.ruleVersion).toBe('logistics-v3');
   });
 });
 
@@ -603,4 +613,130 @@ it('does not invent currency rounding or tolerance for a contractual rate', () =
     difference: '0.00000001',
     status: 'confirmed',
   });
+});
+
+describe('generic agreement applicability and economic evidence', () => {
+  it('uses reusable quotation identity independently from operation reference', () => {
+    const data = snapshot();
+    const agreement = get(data, 'agreement');
+    agreement.operationReference = null;
+    agreement.agreementIdentity = 'Q2603BCN00826';
+    expect(carrierFindings(data).some((f) => f.code === 'PRICE_MATCH')).toBe(
+      true,
+    );
+  });
+  it('keeps contradictory explicit agreement citation inapplicable', () => {
+    const data = snapshot();
+    get(data, 'carrier').references = [
+      {
+        type: 'quotation',
+        value: 'Q2603BCN00826',
+        evidence: source('carrier'),
+      },
+    ];
+    get(data, 'agreement').lines[0]!.route = 'Port A to Warehouse A';
+    expect(
+      evaluateLogistics(data).agreementDecisions?.find(
+        (d) => d.lineId === 'handling',
+      )?.state,
+    ).toBe('not-applicable');
+  });
+  it('does not use a booking number as an operation identity', () => {
+    const data = snapshot();
+    get(data, 'carrier').references = [
+      { type: 'booking', value: 'BK-2', evidence: source('carrier') },
+    ];
+    expect(carrierFindings(data).some((f) => f.code === 'PRICE_MATCH')).toBe(
+      true,
+    );
+    get(data, 'carrier').operationReference = 'OTHER';
+    expect(
+      carrierFindings(data).some((f) => f.code === 'OPERATION_MISMATCH'),
+    ).toBe(true);
+  });
+  it('keeps unknown required shipment date pending', () => {
+    const data = snapshot();
+    const agreement = get(data, 'agreement');
+    agreement.applicability = { dateBasis: 'shipment-date', restrictions: [] };
+    const result = evaluateLogistics(data);
+    expect(
+      result.agreementDecisions?.find((d) => d.lineId === 'handling')?.state,
+    ).toBe('pending');
+    expect(
+      carrierFindings(data).some(
+        (f) => f.status === 'confirmed' && f.expected !== null,
+      ),
+    ).toBe(false);
+  });
+  it('does not choose between two compatible agreements', () => {
+    const data = snapshot();
+    data.documents.push({ ...get(data, 'agreement'), documentId: 'second' });
+    expect(
+      carrierFindings(data).some((f) => f.code === 'AGREEMENT_AMBIGUOUS'),
+    ).toBe(true);
+  });
+  it.each(['container', 'bl'] as const)(
+    'uses operational %s quantity rather than quoted quantity',
+    (basis) => {
+      const data = snapshot();
+      const invoice = get(data, 'carrier');
+      const agreement = get(data, 'agreement');
+      const billed = invoice.lines[0]!;
+      const rate = agreement.lines[0]!;
+      rate.billingBasis = basis;
+      billed.billingBasis = basis;
+      rate.description = billed.description;
+      rate.quantity = '9';
+      rate.unitPrice = '75';
+      rate.equipmentType = basis === 'container' ? '40HC' : null;
+      billed.equipmentType = '40HC';
+      invoice.equipmentType = '40HC';
+      invoice.equipmentQuantities = [
+        { equipment: '40HC', quantity: '2', evidence: source('carrier') },
+      ];
+      invoice.blQuantity = '2';
+      expect(
+        carrierFindings(data).find((f) => f.lineId === 'handling')?.expected,
+      ).toBe('150');
+      if (basis === 'container') invoice.equipmentQuantities = [];
+      else invoice.blQuantity = null;
+      expect(
+        carrierFindings(data).find((f) => f.lineId === 'handling')?.code,
+      ).toBe('BILLING_QUANTITY_PENDING');
+    },
+  );
+  it('keeps equipment mismatch and package inclusion non financial', () => {
+    const data = snapshot();
+    get(data, 'agreement').lines[0]!.equipmentType = '20STD';
+    get(data, 'carrier').equipmentType = '40HC';
+    expect(
+      carrierFindings(data).find((f) => f.lineId === 'handling')?.expected,
+    ).toBeNull();
+    get(data, 'agreement').lines[0]!.equipmentType = null;
+    get(data, 'agreement').lines[0]!.includedIn = 'lumpsum';
+    expect(
+      carrierFindings(data).find((f) => f.lineId === 'handling')?.code,
+    ).toBe('INCLUDED_IN_PACKAGE');
+  });
+  it('preserves negative arithmetic without inferring credit semantics', () => {
+    const data = snapshot();
+    const invoice = get(data, 'carrier');
+    invoice.lines[0]!.amount = '-150';
+    invoice.lines[0]!.unitPrice = '-150';
+    expect(
+      carrierFindings(data).find(
+        (f) => f.code === 'PRICE_OR_QUANTITY_DIFFERENCE',
+      )?.difference,
+    ).toBe('-300');
+  });
+});
+
+it('keeps missing route pending rather than contradictory', () => {
+  const data = snapshot();
+  get(data, 'carrier').lines[0]!.route = null;
+  expect(
+    evaluateLogistics(data).agreementDecisions?.find(
+      (d) => d.lineId === 'handling',
+    )?.state,
+  ).toBe('pending');
 });

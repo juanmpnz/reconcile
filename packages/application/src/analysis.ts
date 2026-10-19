@@ -24,7 +24,7 @@ import {
   documentKindSchema,
 } from '@reconcile/contracts';
 import { authorizeDocuments, DocumentError } from './documents.js';
-import { agreementDto } from './agreements.js';
+import { agreementDto, normalizeAgreementApplicability } from './agreements.js';
 function boundedJson(value: unknown, code: string, maxBytes = 128 * 1024) {
   if (Buffer.byteLength(JSON.stringify(value), 'utf8') > maxBytes)
     throw new DocumentError(422, code);
@@ -55,14 +55,79 @@ export async function collectAnalysisInputs(
     orderBy: { invoiceDocumentId: 'asc' },
     include: { agreement: true },
   });
-  const agreementBindings = selected.map((binding) => ({
-    invoiceDocumentId: binding.invoiceDocumentId,
-    agreementVersionId: binding.agreementVersionId,
-    serviceDate: binding.serviceDate,
-    route: binding.route,
-    distanceKm: binding.distanceKm?.toFixed() ?? null,
-    agreement: agreementDto(binding.agreement),
-  }));
+  const agreementBindings = await Promise.all(
+    selected.map(async (binding) => {
+      const agreement = agreementDto(binding.agreement);
+      if (
+        agreement.terms.references === undefined ||
+        agreement.terms.applicability === undefined
+      ) {
+        const pinnedRun = await tx.extractionRun.findFirst({
+          where: {
+            organizationId,
+            id: agreement.sourceExtractionRunId,
+            documentId: agreement.sourceDocumentId,
+          },
+        });
+        const parsed = extractionResultSchema.safeParse(pinnedRun?.result);
+        if (parsed.success) {
+          const corrections = await tx.documentCorrection.findMany({
+            where: {
+              organizationId,
+              documentId: agreement.sourceDocumentId,
+              extractionRunId: agreement.sourceExtractionRunId,
+              revision: { lte: agreement.sourceCorrectionRevision },
+            },
+            orderBy: { revision: 'asc' },
+          });
+          const pinnedFacts = deriveAnalysisFacts({
+            documentId: agreement.sourceDocumentId,
+            extractionRunId: agreement.sourceExtractionRunId,
+            kind: 'tariff',
+            result: parsed.data,
+            corrections,
+          });
+          agreement.terms.references ??= pinnedFacts.references ?? [];
+          agreement.terms.applicability ??= normalizeAgreementApplicability(
+            pinnedFacts.applicability,
+            agreement.terms.evidence.map((e) => ({ ...e, revisionId: null })),
+            agreement.terms.provider,
+            agreement.terms.service,
+          );
+        } else {
+          agreement.terms.applicability = {
+            ...normalizeAgreementApplicability(
+              agreement.terms.applicability,
+              agreement.terms.evidence.map((e) => ({ ...e, revisionId: null })),
+              agreement.terms.provider,
+              agreement.terms.service,
+            ),
+            dateBasis: agreement.terms.applicability?.dateBasis ?? 'unknown',
+            restrictions: [
+              ...(agreement.terms.applicability?.restrictions ?? []),
+              {
+                name: 'Revisar referencias del origen histórico',
+                state: 'unknown',
+                value: null,
+                evidence: [],
+              },
+            ],
+          };
+        }
+      }
+      return {
+        invoiceDocumentId: binding.invoiceDocumentId,
+        agreementVersionId: binding.agreementVersionId,
+        serviceDate: binding.serviceDate,
+        route: binding.route,
+        distanceKm: binding.distanceKm?.toFixed() ?? null,
+        agreement,
+        selectedBy: binding.selectedBy,
+        selectedAt: binding.selectedAt?.toISOString() ?? null,
+        selectionReason: binding.selectionReason,
+      };
+    }),
+  );
   const facts = [];
   const sources = [];
   const warnings: string[] = [];
@@ -132,6 +197,28 @@ export async function collectAnalysisInputs(
             result: parsed.data,
             corrections,
           });
+      if (fact.kind === 'agreement' && fact.applicability === undefined) {
+        const sourceFacts = deriveAnalysisFacts({
+          documentId: doc.id,
+          extractionRunId: run.id,
+          kind: documentKindSchema.parse(doc.kind),
+          result: parsed.data,
+          corrections,
+        });
+        const services = [
+          ...new Set(
+            fact.lines
+              .map((line) => line.service)
+              .filter((service) => service !== 'unknown'),
+          ),
+        ];
+        fact.applicability = normalizeAgreementApplicability(
+          sourceFacts.applicability,
+          fact.evidence,
+          fact.provider,
+          services.length === 1 ? (services[0] ?? null) : null,
+        );
+      }
       boundedJson(fact, 'DOCUMENT_FACTS_LIMIT', 16 * 1024);
       facts.push(fact);
     } catch {
@@ -565,7 +652,27 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
           const pages = extractionResultSchema.parse(
             doc?.currentRun?.result,
           ).pages;
+          const applicability = data.document.applicability;
+          const conditionEvidence = applicability
+            ? [
+                applicability.provider,
+                applicability.contractingParty,
+                applicability.origin,
+                applicability.destination,
+                applicability.service,
+                applicability.transportMode,
+                applicability.equipmentType,
+                ...applicability.restrictions,
+              ].flatMap((condition) => condition?.evidence ?? [])
+            : [];
           const evidence = [
+            ...conditionEvidence,
+            ...(data.document.references?.flatMap(
+              (reference) => reference.evidence,
+            ) ?? []),
+            ...(data.document.equipmentQuantities?.flatMap(
+              (equipment) => equipment.evidence,
+            ) ?? []),
             ...data.document.evidence,
             ...data.document.lines.flatMap((l) => l.evidence),
             ...data.document.excludedServices.flatMap((s) => s.evidence),
@@ -592,8 +699,56 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             ...e,
             revisionId: id,
           });
-          const facts = {
+          const facts = analysisDocumentSchema.parse({
             ...data.document,
+            ...(data.document.references
+              ? {
+                  references: data.document.references.map((reference) => ({
+                    ...reference,
+                    evidence: reference.evidence.map(mark),
+                  })),
+                }
+              : {}),
+            ...(data.document.equipmentQuantities
+              ? {
+                  equipmentQuantities: data.document.equipmentQuantities.map(
+                    (equipment) => ({
+                      ...equipment,
+                      evidence: equipment.evidence.map(mark),
+                    }),
+                  ),
+                }
+              : {}),
+            ...(applicability
+              ? {
+                  applicability: {
+                    ...applicability,
+                    ...Object.fromEntries(
+                      Object.entries(applicability)
+                        .filter(
+                          ([key]) =>
+                            key !== 'dateBasis' && key !== 'restrictions',
+                        )
+                        .map(([key, condition]) => [
+                          key,
+                          typeof condition === 'object' &&
+                          !Array.isArray(condition)
+                            ? {
+                                ...condition,
+                                evidence: condition.evidence.map(mark),
+                              }
+                            : condition,
+                        ]),
+                    ),
+                    restrictions: applicability.restrictions.map(
+                      (condition) => ({
+                        ...condition,
+                        evidence: condition.evidence.map(mark),
+                      }),
+                    ),
+                  },
+                }
+              : {}),
             revisionId: id,
             evidence: data.document.evidence.map(mark),
             lines: data.document.lines.map((l) => ({
@@ -607,7 +762,7 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             warnings: [
               ...new Set([...data.document.warnings, 'HUMAN_REVIEWED_FACTS']),
             ],
-          };
+          });
           const reserved = await tx.operation.update({
             where: { id: operationId },
             data: { revision: { increment: 1 } },

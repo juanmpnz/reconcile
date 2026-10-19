@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  agreementReferenceSchema,
+  analysisLineSchema,
+  agreementApplicabilitySchema,
+} from './agreement-conditions.js';
 
 const text = z.string().trim().min(1).max(500);
 const decimal = z.string().regex(/^\d{1,12}(?:\.\d{1,8})?$/);
@@ -37,6 +42,7 @@ export const agreementBandSchema = z
   });
 export const agreementPricingSchema = z
   .discriminatedUnion('type', [
+    z.object({ type: z.literal('line-items') }).strict(),
     z
       .object({
         type: z.literal('fixed-trip'),
@@ -73,8 +79,15 @@ export const agreementPricingSchema = z
 export const agreementTermsSchema = z
   .object({
     agreementBasis: z.enum(['accepted', 'internal-estimate', 'unknown']),
+    agreementIdentity: text.nullable().optional(),
+    references: z.array(agreementReferenceSchema).max(100).optional(),
+    applicability: agreementApplicabilitySchema.optional(),
+    lines: z.array(analysisLineSchema).max(100).optional(),
     provider: text,
-    currency: z.string().regex(/^[A-Z]{3}$/),
+    currency: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .nullable(),
     validFrom: agreementDateSchema,
     validUntil: agreementDateSchema,
     route: text,
@@ -85,7 +98,11 @@ export const agreementTermsSchema = z
   .strict()
   .refine((v) => v.validFrom <= v.validUntil, {
     message: 'Invalid validity period',
-  });
+  })
+  .refine(
+    (v) => v.pricing.type !== 'line-items' || (v.lines?.length ?? 0) > 0,
+    { message: 'Line-item agreements require documented lines' },
+  );
 export const agreementCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
@@ -126,8 +143,8 @@ export const agreementBindingInputSchema = z
   .object({
     invoiceDocumentId: z.uuid(),
     agreementVersionId: z.uuid(),
-    serviceDate: agreementDateSchema,
-    route: text,
+    serviceDate: agreementDateSchema.nullable(),
+    route: text.nullable(),
     distanceKm: decimal.nullable(),
   })
   .strict();
@@ -145,6 +162,9 @@ export const operationAgreementsSchema = z
   .strict();
 export const agreementBindingSchema = agreementBindingInputSchema.extend({
   agreement: agreementVersionSchema,
+  selectedBy: z.uuid().nullable().optional(),
+  selectedAt: z.iso.datetime().nullable().optional(),
+  selectionReason: text.nullable().optional(),
 });
 export type AgreementTerms = z.infer<typeof agreementTermsSchema>;
 export type AgreementVersion = z.infer<typeof agreementVersionSchema>;

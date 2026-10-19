@@ -6,13 +6,27 @@ import { FormField, Input, Textarea } from '../../design-system/controls';
 import { Select } from '../../design-system/select';
 import { useId, useState } from 'react';
 import type { AnalysisDocumentInput } from '@reconcile/contracts';
-import { analysisDocumentSchema } from '@reconcile/contracts';
+import {
+  analysisDocumentSchema,
+  agreementApplicabilitySchema,
+} from '@reconcile/contracts';
 import { Dialog } from '../../design-system/dialog';
 import { Button, Feedback } from '../../design-system/primitives';
 import { useMounted } from '../../lib/use-mounted';
 
 const textFields = [
   ['provider', 'Proveedor'],
+  ['agreementIdentity', 'Número de contrato o cotización'],
+  ['origin', 'Origen'],
+  ['destination', 'Destino'],
+  ['transportMode', 'Modalidad de transporte'],
+  ['contractingParty', 'Parte contratante'],
+  ['equipmentType', 'Equipo real (por ejemplo 20STD, 40STD o 40HC)'],
+  ['blQuantity', 'Cantidad de BL'],
+  ['shipmentQuantity', 'Cantidad de envíos'],
+  ['shipmentDate', 'Fecha de envío (AAAA-MM-DD)'],
+  ['bookingDate', 'Fecha de booking (AAAA-MM-DD)'],
+  ['invoiceDate', 'Fecha de factura (AAAA-MM-DD)'],
   ['operationReference', 'Referencia de operación'],
   ['currency', 'Moneda (ISO, por ejemplo USD)'],
   ['total', 'Total'],
@@ -53,6 +67,7 @@ export function FactsEditor({
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(document);
+  const [structuredFacts, setStructuredFacts] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [editingFingerprint, setEditingFingerprint] = useState(fingerprint);
   const [busy, setBusy] = useState(false);
@@ -70,6 +85,7 @@ export function FactsEditor({
         setError('');
         if (next) {
           setDraft(structuredClone(document));
+          setStructuredFacts(null);
           setReason('');
           setEditingFingerprint(fingerprint);
         }
@@ -85,7 +101,16 @@ export function FactsEditor({
         onSubmit={(event) => {
           event.preventDefault();
           if (busy || disabled) return;
-          const parsed = analysisDocumentSchema.safeParse(draft);
+          let input: unknown = draft;
+          if (structuredFacts !== null) {
+            try {
+              input = JSON.parse(structuredFacts);
+            } catch {
+              setError('Los datos estructurados deben ser JSON válido.');
+              return;
+            }
+          }
+          const parsed = analysisDocumentSchema.safeParse(input);
           if (!parsed.success) {
             setError(
               'Revisá los importes (punto decimal), la moneda de tres letras y los campos de las partidas.',
@@ -159,6 +184,35 @@ export function FactsEditor({
           ))}
         {draft.kind === 'agreement' && (
           <FormField className="field">
+            <Label htmlFor={`${id}-date-basis`}>
+              Fecha exigida para evaluar la vigencia
+            </Label>
+            <Select
+              id={`${id}-date-basis`}
+              disabled={busy}
+              value={draft.applicability?.dateBasis ?? 'unknown'}
+              onValueChange={(dateBasis) => {
+                const parsed = agreementApplicabilitySchema.safeParse({
+                  ...draft.applicability,
+                  dateBasis,
+                  restrictions: draft.applicability?.restrictions ?? [],
+                });
+                if (parsed.success)
+                  setDraft({ ...draft, applicability: parsed.data });
+              }}
+            >
+              <option value="unknown">Pendiente de documentar</option>
+              <option value="service-date">Fecha del servicio</option>
+              <option value="shipment-date">Fecha de envío</option>
+              <option value="booking-date">Fecha de booking</option>
+              <option value="invoice-date">
+                Fecha de factura (solo si lo exige el acuerdo)
+              </option>
+            </Select>
+          </FormField>
+        )}
+        {draft.kind === 'agreement' && (
+          <FormField className="field">
             <Label htmlFor={`${id}-basis`}>Base del acuerdo</Label>
             <Select
               id={`${id}-basis`}
@@ -200,6 +254,155 @@ export function FactsEditor({
             </Select>
           </FormField>
         )}
+        <fieldset className="analysis-line-editor">
+          <legend>Referencias y cantidades reales de la operación</legend>
+          <p className="metadata">
+            Cada referencia conserva su tipo. Informá las cantidades reales, sin
+            sumar columnas alternativas de tarifas. La revisión queda auditada
+            con la evidencia del documento.
+          </p>
+          {(
+            [
+              ['booking', 'Booking'],
+              ['bl', 'BL'],
+              ['shipment', 'Envío'],
+              ['agreement', 'Contrato citado'],
+              ['quotation', 'Cotización citada'],
+            ] as const
+          ).map(([type, label]) => (
+            <FormField className="field" key={type}>
+              <Label htmlFor={`${id}-reference-${type}`}>{label}</Label>
+              <Input
+                id={`${id}-reference-${type}`}
+                disabled={busy}
+                value={
+                  draft.references?.find((reference) => reference.type === type)
+                    ?.value ?? ''
+                }
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    references: [
+                      ...(draft.references ?? []).filter(
+                        (reference) => reference.type !== type,
+                      ),
+                      ...(event.target.value.trim()
+                        ? [
+                            {
+                              type,
+                              value: event.target.value,
+                              evidence: draft.evidence,
+                            },
+                          ]
+                        : []),
+                    ],
+                  })
+                }
+              />
+            </FormField>
+          ))}
+          {(draft.equipmentQuantities ?? []).map((equipment, index) => (
+            <fieldset key={index}>
+              <legend>Equipo {index + 1}</legend>
+              <FormField className="field">
+                <Label htmlFor={`${id}-equipment-${index}`}>
+                  Tipo de equipo
+                </Label>
+                <Input
+                  id={`${id}-equipment-${index}`}
+                  disabled={busy}
+                  value={equipment.equipment}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      equipmentQuantities:
+                        draft.equipmentQuantities?.map((item, position) =>
+                          position === index
+                            ? { ...item, equipment: event.target.value }
+                            : item,
+                        ) ?? [],
+                    })
+                  }
+                />
+              </FormField>
+              <FormField className="field">
+                <Label htmlFor={`${id}-equipment-quantity-${index}`}>
+                  Cantidad real
+                </Label>
+                <Input
+                  id={`${id}-equipment-quantity-${index}`}
+                  disabled={busy}
+                  inputMode="decimal"
+                  value={equipment.quantity ?? ''}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      equipmentQuantities:
+                        draft.equipmentQuantities?.map((item, position) =>
+                          position === index
+                            ? { ...item, quantity: event.target.value || null }
+                            : item,
+                        ) ?? [],
+                    })
+                  }
+                />
+              </FormField>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    equipmentQuantities:
+                      draft.equipmentQuantities?.filter(
+                        (_, position) => position !== index,
+                      ) ?? [],
+                  })
+                }
+              >
+                Quitar equipo {index + 1}
+              </Button>
+            </fieldset>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || (draft.equipmentQuantities?.length ?? 0) >= 50}
+            onClick={() =>
+              setDraft({
+                ...draft,
+                equipmentQuantities: [
+                  ...(draft.equipmentQuantities ?? []),
+                  { equipment: '', quantity: null, evidence: draft.evidence },
+                ],
+              })
+            }
+          >
+            Agregar equipo y cantidad real
+          </Button>
+        </fieldset>
+        <FormField className="field">
+          <Label htmlFor={`${id}-structured`}>
+            Datos estructurados completos (revisión avanzada)
+          </Label>
+          <p className="metadata" id={`${id}-structured-help`}>
+            Para referencias tipadas, identidad y condiciones del acuerdo,
+            equipo y cantidades reales, fechas relevantes, bases por
+            BL/contenedor/envío, monedas de partidas y conceptos incluidos.
+            Conservá identificadores y evidencia literal. Este editor tiene
+            prioridad sobre los campos del formulario cuando se modifica; no
+            completés valores desconocidos.
+          </p>
+          <Textarea
+            id={`${id}-structured`}
+            aria-describedby={`${id}-structured-help`}
+            rows={16}
+            disabled={busy}
+            value={structuredFacts ?? JSON.stringify(draft, null, 2)}
+            onChange={(event) => setStructuredFacts(event.target.value)}
+          />
+        </FormField>
         <h3>Partidas</h3>
         {draft.lines.length === 0 && (
           <p className="metadata">

@@ -1,6 +1,8 @@
 import { agreementDateSchema } from '@reconcile/contracts';
 import type { AgreementTerms, AgreementVersion } from '@reconcile/contracts';
 export function pricingLabel(pricing: AgreementTerms['pricing']): string {
+  if (pricing.type === 'line-items')
+    return 'Partidas documentadas por equipo, unidad y moneda';
   if (pricing.type === 'fixed-trip') return `${pricing.amount} por viaje`;
   if (pricing.type === 'per-km') return `${pricing.amount} por km`;
   return pricing.bands
@@ -23,6 +25,10 @@ export function applicabilityNotes(
   route: string,
   distance: string,
 ): string[] {
+  if (agreement.terms.applicability || agreement.terms.lines?.length)
+    return [
+      'Las condiciones estructuradas se evaluarán en el análisis. La selección no confirma datos desconocidos ni elimina contradicciones.',
+    ];
   const notes: string[] = [];
   if (agreement.terms.agreementBasis !== 'accepted')
     notes.push('El acuerdo no está confirmado como aceptado por las partes.');
