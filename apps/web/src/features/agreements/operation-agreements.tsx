@@ -99,8 +99,8 @@ function InvoiceAgreement({
         binding.agreement,
         invoice.provider,
         invoice.currency,
-        binding.serviceDate,
-        binding.route,
+        binding.serviceDate ?? '',
+        binding.route ?? '',
         binding.distanceKm ?? '',
       )
     : [
@@ -136,8 +136,16 @@ function InvoiceAgreement({
             {binding.agreement.terms.currency}
           </p>
           <p>
-            Fecha del servicio: {binding.serviceDate} · Ámbito: {binding.route}{' '}
-            · Distancia: {binding.distanceKm ?? 'Sin dato'} km
+            Fecha relevante: {binding.serviceDate ?? 'Pendiente'} · Ámbito:{' '}
+            {binding.route ?? 'Pendiente'} · Distancia:{' '}
+            {binding.distanceKm ?? 'Sin dato'} km
+          </p>
+          <p className="metadata">
+            Selección:{' '}
+            {binding.selectionReason ?? 'Motivo histórico no disponible'} ·
+            Usuario: {binding.selectedBy ?? 'Sin registro histórico'} · Fecha:{' '}
+            {binding.selectedAt ?? 'Sin registro histórico'}. La selección no
+            verifica las condiciones del acuerdo.
           </p>
           <a
             href={documentPath(
@@ -294,15 +302,15 @@ function SelectAgreementDialog({
             {
               invoiceDocumentId: invoice.documentId,
               agreementVersionId: selectedId,
-              serviceDate,
-              route,
+              serviceDate: serviceDate || null,
+              route: route.trim() || null,
               distanceKm: distance.trim() || null,
             },
           ],
     });
     if (!parsed.success) {
       setError(
-        'Seleccioná una tarifa, fecha válida, ámbito y motivo. La distancia usa punto decimal.',
+        'Seleccioná una tarifa y motivo. Si informás fecha, debe ser válida. La distancia usa punto decimal.',
       );
       return;
     }
@@ -466,11 +474,23 @@ function SelectAgreementDialog({
             </div>
           )}
           <FormField className="field">
-            <Label htmlFor={`${id}-date`}>Fecha del servicio</Label>
+            <Label htmlFor={`${id}-date`}>
+              Fecha relevante documentada (vacía si se desconoce)
+            </Label>
+            <p className="metadata">
+              {selected?.terms.applicability?.dateBasis === 'shipment-date'
+                ? 'El acuerdo exige la fecha de envío.'
+                : selected?.terms.applicability?.dateBasis === 'booking-date'
+                  ? 'El acuerdo exige la fecha de booking.'
+                  : selected?.terms.applicability?.dateBasis === 'invoice-date'
+                    ? 'El acuerdo exige la fecha de factura.'
+                    : selected?.terms.applicability?.dateBasis === 'unknown'
+                      ? 'Falta documentar qué fecha exige el acuerdo. La factura no se usará como sustituto.'
+                      : 'Fecha del servicio documentada.'}
+            </p>
             <Input
               id={`${id}-date`}
               type="date"
-              required
               value={serviceDate}
               onChange={(event) => setDate(event.target.value)}
             />
@@ -479,7 +499,6 @@ function SelectAgreementDialog({
             <Label htmlFor={`${id}-route`}>Ruta o ámbito revisado</Label>
             <Input
               id={`${id}-route`}
-              required
               maxLength={500}
               value={route}
               onChange={(event) => setRoute(event.target.value)}
@@ -495,7 +514,7 @@ function SelectAgreementDialog({
               aria-describedby={`${id}-distance-hint`}
             />
             <small id={`${id}-distance-hint`}>
-              Obligatoria para precio por km o tramos. No se estima
+              Necesaria para verificar precio por km o tramos. No se estima
               automáticamente.
             </small>
           </FormField>

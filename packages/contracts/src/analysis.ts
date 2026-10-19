@@ -1,21 +1,25 @@
 import { z } from 'zod';
 import { agreementBindingSchema } from './agreements.js';
+import {
+  agreementReferenceSchema,
+  analysisEvidenceSchema,
+  analysisLineSchema,
+  agreementApplicabilitySchema,
+} from './agreement-conditions.js';
+export {
+  agreementReferenceSchema,
+  analysisEvidenceSchema,
+  analysisLineSchema,
+  agreementApplicabilitySchema,
+  applicabilityConditionSchema,
+} from './agreement-conditions.js';
 export const ANALYSIS_QUEUE = 'reconcile-analysis';
-export const ANALYSIS_PARSER_VERSION = 'logistics-text-v2';
+export const ANALYSIS_PARSER_VERSION = 'logistics-text-v3';
 const nullableText = z.string().trim().min(1).max(500).nullable();
 const money = z
   .string()
   .regex(/^-?\d{1,18}(?:\.\d{1,8})?$/)
   .nullable();
-export const analysisEvidenceSchema = z
-  .object({
-    documentId: z.uuid(),
-    extractionRunId: z.uuid(),
-    page: z.number().int().min(1).max(50),
-    snippet: z.string().min(1).max(500),
-    revisionId: z.uuid().nullable(),
-  })
-  .strict();
 const localDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -28,25 +32,37 @@ const localDate = z
   })
   .nullable();
 const service = z.enum(['ocean-handling', 'pickup', 'unknown']);
-export const analysisLineSchema = z
-  .object({
-    id: z.string().min(1).max(100),
-    description: z.string().min(1).max(500),
-    service,
-    route: nullableText,
-    quantity: money,
-    unit: nullableText,
-    unitPrice: money,
-    amount: money,
-    evidence: z.array(analysisEvidenceSchema).max(20),
-  })
-  .strict();
 export const analysisDocumentSchema = z
   .object({
     documentId: z.uuid(),
     extractionRunId: z.uuid(),
     revisionId: z.uuid().nullable(),
     kind: z.enum(['invoice', 'agreement', 'operational-record']),
+    references: z.array(agreementReferenceSchema).max(100).optional(),
+    agreementIdentity: nullableText.optional(),
+    applicability: agreementApplicabilitySchema.optional(),
+    origin: nullableText.optional(),
+    destination: nullableText.optional(),
+    transportMode: nullableText.optional(),
+    equipmentType: nullableText.optional(),
+    contractingParty: nullableText.optional(),
+    shipmentDate: localDate.optional(),
+    bookingDate: localDate.optional(),
+    invoiceDate: localDate.optional(),
+    equipmentQuantities: z
+      .array(
+        z
+          .object({
+            equipment: z.string().min(1).max(100),
+            quantity: money,
+            evidence: z.array(analysisEvidenceSchema).max(20),
+          })
+          .strict(),
+      )
+      .max(50)
+      .optional(),
+    blQuantity: money.optional(),
+    shipmentQuantity: money.optional(),
     provider: nullableText,
     operationReference: nullableText,
     currency: z
@@ -104,6 +120,32 @@ export const analysisFindingSchema = z.object({
 });
 export const analysisResultSchema = z.object({
   ruleVersion: z.string(),
+  agreementDecisions: z
+    .array(
+      z.object({
+        invoiceDocumentId: z.string(),
+        lineId: z.string(),
+        agreementDocumentId: z.string(),
+        agreementVersionId: z.string().nullable(),
+        state: z.enum(['applicable', 'pending', 'not-applicable']),
+        reason: z.string(),
+        conditions: z.array(
+          z.object({
+            name: z.string(),
+            state: z.enum([
+              'verified',
+              'unknown',
+              'contradictory',
+              'unrestricted',
+            ]),
+            reason: z.string(),
+            evidence: z.array(analysisEvidenceSchema),
+          }),
+        ),
+        evidence: z.array(analysisEvidenceSchema),
+      }),
+    )
+    .optional(),
   findings: z.array(analysisFindingSchema),
 });
 export const operationCreateSchema = z

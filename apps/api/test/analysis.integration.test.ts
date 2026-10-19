@@ -308,6 +308,13 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
       makePdf([
         'DEMO - sin validez comercial',
         'CARRIER AGREEMENT',
+        'Validity date basis: service-date',
+        'Origin restriction: unrestricted',
+        'Destination restriction: unrestricted',
+        'Transport mode restriction: unrestricted',
+        'Equipment type restriction: unrestricted',
+        'Contracting party restriction: unrestricted',
+        'Service restriction: unrestricted',
         'Provider: Faro Ocean Demo',
         'Operation reference: OP-DEMO-062',
         'Currency: USD',
@@ -328,7 +335,7 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     const expired = await completed(org, operation.id, owner);
     expect(
       expired.result?.findings.filter(
-        (item) => item.code === 'AGREEMENT_MISSING',
+        (item) => item.code === 'AGREEMENT_NOT_APPLICABLE',
       ),
     ).toHaveLength(2);
   });
@@ -361,6 +368,13 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
       makePdf([
         'DEMO - sin validez comercial',
         'CARRIER AGREEMENT',
+        'Validity date basis: service-date',
+        'Origin restriction: unrestricted',
+        'Destination restriction: unrestricted',
+        'Transport mode restriction: unrestricted',
+        'Equipment type restriction: unrestricted',
+        'Contracting party restriction: unrestricted',
+        'Service restriction: unrestricted',
         'Provider: Faro Ocean Demo',
         'Operation reference: OP-DEMO-062',
         'Currency: EUR',
@@ -710,15 +724,108 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
         })
       ).statusCode,
     ).toBe(400);
+    const originalEvidence = carrier.evidence[0];
+    if (!originalEvidence) throw new Error('Fixture requires literal evidence');
+    const forgedEvidence = { ...originalEvidence, documentId: randomUUID() };
+    const nestedCases = [
+      {
+        references: [
+          {
+            type: 'booking',
+            value: 'BOOKING-DEMO',
+            evidence: [forgedEvidence],
+          },
+        ],
+      },
+      {
+        equipmentQuantities: [
+          { equipment: '40HC', quantity: '1', evidence: [forgedEvidence] },
+        ],
+      },
+      {
+        applicability: {
+          dateBasis: 'service-date',
+          provider: {
+            state: 'restricted',
+            value: 'Faro Ocean Demo',
+            evidence: [forgedEvidence],
+          },
+          restrictions: [],
+        },
+      },
+      {
+        applicability: {
+          dateBasis: 'service-date',
+          restrictions: [
+            {
+              name: 'Restriction',
+              state: 'restricted',
+              value: 'Demo',
+              evidence: [forgedEvidence],
+            },
+          ],
+        },
+      },
+    ];
+    for (const nested of nestedCases)
+      expect(
+        (
+          await request(path, owner, {
+            ...input,
+            document: { ...carrier, ...nested },
+          })
+        ).statusCode,
+      ).toBe(400);
     const response = await request(path, owner, {
       ...input,
-      document: { ...carrier, total: '211.00' },
+      document: {
+        ...carrier,
+        total: '211.00',
+        references: [
+          {
+            type: 'booking',
+            value: 'BOOKING-DEMO',
+            evidence: [originalEvidence],
+          },
+        ],
+        equipmentQuantities: [
+          { equipment: '40HC', quantity: '1', evidence: [originalEvidence] },
+        ],
+        applicability: {
+          dateBasis: 'service-date',
+          provider: {
+            state: 'restricted',
+            value: 'Faro Ocean Demo',
+            evidence: [originalEvidence],
+          },
+          restrictions: [
+            {
+              name: 'Restriction',
+              state: 'unknown',
+              value: null,
+              evidence: [originalEvidence],
+            },
+          ],
+        },
+      },
     });
     expect(response.statusCode, response.body).toBe(200);
     const revised = operationDetailSchema.parse(body(response));
     const reviewedCarrier = fact(revised, 'invoice', 'Faro Ocean Demo');
     expect(reviewedCarrier.total).toBe('211.00');
     expect(reviewedCarrier.revisionId).not.toBeNull();
+    expect(reviewedCarrier.references?.[0]?.evidence[0]?.revisionId).toBe(
+      reviewedCarrier.revisionId,
+    );
+    expect(
+      reviewedCarrier.equipmentQuantities?.[0]?.evidence[0]?.revisionId,
+    ).toBe(reviewedCarrier.revisionId);
+    expect(
+      reviewedCarrier.applicability?.provider?.evidence[0]?.revisionId,
+    ).toBe(reviewedCarrier.revisionId);
+    expect(
+      reviewedCarrier.applicability?.restrictions[0]?.evidence[0]?.revisionId,
+    ).toBe(reviewedCarrier.revisionId);
     expect(
       reviewedCarrier.evidence.every(
         (item) => item.revisionId === reviewedCarrier.revisionId,

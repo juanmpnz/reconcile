@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '@reconcile/database';
+import { deriveAnalysisFacts } from '@reconcile/document-processing';
 import {
   agreementCreateSchema,
   agreementVersionSchema,
@@ -6,10 +7,37 @@ import {
   agreementListQuerySchema,
   operationAgreementsSchema,
   extractionResultSchema,
+  agreementApplicabilitySchema,
+  type AgreementTerms,
+  type AnalysisDocumentInput,
 } from '@reconcile/contracts';
 import { authorizeDocuments, DocumentError } from './documents.js';
 import { collectAnalysisInputs } from './analysis.js';
 
+export function normalizeAgreementApplicability(
+  source: AnalysisDocumentInput['applicability'],
+  evidence: AnalysisDocumentInput['evidence'],
+  provider: string | null,
+  service: string | null,
+): NonNullable<AgreementTerms['applicability']> {
+  const unknown = { state: 'unknown', value: null, evidence: [] };
+  return agreementApplicabilitySchema.parse({
+    provider: provider
+      ? { state: 'restricted', value: provider, evidence }
+      : (source?.provider ?? unknown),
+    service:
+      service && service !== 'unknown'
+        ? { state: 'restricted', value: service, evidence }
+        : (source?.service ?? unknown),
+    contractingParty: source?.contractingParty ?? unknown,
+    origin: source?.origin ?? unknown,
+    destination: source?.destination ?? unknown,
+    transportMode: source?.transportMode ?? unknown,
+    equipmentType: source?.equipmentType ?? unknown,
+    dateBasis: source?.dateBasis ?? 'unknown',
+    restrictions: source?.restrictions ?? [],
+  });
+}
 export function agreementDto(
   row: Awaited<
     ReturnType<PrismaClient['agreementVersion']['findFirstOrThrow']>
@@ -109,11 +137,36 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
           if (!result.success)
             throw new DocumentError(422, 'AGREEMENT_SOURCE_NOT_EXTRACTED');
           const pricingEvidence =
-            data.terms.pricing.type === 'distance-bands'
-              ? data.terms.pricing.bands.flatMap((b) => b.evidence)
-              : data.terms.pricing.evidence;
+            data.terms.pricing.type === 'line-items'
+              ? []
+              : data.terms.pricing.type === 'distance-bands'
+                ? data.terms.pricing.bands.flatMap((b) => b.evidence)
+                : data.terms.pricing.evidence;
+          const applicability = data.terms.applicability;
+          const conditionEvidence = applicability
+            ? [
+                applicability.provider,
+                applicability.contractingParty,
+                applicability.origin,
+                applicability.destination,
+                applicability.service,
+                applicability.transportMode,
+                applicability.equipmentType,
+                ...applicability.restrictions,
+              ].flatMap((condition) => condition?.evidence ?? [])
+            : [];
+          const lineEvidence =
+            data.terms.lines?.flatMap((line) => line.evidence) ?? [];
           if (
-            [...data.terms.evidence, ...pricingEvidence].some(
+            [
+              ...data.terms.evidence,
+              ...pricingEvidence,
+              ...conditionEvidence,
+              ...lineEvidence,
+              ...(data.terms.references?.flatMap(
+                (reference) => reference.evidence,
+              ) ?? []),
+            ].some(
               (e) =>
                 e.documentId !== doc.id ||
                 e.extractionRunId !== run.id ||
@@ -129,6 +182,33 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
             });
             if (!op) throw new DocumentError(404, 'NOT_FOUND');
           }
+          const sourceCorrections = await tx.documentCorrection.findMany({
+            where: {
+              organizationId,
+              documentId: doc.id,
+              extractionRunId: run.id,
+            },
+            orderBy: { revision: 'asc' },
+          });
+          const sourceFacts = deriveAnalysisFacts({
+            documentId: doc.id,
+            extractionRunId: run.id,
+            kind: doc.kind === 'quotation' ? 'quotation' : 'tariff',
+            result: result.data,
+            corrections: sourceCorrections,
+          });
+          // Immutable publication cannot erase operational restrictions present in its source.
+          const references = [
+            ...(sourceFacts.references ?? []),
+            ...(data.terms.references ?? []),
+          ].filter(
+            (reference, index, all) =>
+              all.findIndex(
+                (other) =>
+                  other.type === reference.type &&
+                  other.value === reference.value,
+              ) === index,
+          );
           const row = await tx.agreementVersion.create({
             data: {
               organizationId,
@@ -140,7 +220,21 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
               sourceSha256: doc.sha256,
               sourceMetadataVersion: doc.metadataVersion,
               sourceCorrectionRevision: doc.correctionCount,
-              terms: data.terms,
+              terms: {
+                ...data.terms,
+                references,
+                applicability:
+                  data.terms.applicability ??
+                  normalizeAgreementApplicability(
+                    sourceFacts.applicability,
+                    data.terms.evidence.map((e) => ({
+                      ...e,
+                      revisionId: null,
+                    })),
+                    data.terms.provider,
+                    data.terms.service,
+                  ),
+              },
               actorId,
               reason: data.reason,
             },
@@ -210,39 +304,8 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
               agreement.operationId !== operationId
             )
               throw new DocumentError(422, 'AGREEMENT_OPERATION_MISMATCH');
-            if (
-              binding.serviceDate < agreement.terms.validFrom ||
-              binding.serviceDate > agreement.terms.validUntil
-            )
-              throw new DocumentError(422, 'AGREEMENT_OUTSIDE_VALIDITY');
-            if (
-              binding.route.trim().toLocaleLowerCase() !==
-              agreement.terms.route.trim().toLocaleLowerCase()
-            )
-              throw new DocumentError(422, 'AGREEMENT_ROUTE_MISMATCH');
-            if (
-              agreement.terms.pricing.type !== 'fixed-trip' &&
-              (binding.distanceKm === null ||
-                new Prisma.Decimal(binding.distanceKm).lte(0))
-            )
-              throw new DocumentError(422, 'AGREEMENT_DISTANCE_REQUIRED');
-            const fact = current.facts.find((f) => f.documentId === invoice.id);
-            const normalize = (v: string) =>
-              v.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-            if (
-              fact?.provider &&
-              normalize(fact.provider) !== normalize(agreement.terms.provider)
-            )
-              throw new DocumentError(422, 'AGREEMENT_PROVIDER_MISMATCH');
-            if (fact?.currency && fact.currency !== agreement.terms.currency)
-              throw new DocumentError(422, 'AGREEMENT_CURRENCY_MISMATCH');
-            if (fact?.serviceDate && fact.serviceDate !== binding.serviceDate)
-              throw new DocumentError(422, 'AGREEMENT_DATE_MISMATCH');
-            if (
-              fact?.route &&
-              normalize(fact.route) !== normalize(binding.route)
-            )
-              throw new DocumentError(422, 'AGREEMENT_ROUTE_MISMATCH');
+            // Selection records an authorized choice, never proof of applicability.
+            // The versioned engine retains unknown and contradictory conditions.
           }
           const previous = await tx.operationAgreementBinding.findMany({
             where: { organizationId, operationId },
@@ -274,11 +337,24 @@ export function createAgreementService({ prisma }: { prisma: PrismaClient }) {
             where: { organizationId, operationId },
           });
           await tx.operationAgreementBinding.createMany({
-            data: data.bindings.map((b) => ({
-              ...b,
-              organizationId,
-              operationId,
-            })),
+            data: after.map((b) => {
+              const unchanged = before.some(
+                (old) => JSON.stringify(old) === JSON.stringify(b),
+              );
+              const prior = unchanged
+                ? previous.find(
+                    (old) => old.invoiceDocumentId === b.invoiceDocumentId,
+                  )
+                : undefined;
+              return {
+                ...b,
+                organizationId,
+                operationId,
+                selectedBy: prior ? prior.selectedBy : actorId,
+                selectedAt: prior ? prior.selectedAt : new Date(),
+                selectionReason: prior ? prior.selectionReason : data.reason,
+              };
+            }),
           });
           const changed = await tx.operation.update({
             where: { id: operationId },

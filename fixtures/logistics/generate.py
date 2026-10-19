@@ -20,6 +20,10 @@ DOCS = [
   'Carrier service excluded from this transport invoice.']),
  ('carrier-agreement.pdf', 'CARRIER AGREEMENT', 'Faro Ocean Demo', 'AGR-DEMO-001', '150.00', [
   'Valid from: 2026-10-01', 'Valid until: 2026-10-31',
+  'Validity date basis: service-date',
+  'Origin restriction: unrestricted', 'Destination restriction: unrestricted',
+  'Transport mode restriction: unrestricted', 'Equipment type restriction: unrestricted',
+  'Contracting party restriction: unrestricted', 'Service restriction: unrestricted',
   'Ocean handling: 1 service at 150.00 USD.',
   'Scope: Port A handling for one demo container.',
   'Excludes pickup Warehouse A to Port A; ordered separately from Ruta Norte Demo.',
@@ -33,8 +37,9 @@ DOCS = [
   'No real signature, fiscal identity, bank account or delivery proof.']),
 ]
 
-def build():
+def build(only=None):
  for filename,title,provider,number,total,lines in DOCS:
+  if only is not None and filename not in only: continue
   path=BASE/'source-documents'/filename
   c=canvas.Canvas(str(path),pagesize=A4,invariant=1)
   c.setTitle('DEMO - '+title)

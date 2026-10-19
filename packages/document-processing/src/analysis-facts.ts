@@ -80,7 +80,7 @@ export function deriveAnalysisFacts(input: {
           evidence: [ev(p.page, text)],
         });
       const table = text.match(
-        /^(Ocean\s+handling|Pickup\s*-\s*(.+?))\s+(\d+(?:\.\d+)?)\s+(service|trip|km)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$/i,
+        /^(Ocean\s+handling|Pickup\s*-\s*(.+?))\s+(-?\d+(?:\.\d+)?)\s+(service|trip|km)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)$/i,
       );
       if (table) {
         lines.push({
@@ -96,7 +96,7 @@ export function deriveAnalysisFacts(input: {
         });
       }
       const agreement = text.match(
-        /^Ocean handling:\s*(\d+(?:\.\d+)?)\s+service at\s+(\d+(?:\.\d+)?)\s+([A-Z]{3})\.?$/i,
+        /^Ocean handling:\s*(-?\d+(?:\.\d+)?)\s+service at\s+(-?\d+(?:\.\d+)?)\s+([A-Z]{3})\.?$/i,
       );
       if (agreement && agreement[3] !== currency)
         parserWarnings.push('LINE_CURRENCY_CONFLICT');
@@ -112,6 +112,40 @@ export function deriveAnalysisFacts(input: {
           amount: agreement[1] === '1' ? (agreement[2] ?? null) : null,
           evidence: [ev(p.page, text)],
         });
+      // Explicit semicolon-delimited rows avoid guessing column associations in matrices.
+      const charge = text.match(
+        /^Charge:\s*([^;]+);\s*(ocean-handling|pickup|unknown);\s*(container|bl|shipment|other);\s*([^;]+);\s*(-?\d+(?:\.\d+)?);\s*(-?\d+(?:\.\d+)?);\s*(-?\d+(?:\.\d+)?);\s*([A-Z]{3});\s*([^;]+)$/,
+      );
+      if (charge) {
+        const service = charge[2];
+        const billingBasis = charge[3];
+        if (
+          (service === 'ocean-handling' ||
+            service === 'pickup' ||
+            service === 'unknown') &&
+          (billingBasis === 'container' ||
+            billingBasis === 'bl' ||
+            billingBasis === 'shipment' ||
+            billingBasis === 'other')
+        )
+          lines.push({
+            id: 'line-' + (lines.length + 1),
+            description: charge[1]?.trim() ?? text,
+            service,
+            route,
+            quantity: charge[5] ?? null,
+            unit: billingBasis,
+            unitPrice: charge[6] ?? null,
+            amount: charge[7] ?? null,
+            currency: charge[8] ?? null,
+            billingBasis,
+            equipmentType:
+              charge[4]?.trim() === '-' ? null : (charge[4]?.trim() ?? null),
+            includedIn:
+              charge[9]?.trim() === '-' ? null : (charge[9]?.trim() ?? null),
+            evidence: [ev(p.page, text)],
+          });
+      }
       const scope = text.match(/^Scope:\s*(.+?) handling for /i);
       if (scope?.[1]) {
         scopes.push(scope[1]);
@@ -134,7 +168,7 @@ export function deriveAnalysisFacts(input: {
       line.route = route;
   const taxLabel = label('Tax amount');
   const taxMatch = taxLabel?.match(
-    /^(\d+(?:\.\d+)?) ([A-Z]{3})(?: \(synthetic scenario assumption\))?$/,
+    /^(-?\d+(?:\.\d+)?) ([A-Z]{3})(?: \(synthetic scenario assumption\))?$/,
   );
   const tax = taxMatch?.[2] === currency ? (taxMatch?.[1] ?? null) : null;
   if (taxMatch && taxMatch[2] !== currency)
@@ -162,6 +196,110 @@ export function deriveAnalysisFacts(input: {
         revisionId: c.id,
       });
   }
+  // Only explicit labels are supported. Unsupported layouts remain reviewable unknowns.
+  const references: NonNullable<AnalysisDocumentInput['references']> = [];
+  for (const page of result.pages)
+    for (const raw of page.text.split('\n')) {
+      const match = raw
+        .trim()
+        .match(
+          /^(Operation|Shipment|Booking|BL|Bill of lading|Agreement|Contract|Quotation|Quote)(?: reference| number)?:\s*(.+)$/i,
+        );
+      if (!match?.[1] || !match[2]) continue;
+      const labelType = match[1].toLowerCase();
+      const type =
+        labelType === 'quote'
+          ? 'quotation'
+          : labelType === 'bill of lading'
+            ? 'bl'
+            : labelType;
+      if (
+        type === 'operation' ||
+        type === 'shipment' ||
+        type === 'booking' ||
+        type === 'bl' ||
+        type === 'quotation' ||
+        type === 'agreement' ||
+        type === 'contract'
+      )
+        references.push({
+          type: type === 'contract' ? 'agreement' : type,
+          value: match[2].trim(),
+          evidence: [ev(page.page, raw.trim())],
+        });
+    }
+  const origin = label('Origin');
+  const destination = label('Destination');
+  const transportMode = label('Transport mode');
+  const equipmentType = label('Equipment type');
+  const contractingParty = label('Contracting party');
+  const dateBasisLabel = label('Validity date basis');
+  const dateBasis =
+    dateBasisLabel === 'service-date' ||
+    dateBasisLabel === 'shipment-date' ||
+    dateBasisLabel === 'booking-date' ||
+    dateBasisLabel === 'invoice-date'
+      ? dateBasisLabel
+      : 'unknown';
+  const restriction = (name: string, value: string | null) => {
+    const explicit = label(name + ' restriction');
+    const conditionValue =
+      explicit && explicit !== 'unrestricted' && explicit !== 'unknown'
+        ? explicit
+        : value;
+    return {
+      state:
+        explicit === 'unrestricted'
+          ? ('unrestricted' as const)
+          : explicit === 'unknown' || !conditionValue
+            ? ('unknown' as const)
+            : ('restricted' as const),
+      value: conditionValue,
+      evidence: evidence.filter(
+        (e) =>
+          e.snippet.toLowerCase().startsWith(name.toLowerCase() + ':') ||
+          e.snippet
+            .toLowerCase()
+            .startsWith(name.toLowerCase() + ' restriction:'),
+      ),
+    };
+  };
+  const serviceLabel = label('Service');
+  const supportedServices = [
+    ...new Set(
+      lines
+        .map((line) => line.service)
+        .filter((service) => service !== 'unknown'),
+    ),
+  ];
+  const serviceCondition = restriction(
+    'Service',
+    serviceLabel ??
+      (supportedServices.length === 1 ? (supportedServices[0] ?? null) : null),
+  );
+  if (!serviceLabel && serviceCondition.value)
+    serviceCondition.evidence = lines
+      .filter((line) => line.service === serviceCondition.value)
+      .flatMap((line) => line.evidence);
+  const equipmentQuantities: NonNullable<
+    AnalysisDocumentInput['equipmentQuantities']
+  > = [];
+  for (const page of result.pages)
+    for (const raw of page.text.split('\n')) {
+      const match = raw
+        .trim()
+        .match(/^Equipment quantity:\s*([^;]+);\s*(\d+(?:\.\d+)?)$/i);
+      if (match?.[1] && match[2])
+        equipmentQuantities.push({
+          equipment: match[1].trim(),
+          quantity: match[2],
+          evidence: [ev(page.page, raw.trim())],
+        });
+    }
+  const count = (name: string) => {
+    const value = label(name);
+    return value && /^\d+(?:\.\d+)?$/.test(value) ? value : null;
+  };
   return analysisDocumentSchema.parse({
     documentId,
     extractionRunId,
@@ -172,6 +310,39 @@ export function deriveAnalysisFacts(input: {
         : input.kind === 'operational'
           ? 'operational-record'
           : 'agreement',
+    references,
+    agreementIdentity:
+      references.find((r) => r.type === 'agreement' || r.type === 'quotation')
+        ?.value ?? null,
+    origin,
+    destination,
+    transportMode,
+    equipmentType,
+    contractingParty,
+    shipmentDate: date(label('Shipment date')),
+    bookingDate: date(label('Booking date')),
+    invoiceDate: date(label('Invoice date')),
+    equipmentQuantities,
+    blQuantity: count('BL quantity'),
+    shipmentQuantity: count('Shipment quantity'),
+    ...(input.kind === 'quotation' || input.kind === 'tariff'
+      ? {
+          applicability: {
+            provider: restriction('Provider', values.get('provider') ?? null),
+            service: serviceCondition,
+            origin: restriction('Origin', origin),
+            destination: restriction('Destination', destination),
+            transportMode: restriction('Transport mode', transportMode),
+            equipmentType: restriction('Equipment type', equipmentType),
+            contractingParty: restriction(
+              'Contracting party',
+              contractingParty,
+            ),
+            dateBasis,
+            restrictions: [],
+          },
+        }
+      : {}),
     provider: values.get('provider') ?? null,
     operationReference: values.get('operationReference') ?? null,
     currency,
@@ -194,6 +365,9 @@ export function deriveAnalysisFacts(input: {
     warnings: [
       'LABEL_BASED_EXTRACTION',
       'HUMAN_REVIEW_REQUIRED',
+      ...(input.kind !== 'invoice' && lines.length === 0
+        ? ['PRICING_LAYOUT_REQUIRES_REVIEW']
+        : []),
       ...parserWarnings,
       ...(lines.length === 0 && input.kind === 'invoice'
         ? ['LINE_ITEMS_MISSING']

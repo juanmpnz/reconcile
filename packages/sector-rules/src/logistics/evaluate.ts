@@ -1,4 +1,9 @@
 import { Decimal } from 'decimal.js';
+import {
+  decideAgreement,
+  operationContradiction,
+  operationContext,
+} from './applicability.js';
 import type {
   AnalysisAgreementBinding,
   AgreementSourceEvidence,
@@ -9,17 +14,20 @@ import type {
   AnalysisResult,
   AnalysisSnapshot,
 } from '@reconcile/domain';
-export const LOGISTICS_RULE_VERSION = 'logistics-v2';
+export const LOGISTICS_RULE_VERSION = 'logistics-v3';
 const Arithmetic = Decimal.clone({ precision: 128 });
-const decimal = (value: string | null): value is string =>
-  value !== null && /^\d{1,30}(?:\.\d{1,12})?$/.test(value);
-const same = (a: string | null, b: string | null): boolean =>
-  a !== null &&
-  b !== null &&
+const decimal = (value: string | null | undefined): value is string =>
+  value != null && /^-?\d{1,30}(?:\.\d{1,12})?$/.test(value);
+const same = (
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean =>
+  a != null &&
+  b != null &&
   a.trim().length > 0 &&
   b.trim().length > 0 &&
   a.trim().toLowerCase() === b.trim().toLowerCase();
-const validDate = (value: string | null): value is string => {
+const validDate = (value: string | null | undefined): value is string => {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + 'T00:00:00.000Z');
   return (
@@ -64,7 +72,7 @@ function finding(
       decimal(invoiced) && decimal(expected)
         ? subtract(invoiced, expected)
         : null,
-    currency: doc.currency,
+    currency: line?.currency ?? doc.currency,
     explanation,
     evidence: evidence(doc.evidence, line?.evidence ?? [], sources),
   };
@@ -80,6 +88,84 @@ function sameService(
     same(invoice.serviceDate, record.serviceDate) &&
     same(line.route, record.route)
   );
+}
+function selectedContext(
+  snapshot: AnalysisSnapshot,
+  invoice: AnalysisDocument,
+  line: AnalysisLine,
+  binding: AnalysisAgreementBinding,
+) {
+  const agreement = binding.agreement,
+    terms = agreement.terms;
+  const context: AnalysisDocument = {
+    ...invoice,
+    serviceDate:
+      !terms.applicability || terms.applicability.dateBasis === 'service-date'
+        ? (invoice.serviceDate ?? binding.serviceDate)
+        : invoice.serviceDate,
+    route: invoice.route ?? binding.route,
+    lines: invoice.lines.map((item) => ({
+      ...item,
+      route: item.route ?? binding.route,
+    })),
+  };
+  const candidate: AnalysisDocument = {
+    ...invoice,
+    documentId: agreement.sourceDocumentId,
+    extractionRunId: agreement.sourceExtractionRunId,
+    revisionId: agreement.id,
+    kind: 'agreement',
+    operationReference: null,
+    provider: terms.provider,
+    currency: terms.currency,
+    validFrom: terms.validFrom,
+    validUntil: terms.validUntil,
+    agreementBasis: terms.agreementBasis,
+    lines: terms.lines ?? [
+      { ...line, service: terms.service, route: terms.route },
+    ],
+    evidence: terms.evidence.map((e) => ({ ...e, revisionId: agreement.id })),
+    applicability: terms.applicability,
+    agreementIdentity: terms.agreementIdentity,
+    references: terms.references ?? [],
+    excludedServices: [],
+    route: terms.route,
+  };
+  const decision = decideAgreement(
+    candidate,
+    context,
+    { ...line, route: line.route ?? binding.route },
+    snapshot,
+  );
+  if (
+    (binding.serviceDate &&
+      invoice.serviceDate &&
+      !same(binding.serviceDate, invoice.serviceDate)) ||
+    (binding.route &&
+      ((line.route && !same(binding.route, line.route)) ||
+        (invoice.route && !same(binding.route, invoice.route))))
+  ) {
+    decision.state = 'not-applicable';
+    decision.reason =
+      'La selección revisada contradice datos explícitos de la factura.';
+    decision.conditions.push({
+      name: 'selection-context',
+      state: 'contradictory',
+      reason: decision.reason,
+      evidence: invoice.evidence,
+    });
+  }
+  if (
+    agreement.organizationId !== snapshot.organizationId ||
+    (agreement.scope === 'spot' &&
+      agreement.operationId !== snapshot.operationId) ||
+    agreement.id !== binding.agreementVersionId
+  ) {
+    decision.state = 'not-applicable';
+    decision.reason =
+      'La selección no pertenece a esta operación u organización.';
+  }
+  return { candidate, context, decision };
 }
 /** Selected terms are immutable reviewed facts, never inferred from another agreement. */
 function evaluateBinding(
@@ -121,6 +207,57 @@ function evaluateBinding(
       'AGREEMENT_BINDING_INVALID',
       'La selección o la evidencia del acuerdo no es verificable para esta operación.',
     );
+  if (
+    binding.serviceDate &&
+    invoice.serviceDate &&
+    !same(binding.serviceDate, invoice.serviceDate)
+  )
+    return unavailable(
+      'AGREEMENT_DATE_UNVERIFIABLE',
+      'La fecha revisada contradice la fecha explícita del servicio.',
+    );
+  if (
+    binding.route &&
+    ((line.route && !same(binding.route, line.route)) ||
+      (invoice.route && !same(binding.route, invoice.route)))
+  )
+    return unavailable(
+      'AGREEMENT_SCOPE_MISMATCH',
+      'El trayecto revisado contradice los datos explícitos de la factura.',
+    );
+  if (terms.applicability || terms.lines || terms.references?.length) {
+    const { candidate, context, decision } = selectedContext(
+      snapshot,
+      invoice,
+      line,
+      binding,
+    );
+    if (decision.state !== 'applicable')
+      return unavailable(
+        decision.state === 'pending'
+          ? 'AGREEMENT_PENDING'
+          : 'AGREEMENT_NOT_APPLICABLE',
+        decision.reason,
+      );
+    if (terms.lines) {
+      const result = evaluateLogistics({
+        ...snapshot,
+        agreementBindings: [],
+        documents: [
+          context,
+          candidate,
+          ...snapshot.documents.filter(
+            (doc) => doc.kind === 'operational-record',
+          ),
+        ],
+      });
+      return (
+        result.findings.find(
+          (f) => f.lineId === line.id && f.code !== 'LINE_ARITHMETIC',
+        ) ?? unavailable('SERVICE_NOT_AGREED', 'No hay una tarifa verificable.')
+      );
+    }
+  }
   if (terms.agreementBasis !== 'accepted')
     return unavailable(
       'AGREEMENT_BASIS_UNVERIFIABLE',
@@ -131,7 +268,7 @@ function evaluateBinding(
       'AGREEMENT_PROVIDER_MISMATCH',
       'El proveedor de la factura no coincide con el acuerdo seleccionado.',
     );
-  if (!same(terms.currency, invoice.currency))
+  if (!same(terms.currency, line.currency ?? invoice.currency))
     return unavailable(
       'CURRENCY_UNVERIFIABLE',
       'Las monedas no coinciden; no hay conversión respaldada.',
@@ -159,6 +296,11 @@ function evaluateBinding(
     return unavailable(
       'AGREEMENT_SCOPE_MISMATCH',
       'El servicio o trayecto no coincide con el ámbito del acuerdo seleccionado.',
+    );
+  if (terms.pricing.type === 'line-items')
+    return unavailable(
+      'SERVICE_NOT_AGREED',
+      'Faltan partidas de tarifa verificables en el acuerdo.',
     );
   let basis: 'fixed-trip' | 'per-km';
   let amount: string;
@@ -268,11 +410,13 @@ function evaluateBinding(
 /** Pure deterministic comparison; never mutates financial/accounting state. */
 export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
   const findings: AnalysisFinding[] = [];
+  const agreementDecisions: NonNullable<AnalysisResult['agreementDecisions']> =
+    [];
   const documents = snapshot.documents.filter(
-    (doc) => doc.operationReference === snapshot.operationReference,
+    (doc) => !operationContradiction(doc, snapshot),
   );
-  for (const doc of snapshot.documents.filter(
-    (item) => item.operationReference !== snapshot.operationReference,
+  for (const doc of snapshot.documents.filter((item) =>
+    operationContradiction(item, snapshot),
   ))
     findings.push(
       finding(
@@ -283,7 +427,9 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       ),
     );
   const invoices = documents.filter((doc) => doc.kind === 'invoice');
-  const agreements = documents.filter((doc) => doc.kind === 'agreement');
+  const agreements = snapshot.documents.filter(
+    (doc) => doc.kind === 'agreement',
+  );
   for (const invoice of invoices) {
     if (invoice.lines.length === 0)
       findings.push(
@@ -295,6 +441,20 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         ),
       );
     const allAmounts = invoice.lines.map((line) => line.amount);
+    if (
+      invoice.lines.some(
+        (l) => !same(l.currency ?? invoice.currency, invoice.currency),
+      )
+    )
+      findings.push(
+        finding(
+          invoice,
+          null,
+          'CURRENCY_UNVERIFIABLE',
+          'El total contiene partidas en monedas distintas; no se suman sin conversión documentada.',
+        ),
+      );
+
     if (!decimal(invoice.taxAmount))
       findings.push(
         finding(
@@ -320,7 +480,10 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       decimal(invoice.total) &&
       decimal(invoice.taxAmount) &&
       allAmounts.every(decimal) &&
-      invoice.lines.length > 0
+      invoice.lines.length > 0 &&
+      invoice.lines.every((l) =>
+        same(l.currency ?? invoice.currency, invoice.currency),
+      )
     ) {
       const calculated = sum([...allAmounts, invoice.taxAmount]);
       if (!new Arithmetic(calculated).equals(invoice.total))
@@ -342,7 +505,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         !decimal(line.quantity) ||
         !decimal(line.unitPrice) ||
         !line.unit ||
-        !invoice.currency ||
+        !(line.currency ?? invoice.currency) ||
         !invoice.provider ||
         line.evidence.length === 0
       ) {
@@ -375,31 +538,42 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
           (binding) => binding.invoiceDocumentId === invoice.documentId,
         ) ?? [];
       if (selected.length > 0) {
+        for (const binding of selected) {
+          const { decision } = selectedContext(
+            snapshot,
+            invoice,
+            line,
+            binding,
+          );
+          agreementDecisions.push(decision);
+        }
         findings.push(evaluateBinding(snapshot, invoice, line, selected));
         continue;
       }
-      const applicable = agreements.filter(
-        (agreement) =>
-          same(agreement.provider, invoice.provider) &&
-          agreement.agreementBasis === 'accepted' &&
-          agreement.evidence.length > 0 &&
-          [...agreement.lines, ...agreement.excludedServices].some(
-            (condition) =>
-              condition.service === line.service &&
-              same(condition.route, line.route),
-          ) &&
-          validDate(invoice.serviceDate) &&
-          validDate(agreement.validFrom) &&
-          validDate(agreement.validUntil) &&
-          agreement.validFrom <= invoice.serviceDate &&
-          invoice.serviceDate <= agreement.validUntil,
+      const decisions = agreements.map((agreement) =>
+        decideAgreement(agreement, invoice, line, snapshot),
       );
-      if (applicable.length !== 1) {
+      agreementDecisions.push(...decisions);
+      const applicable = agreements.filter((agreement) =>
+        decisions.some(
+          (d) =>
+            d.agreementDocumentId === agreement.documentId &&
+            d.state === 'applicable',
+        ),
+      );
+      const pending = decisions.some((d) => d.state === 'pending');
+      if (applicable.length !== 1 || pending) {
         findings.push(
           finding(
             invoice,
             line,
-            applicable.length > 1 ? 'AGREEMENT_AMBIGUOUS' : 'AGREEMENT_MISSING',
+            applicable.length > 1
+              ? 'AGREEMENT_AMBIGUOUS'
+              : pending
+                ? 'AGREEMENT_PENDING'
+                : decisions.length
+                  ? 'AGREEMENT_NOT_APPLICABLE'
+                  : 'AGREEMENT_MISSING',
             'Se requiere un único acuerdo aceptado y vigente para la fecha de servicio.',
           ),
         );
@@ -407,7 +581,12 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       }
       const agreement = applicable[0];
       if (!agreement) continue;
-      if (!same(invoice.currency, agreement.currency)) {
+      if (
+        !same(line.currency ?? invoice.currency, agreement.currency) &&
+        !agreement.lines.some((l) =>
+          same(l.currency, line.currency ?? invoice.currency),
+        )
+      ) {
         findings.push(
           finding(
             invoice,
@@ -474,8 +653,23 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         );
         continue;
       }
+      const resolvedInvoice = operationContext(snapshot, invoice).context;
       const agreedLines = agreement.lines.filter(
-        (item) => item.service === line.service && same(item.route, line.route),
+        (item) =>
+          item.service === line.service &&
+          same(item.route, line.route) &&
+          (!item.billingBasis ||
+            (item.billingBasis === line.billingBasis &&
+              same(item.description, line.description))) &&
+          (!item.equipmentType ||
+            same(
+              item.equipmentType,
+              line.equipmentType ?? resolvedInvoice.equipmentType,
+            )) &&
+          same(
+            item.currency ?? agreement.currency,
+            line.currency ?? invoice.currency,
+          ),
       );
       const agreed = agreedLines.length === 1 ? agreedLines[0] : undefined;
       if (
@@ -512,12 +706,87 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         );
         continue;
       }
+      if (agreed.includedIn) {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'INCLUDED_IN_PACKAGE',
+            'El concepto está incluido en un paquete; no se suma como tarifa adicional.',
+            'not-verifiable',
+            null,
+            agreed.evidence,
+          ),
+        );
+        continue;
+      }
+      let quantity: string | null = agreed.quantity;
+      const quantityRecords = documents.filter(
+        (doc) =>
+          doc.kind === 'operational-record' &&
+          !operationContradiction(doc, snapshot) &&
+          (same(doc.operationReference, invoice.operationReference) ||
+            doc.references?.some((ref) =>
+              invoice.references?.some(
+                (other) =>
+                  other.type === ref.type && same(other.value, ref.value),
+              ),
+            )),
+      );
+      const quantitiesFromRecords = (
+        key: 'blQuantity' | 'shipmentQuantity',
+      ) => {
+        const values = [
+          ...new Set(
+            [invoice, ...quantityRecords]
+              .map((doc) => doc[key])
+              .filter(decimal)
+              .map((value) => new Arithmetic(value).toFixed()),
+          ),
+        ];
+        return values.length === 1 ? (values[0] ?? null) : null;
+      };
+      if (agreed.billingBasis) {
+        if (agreed.billingBasis === 'container') {
+          const equipment = line.equipmentType ?? resolvedInvoice.equipmentType;
+          const quantities = [
+            ...(invoice.equipmentQuantities ?? []),
+            ...quantityRecords.flatMap((doc) => doc.equipmentQuantities ?? []),
+          ].filter(
+            (q) => same(q.equipment, equipment) && q.evidence.length > 0,
+          );
+          const values = [
+            ...new Set(
+              quantities
+                .map((q) => q.quantity)
+                .filter(decimal)
+                .map((value) => new Arithmetic(value).toFixed()),
+            ),
+          ];
+          quantity = values.length === 1 ? (values[0] ?? null) : null;
+        } else if (agreed.billingBasis === 'bl')
+          quantity = quantitiesFromRecords('blQuantity');
+        else if (agreed.billingBasis === 'shipment')
+          quantity = quantitiesFromRecords('shipmentQuantity');
+        else quantity = null;
+        if (!decimal(quantity)) {
+          findings.push(
+            finding(
+              invoice,
+              line,
+              'BILLING_QUANTITY_PENDING',
+              'Falta cantidad documentada para la base de cálculo; no se reutiliza la cantidad de la cotización.',
+            ),
+          );
+          continue;
+        }
+      }
       const expected = new Arithmetic(agreed.unitPrice)
-        .times(agreed.quantity)
+        .times(quantity)
         .toFixed();
       const different =
         !new Arithmetic(line.amount).equals(expected) ||
-        !new Arithmetic(line.quantity).equals(agreed.quantity) ||
+        !new Arithmetic(line.quantity).equals(quantity) ||
         !new Arithmetic(line.unitPrice).equals(agreed.unitPrice);
       findings.push(
         finding(
@@ -529,7 +798,15 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
             : 'Precio y cantidad coinciden con el acuerdo. Esto no acredita por sí solo la prestación.',
           different ? 'confirmed' : 'matched',
           expected,
-          evidence(agreement.evidence, agreed.evidence),
+          evidence(
+            agreement.evidence,
+            agreed.evidence,
+            ...quantityRecords.map((doc) => doc.evidence),
+            ...quantityRecords.flatMap(
+              (doc) => doc.equipmentQuantities?.map((q) => q.evidence) ?? [],
+            ),
+            ...(invoice.equipmentQuantities?.map((q) => q.evidence) ?? []),
+          ),
         ),
       );
     }
@@ -548,5 +825,5 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       explanation: 'No hay facturas asociadas a esta operación.',
       evidence: [],
     });
-  return { ruleVersion: LOGISTICS_RULE_VERSION, findings };
+  return { ruleVersion: LOGISTICS_RULE_VERSION, findings, agreementDecisions };
 }

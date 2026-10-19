@@ -231,6 +231,9 @@ const doc = (docId, kind) => ({
           ...operation,
           agreementBindings: body.bindings.map((b) => ({
             ...b,
+            selectedBy: user,
+            selectedAt: now,
+            selectionReason: body.reason,
             agreement: agreements.find((a) => a.id === b.agreementVersionId),
           })),
           revision: operation.revision + 1,
@@ -283,9 +286,18 @@ const doc = (docId, kind) => ({
     await locator.waitFor({ state: 'visible' });
   }
   async function noDialog() {
-    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    try {
+      await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    } catch (error) {
+      console.error(
+        'Dialog remained open',
+        errors,
+        await page.getByRole('dialog').innerText(),
+      );
+      throw error;
+    }
   }
-  async function createTerms(name, provider = 'Traginers') {
+  async function createTerms(name, provider = 'Traginers', structured = false) {
     const dialog = page.getByRole('dialog');
     await chooseSelect(
       page,
@@ -346,6 +358,48 @@ const doc = (docId, kind) => ({
     await dialog
       .getByLabel('Motivo de publicación / revisión')
       .fill('Synthetic reviewed source');
+    if (structured) {
+      await chooseSelect(
+        page,
+        dialog.getByLabel('Cómo se calcula el precio'),
+        'line-items',
+      );
+      await dialog.getByLabel('Moneda ISO (EUR, USD…)').fill('');
+      await dialog
+        .getByLabel(
+          'Identidad, aplicabilidad y partidas estructuradas (opcional)',
+        )
+        .fill(
+          JSON.stringify({
+            agreementIdentity: 'SYNTHETIC-REUSABLE',
+            lines: [
+              {
+                id: 'charge-usd',
+                description: 'Synthetic documented charge',
+                service: 'pickup',
+                route: 'Barcelona',
+                quantity: null,
+                unit: 'bl',
+                billingBasis: 'bl',
+                unitPrice: '100',
+                amount: null,
+                currency: 'USD',
+                evidence: evidence.map((item) => ({
+                  ...item,
+                  revisionId: null,
+                })),
+              },
+            ],
+          }),
+        );
+      assert.equal(
+        await dialog
+          .getByLabel('Precio total por viaje', { exact: true })
+          .count(),
+        0,
+        'line items do not demand fabricated global amount',
+      );
+    }
     await dialog.getByRole('checkbox').check();
     await dialog
       .getByRole('button', { name: 'Publicar versión revisada' })
@@ -416,13 +470,15 @@ const doc = (docId, kind) => ({
   await page
     .getByRole('button', { name: 'Crear acuerdo', exact: true })
     .click();
-  await createTerms('Second annual version');
+  await createTerms('Second annual version', 'Traginers', true);
   assert.equal(
     writes.at(-1).body.sourceDocumentId,
     tariff,
     'reuses existing original PDF',
   );
   assert.equal(writes.at(-1).body.scope, 'reusable');
+  assert.deepEqual(writes.at(-1).body.terms.pricing, { type: 'line-items' });
+  assert.equal(writes.at(-1).body.terms.currency, null);
   console.log(
     'PASS create reusable terms from existing PDF; keyboard Escape/focus recovery',
   );
@@ -452,6 +508,10 @@ const doc = (docId, kind) => ({
     agreement.id,
   );
   await dialog
+    .getByLabel('Fecha relevante documentada (vacía si se desconoce)')
+    .fill('');
+  await dialog.getByLabel('Ruta o ámbito revisado').fill('');
+  await dialog
     .getByLabel('Motivo de selección, cambio o retirada')
     .fill('Use annual agreement');
   await dialog
@@ -459,6 +519,13 @@ const doc = (docId, kind) => ({
     .click();
   await noDialog();
   assert.equal(operation.agreementBindings.length, 1);
+  assert.equal(operation.agreementBindings[0].serviceDate, null);
+  assert.equal(operation.agreementBindings[0].route, null);
+  await has(
+    section.getByText('La selección no verifica las condiciones del acuerdo.', {
+      exact: false,
+    }),
+  );
   assert.equal(operation.agreementBindings[0].invoiceDocumentId, invoice);
   assert.equal(operation.agreementBindings[0].agreementVersionId, agreement.id);
   await has(section.getByText(`Versión ${agreement.id}`, { exact: false }));
@@ -484,13 +551,48 @@ const doc = (docId, kind) => ({
       agreementBindings: structuredClone(operation.agreementBindings),
     },
     sources: [],
-    result: { ruleVersion: 'logistics-v2', findings: [] },
+    result: {
+      ruleVersion: 'logistics-v2',
+      findings: [],
+      agreementDecisions: [
+        {
+          invoiceDocumentId: invoice,
+          lineId: 'line-1',
+          agreementDocumentId: tariff,
+          agreementVersionId: agreement.id,
+          state: 'pending',
+          reason: 'Falta fecha relevante y equipo real',
+          conditions: [
+            {
+              name: 'equipmentType',
+              state: 'unknown',
+              reason: 'Confirmar equipo y cantidad reales',
+              evidence: [],
+            },
+          ],
+          evidence: [],
+        },
+      ],
+    },
     stale: false,
     createdAt: now,
     completedAt: now,
   };
   operation.analyses = [historical];
   const originalHistory = JSON.stringify(historical.snapshot);
+  await page.reload();
+  await has(
+    page.getByRole('heading', {
+      name: 'Aplicabilidad de acuerdos',
+      exact: true,
+    }),
+  );
+  await has(
+    page.getByText('Falta fecha relevante y equipo real', { exact: true }),
+  );
+  await has(
+    page.getByText('Confirmar equipo y cantidad reales', { exact: false }),
+  );
 
   await section
     .getByRole('button', { name: 'Cargar tarifa spot', exact: true })

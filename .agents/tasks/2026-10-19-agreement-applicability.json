@@ -1,0 +1,305 @@
+{
+  "id": "2026-10-19-agreement-applicability",
+  "summary": "Separate operational identity, agreement identity and verified applicability across extraction, comparison and review.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root (extraction/coordinator), /root/engine (contracts/domain), /root/workflow (application/UI)",
+  "scope": [
+    "packages/",
+    "apps/",
+    "docs/",
+    ".agents/tasks/2026-10-19-agreement-applicability.json",
+    ".agents/reviews/",
+    "fixtures/logistics/"
+  ],
+  "acceptance": [
+    "Generic agreements reusable without operation-reference equality; typed operational contradictions retained.",
+    "Explicit applicability and deterministic candidate states, evidence and independently verifiable economic lines.",
+    "Tenant-scoped audited manual selection, immutable history and stale recalculation.",
+    "User requested negative cases covered with honest runtime limits."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "backend-engineer",
+    "data-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer",
+    "document-ai-engineer"
+  ],
+  "semanticRouting": "Financial applicability, extraction, typed references, immutable tenant-owned selections/snapshots and internal DS review flows. Product/domain/architecture/UX/visual consulted before implementation; independent QA/security/domain/data/parser/UI review with regression evidence. No connector changes.",
+  "excludedRoles": [
+    {
+      "role": "integration-engineer",
+      "reason": "No email/ERP connector or external service changes."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "product-manager",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product/domain/architecture and UX/visual consultation; not final diff approval.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product/domain/architecture and UX/visual consultation; not final diff approval.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-planning.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product/domain/architecture and UX/visual consultation; not final diff approval.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-planning.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product/domain/architecture and UX/visual consultation; not final diff approval.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-planning.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Preimplementation product/domain/architecture and UX/visual consultation; not final diff approval.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-planning.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Owned bounded implementation and recorded actual checks; independent conclusion tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-main.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Owned bounded implementation and recorded actual checks; independent conclusion tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-main.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/engine",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Owned bounded implementation and recorded actual checks; independent conclusion tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-engine.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/workflow",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Owned bounded implementation and recorded actual checks; independent conclusion tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-workflow.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/workflow",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Owned bounded implementation and recorded actual checks; independent conclusion tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-workflow.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "data-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review and independent 162 unit / 19 real API tests. UI review static plus mobile screenshot; implementer owns browser execution. Platform review additive schema/migration source, no deployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-applicability-review.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "pnpm check",
+      "status": "failed",
+      "result": "Pre-existing historical task 2026-10-17-auth-card-width references nonexistent evidence. Canonical adapters match. Separate constituent checks executed; not claiming aggregate passed."
+    },
+    {
+      "command": "pnpm format:check",
+      "status": "failed",
+      "result": "Six unchanged files fail baseline formatting: three 2026-10-17 tasks, theme.css, workspace.css, compose.yaml. Changed source files formatted separately."
+    },
+    {
+      "command": "pnpm harness:test",
+      "status": "passed",
+      "result": "8 harness regression tests passed."
+    },
+    {
+      "command": "pnpm db:generate && pnpm db:migrate",
+      "status": "passed",
+      "result": "Prisma generated and additive nullable context/confirmation provenance migration applied to local development PostgreSQL."
+    },
+    {
+      "command": "SMOKE_API_URL=http://127.0.0.1:3001 worker smoke with root .env loaded",
+      "status": "passed",
+      "result": "Real API/PostgreSQL/Redis/private S3/platform worker job passed. Root-owned worker stopped before recovery integration tests."
+    },
+    {
+      "command": "node apps/web/test/agreements.browser.mjs",
+      "status": "passed",
+      "result": "Workflow execution: 6 Chromium browser groups passed with synthetic HTTP fixtures, mobile/focus/viewer/pending contexts and line-items creation without fictitious scalar price/currency. Not full real-service browser E2E."
+    },
+    {
+      "command": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+      "status": "passed",
+      "result": "Final source passed workspace lint, strict types, 162 unit tests across 28 files and all production builds. Build reports existing chunk-size/annotation warnings."
+    },
+    {
+      "command": "node --env-file=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+      "status": "passed",
+      "result": "Final 68/68 integration tests in nine files passed with actual local identity, PostgreSQL, Redis, private S3, uploaded PDFs and analysis workers."
+    },
+    {
+      "command": "Independent QA pnpm test + focused analysis/agreements integration",
+      "status": "passed",
+      "result": "/root/review separately ran 162/162 unit and 19/19 actual API tests; 13 independent adversarial domain cases included."
+    },
+    {
+      "command": "pnpm harness:gate -- --base HEAD",
+      "status": "failed",
+      "result": "Same pre-existing missing historical review-evidence path blocks validation before diff coverage gate."
+    },
+    {
+      "command": "Changed-file Prettier check and git diff --check",
+      "status": "passed",
+      "result": "All changed/new TypeScript, TSX, MJS, Markdown and JSON formatted; whitespace diff check passed. Prisma generated/validated separately."
+    }
+  ],
+  "findings": [
+    {
+      "id": "historical-harness-evidence",
+      "severity": "medium",
+      "status": "open",
+      "summary": "Existing historical task references nonexistent independent evidence, blocking global harness/check/gate.",
+      "resolution": "Requires actual historical evidence repair; this task does not invent reviewer records. Executable changes independently tested."
+    },
+    {
+      "id": "applicability-and-evidence",
+      "severity": "high",
+      "status": "resolved",
+      "summary": "Initial in-flight review found missing nested evidence validation, reference/quantity/condition ambiguity and publication condition bypass.",
+      "resolution": "Independent regressions and final API/source review verify nested provenance, preserved source refs/audit, contradictory quantities pending and absent applicability normalized unknown."
+    }
+  ],
+  "limitations": [
+    "No deploy or main merge.",
+    "Bounded label/explicit-row extraction; arbitrary supplier matrices/OCR and extra legal restriction evaluation remain pending.",
+    "No FX conversion implementation; unsupported explicit other billing units remain pending.",
+    "Complex agreement pricing/conditions require advanced strict editor; native operational equipment/quantity/reference/date inputs available.",
+    "Global aggregate quality/harness gate remains blocked by pre-existing evidence and formatting issues."
+  ],
+  "evidence": [
+    "docs/adr/0008-agreement-applicability.md",
+    "docs/user-guide.md",
+    ".agents/reviews/2026-10-19-applicability-main.md",
+    ".agents/reviews/2026-10-19-applicability-review.md"
+  ],
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Financial calculations, tenant relations, immutable snapshots and user workflow require independent architecture/security/domain and QA review."
+}
