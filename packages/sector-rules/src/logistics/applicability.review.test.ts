@@ -450,6 +450,8 @@ describe('commercial extraction comparison safety', () => {
   it('explains extracted unknown concepts and providers instead of reporting absent rows', () => {
     const input = setup();
     const invoice = get(input, 'invoice');
+    invoice.lines[0]!.chargeKey = 'synthetic freight';
+    invoice.lines[1]!.chargeKey = 'synthetic documentation';
     invoice.lines[0]!.service = 'unknown';
     invoice.provider = null;
     const findings = evaluateLogistics(input).findings;
@@ -462,6 +464,22 @@ describe('commercial extraction comparison safety', () => {
     expect(findings.some((f) => f.code === 'LINES_MISSING')).toBe(false);
     expect(findings.some((f) => f.status === 'confirmed')).toBe(false);
   });
+  it.each(['provider', 'concept'] as const)(
+    'preserves legacy incomplete diagnostics for an unkeyed missing %s',
+    (missing) => {
+      const input = setup();
+      const invoice = get(input, 'invoice');
+      if (missing === 'provider') invoice.provider = null;
+      else invoice.lines[0]!.service = 'unknown';
+      const findings = evaluateLogistics(input).findings.filter(
+        (finding) => finding.lineId === 'invoice-freight',
+      );
+      expect(findings).toHaveLength(1);
+      expect(findings[0]?.code).toBe('LINE_INCOMPLETE');
+      expect(findings[0]?.status).toBe('not-verifiable');
+      expect(findings[0]?.difference).toBeNull();
+    },
+  );
   it('requires the same commercial charge key even when service and price coincide', () => {
     const input = setup();
     get(input, 'invoice').lines[0]!.chargeKey = 'origin THC';

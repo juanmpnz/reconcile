@@ -190,6 +190,11 @@
       "command": "pnpm check components and isolated architecture rerun (local)",
       "status": "passed",
       "result": "Harness, format, lint and types passed; 184 tests passed initially. Existing architecture test exceeded its 5s timeout under parallel load; isolated rerun passed all 3 cases without code changes. Unified CI required before merge."
+    },
+    {
+      "command": "Initial CI findings and scoped compatibility correction",
+      "status": "passed",
+      "result": "185 unit tests, full quality build, browser acceptance and production smoke passed. Integration exposed one legacy clarification regression; 70/71 cases passed. New commercial diagnostics are now scoped to keyed rows, preserving legacy LINE_INCOMPLETE; corrected CI required before merge."
     }
   ],
   "findings": [],

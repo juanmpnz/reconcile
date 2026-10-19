@@ -521,7 +521,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         );
         continue;
       }
-      if (line.service === 'unknown') {
+      if (line.chargeKey && line.service === 'unknown') {
         findings.push(
           finding(
             invoice,
@@ -532,7 +532,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         );
         continue;
       }
-      if (!invoice.provider) {
+      if (line.chargeKey && !invoice.provider) {
         findings.push(
           finding(
             invoice,
@@ -544,6 +544,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         continue;
       }
       if (
+        line.service === 'unknown' ||
         !decimal(line.amount) ||
         !decimal(line.quantity) ||
         !decimal(line.unitPrice) ||
