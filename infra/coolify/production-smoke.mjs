@@ -332,9 +332,12 @@ try {
   const job = await queue.add(
     'ping',
     { type: 'platform.ping', correlationId: randomUUID() },
-    { removeOnComplete: true, removeOnFail: true },
+    // The worker can finish before waitUntilFinished registers its listener.
+    // Retain the result so its initial isFinished check can observe completion.
+    { removeOnComplete: 100, removeOnFail: 100 },
   );
   assert.equal((await job.waitUntilFinished(events, 20000)).status, 'ok');
+  await job.remove();
   const loggedOut = await fetch(web + '/api/auth/sign-out', {
     method: 'POST',
     headers: { origin, cookie, 'content-type': 'application/json' },
