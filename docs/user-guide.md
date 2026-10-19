@@ -83,7 +83,7 @@ Cuando seleccionás una versión publicada, su PDF de origen deja de aportar dat
 ### Primera comparación con los documentos demo
 
 1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
-2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. La referencia debe coincidir con la de las fuentes; no es una referencia inventada de CargoWise.
+2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. Es una referencia interna libre: no necesita coincidir con las fuentes ni con una referencia de CargoWise.
 3. Abrí el bloque **Documentos**, pulsá **Gestionar documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta 20 documentos de tu organización. Desmarcar un documento quita su vínculo con esta operación; no borra el original ni los análisis históricos. Si un documento seguía procesándose, usá **Recargar datos** cuando termine.
 4. En **Datos para comparar**, abrí **Ver datos y evidencia**. Se obtienen las partidas, exclusiones, vigencia y prestación desde el texto real del PDF. Los campos ausentes siguen ausentes. Revisar datos permite corregirlos con un motivo; conserva documento original, autor y revisión. El tipo de fuente no se cambia desde esta revisión.
 5. Pulsá **Analizar operación**. El worker pasa de En espera a Analizando y al resultado. Podés salir y volver; no necesita mantener el diálogo abierto.
@@ -97,7 +97,7 @@ La evidencia se agrupa por documento, con página y fragmento. Las citas idénti
 
 ### Corregir la operación sin empezar de nuevo
 
-Usá **Editar operación** para cambiar nombre y referencia. Por ejemplo, si pusiste `test` en la referencia y los PDF dicen `OP-DEMO-062`, corregí la operación; no cambies los documentos para forzar su coincidencia. Los avisos muestran la referencia esperada y la encontrada. Una referencia ausente no demuestra pertenencia a la operación.
+Usá **Editar operación** para cambiar nombre y referencia interna. Podés conservar `test` aunque los PDF indiquen `OP-DEMO-062`: son identificadores distintos. No cambies documentos ni referencias externas para forzar coincidencias. La asignación vincula documentos al expediente; la aplicabilidad comercial y las contradicciones externas se comprueban por separado.
 
 Después de guardar cambios en la operación, sus documentos o los datos revisados, el resultado anterior queda conservado y puede aparecer como desactualizado. Pulsá **Volver a analizar** para generar uno nuevo. Mientras hay un análisis en espera o en curso, esperá a que termine para editar la operación o sus vínculos. Si otra persona cambió los datos mientras editabas, la aplicación rechaza la versión antigua y conserva tu borrador para revisarlo; no sobrescribe sus cambios silenciosamente.
 
@@ -155,3 +155,15 @@ Para revisar un caso:
 Para el escenario Q2603BCN00826, revisá Valencia → Mundra, vigencia 01/04/2026–31/12/2026 y la fecha que el acuerdo exige. Elegí el tipo y cantidad reales de contenedores; no sumes las columnas 20’STD, 40’STD y 40’HC. Cada concepto conserva su moneda y su base por BL, envío o contenedor. Un componente incluido en un paquete no se vuelve a sumar. El ejemplo no contiene precios autorizados: deben salir del documento y de su revisión.
 
 La extracción sigue siendo acotada: reconoce etiquetas explícitas como `Booking reference:`, `BL reference:`, `Quotation reference:`, `Origin:`, `Destination:`, `Equipment type:`, `Validity date basis:` (`service-date`, `shipment-date`, `booking-date` o `invoice-date`) y las fechas correspondientes en formato ISO. Una matriz arbitraria de proveedor requiere revisión; no se interpreta automáticamente como tres servicios sumables. Las condiciones adicionales que el motor no puede verificar quedan pendientes. No existe conversión automática entre USD, EUR e INR sin respaldo de cambio aplicable.
+
+## Comparar una factura con un contrato o tarifa
+
+1. Crear una operación con una referencia interna libre (por ejemplo, `REVISION-001`). No debe coincidir con números documentales.
+2. Vincular el contrato, cotización o tarifa como documento de referencia y la factura como documento a verificar.
+3. Revisar la extracción contra los originales. Corregir una lectura crea una revisión; no cambia el contrato. Las referencias de envío, booking o BL se conservan como identificadores externos distintos del expediente.
+4. Ejecutar un análisis nuevo. Tras actualizar reglas, abrir o recargar un resultado anterior no lo recalcula.
+5. Revisar aplicabilidad y resultados por factura: coincidencias, diferencias o datos pendientes. Un acuerdo asignado no queda aceptado automáticamente; sus condiciones deben estar respaldadas.
+
+Los documentos de referencia no producen gastos ni hallazgos económicos propios. Sus condiciones desconocidas se muestran en aplicabilidad. Los resultados históricos permanecen disponibles; eventuales hallazgos antiguos sobre fuentes se conservan como evidencia histórica, sin nuevas acciones económicas.
+
+La extracción sigue limitada a etiquetas y filas explícitamente soportadas. No garantiza interpretar matrices comerciales arbitrarias ni PDFs de imagen sin OCR; el sistema debe mantener esos datos pendientes.

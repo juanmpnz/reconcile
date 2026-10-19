@@ -131,12 +131,16 @@ export function OperationList({
               <Feedback error message={error} />
               <Field
                 name="reference"
-                label="Referencia de operación"
+                label="Referencia interna del expediente"
                 maxLength={100}
                 value={reference}
                 onChange={(event) => setReference(event.target.value)}
                 disabled={busy}
               />
+              <p className="metadata">
+                Identificador libre: no necesita coincidir con la factura,
+                contrato o envío.
+              </p>
               <Field
                 name="name"
                 label="Nombre"

@@ -14,7 +14,7 @@ import type {
   AnalysisResult,
   AnalysisSnapshot,
 } from '@reconcile/domain';
-export const LOGISTICS_RULE_VERSION = 'logistics-v3';
+export const LOGISTICS_RULE_VERSION = 'logistics-v4';
 const Arithmetic = Decimal.clone({ precision: 128 });
 const decimal = (value: string | null | undefined): value is string =>
   value != null && /^-?\d{1,30}(?:\.\d{1,12})?$/.test(value);
@@ -415,15 +415,15 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
   const documents = snapshot.documents.filter(
     (doc) => !operationContradiction(doc, snapshot),
   );
-  for (const doc of snapshot.documents.filter((item) =>
-    operationContradiction(item, snapshot),
+  for (const doc of snapshot.documents.filter(
+    (item) => item.kind === 'invoice' && operationContradiction(item, snapshot),
   ))
     findings.push(
       finding(
         doc,
         null,
         'OPERATION_MISMATCH',
-        'La referencia del documento no coincide con la operación.',
+        'Las referencias externas del mismo tipo contradicen un documento operativo asignado.',
       ),
     );
   const invoices = documents.filter((doc) => doc.kind === 'invoice');

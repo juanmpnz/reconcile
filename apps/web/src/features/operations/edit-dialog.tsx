@@ -110,12 +110,16 @@ export function EditOperationDialog({
         />
         <Field
           name="operation-reference"
-          label="Referencia de operación"
+          label="Referencia interna del expediente"
           value={draftReference}
           maxLength={100}
           disabled={busy}
           onChange={(event) => setReference(event.target.value)}
         />
+        <p className="metadata">
+          Identificador libre: no necesita coincidir con la factura, contrato o
+          envío.
+        </p>
         {conflict && (
           <div className="document-warning">
             <strong>Datos actuales de la operación</strong>

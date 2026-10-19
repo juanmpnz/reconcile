@@ -25,11 +25,11 @@ jobs:
       - run: pnpm infra:up
       - run: pnpm db:migrate
         env:
-          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5432/reconcile
+          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5433/reconcile
       - name: Identity integration tests (real PostgreSQL)
         run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5432/reconcile
+          DATABASE_URL: postgresql://reconcile:local-demo-password@localhost:5433/reconcile
           REDIS_URL: redis://localhost:6379
           S3_ENDPOINT: http://localhost:9000
           S3_BUCKET: reconcile-demo

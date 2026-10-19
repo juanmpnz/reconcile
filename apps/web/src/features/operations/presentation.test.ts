@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { groupEvidence } from './evidence';
-import { findingCounts, findingGroup } from './presentation';
+import {
+  findingCounts,
+  findingGroup,
+  invoiceFindings,
+  applicabilityEmptyMessage,
+} from './presentation';
 import type { AnalysisRun } from '@reconcile/contracts';
 const citation = {
   documentId: '00000000-0000-4000-8000-000000000001',
@@ -51,5 +56,44 @@ describe('comparison presentation without changing financial meaning', () => {
     expect(findingGroup('LINE_ARITHMETIC')).toBe('arithmetic');
     expect(findingGroup('EXCLUDED_SERVICE')).toBe('service');
     expect(findingGroup('TOTAL_INCONSISTENT')).toBe('arithmetic');
+  });
+  it('keeps source and support findings outside invoice economics without changing their persisted order', () => {
+    const source = {
+      documentId: 'agreement',
+      lineId: null,
+      service: 'unknown',
+      code: 'OPERATION_MISMATCH',
+      status: 'not-verifiable' as const,
+      expected: null,
+      invoiced: null,
+      difference: null,
+      currency: null,
+      explanation: 'Historic source control',
+      evidence: [],
+    };
+    const invoice = { ...source, documentId: 'invoice' };
+    const findings = [source, invoice, { ...source, documentId: 'support' }];
+    const run = {
+      snapshot: {
+        documents: [
+          { documentId: 'agreement', kind: 'agreement' as const },
+          { documentId: 'invoice', kind: 'invoice' as const },
+          { documentId: 'support', kind: 'operational-record' as const },
+        ],
+      },
+      result: { findings },
+    };
+    expect(invoiceFindings(run)).toEqual([invoice]);
+    expect(run.result.findings).toEqual(findings);
+    expect(run.result.findings.indexOf(invoice)).toBe(1);
+  });
+  it('distinguishes absent applicability detail from an explicitly empty evaluation without claiming either is historical', () => {
+    expect(applicabilityEmptyMessage(undefined)).toContain(
+      'no permite determinar su antigüedad',
+    );
+    expect(applicabilityEmptyMessage([])).toContain('No se evaluaron acuerdos');
+    expect(applicabilityEmptyMessage([])).not.toContain(
+      'Conserva su resultado original',
+    );
   });
 });

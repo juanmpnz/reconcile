@@ -1,0 +1,9 @@
+# Production smoke completion race
+
+- Role / execution: platform-engineer and backend-engineer, `/root/smoke_race`; delegated implementation and sequential self-check, not independent approval.
+- Scope: `infra/coolify/production-smoke.mjs` platform ping only. Read AGENTS, WORKFLOW, platform/backend profiles, README, architecture overview and implementation plan.
+- Evidence supplied by coordinator: production-smoke passed job `118273880568`, rerun failed job `118275800159` with `Missing key for job bull:reconcile-platform:1. isFinished`.
+- Finding (medium): the fast worker can complete and remove the ping before `Job.waitUntilFinished()` registers completion handlers and performs its initial `isFinished` query. Installed BullMQ `classes/job.js` confirms this initial Redis check and missing-key rejection. QueueEvents readiness alone cannot retain a job removed before the waiter registers.
+- Resolution: retain the latest 100 completed/failed synthetic pings (same bounded policy as `apps/worker/scripts/smoke.mjs`); assert the real worker's returned `status === 'ok'`, then remove that successful ping explicitly. Failed jobs remain bounded for diagnosis. No worker, business queue, database or financial checks changed; all existing real PDF/database/recreation assertions remain.
+- Checks passed: `node --check infra/coolify/production-smoke.mjs`; `pnpm exec prettier --check infra/coolify/production-smoke.mjs`; `pnpm exec eslint infra/coolify/production-smoke.mjs --max-warnings 0`.
+- Status: implementation complete; CI real-service smoke required for runtime acceptance. No local Redis executable/service available, so no fabricated local integration claim. No redundant implementation-mirroring unit test added; the real CI smoke exercises the actual worker and Redis completion semantics.

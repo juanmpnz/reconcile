@@ -21,3 +21,9 @@ Economic checks operate independently. Pricing requires the relevant date basis 
 No domain dependency on database, HTTP or React is added. Existing document-fact revisions, source fingerprints, operation revisions and append-only analysis runs remain authoritative. Parser/rule version changes invalidate current fingerprints; prior stored results and snapshots remain readable. Recalculation creates a new run instead of rewriting history. Published agreement records remain immutable exact versions.
 
 Extraction remains bounded to supported labels and explicit row associations. Arbitrary PDF tariff matrices, arbitrary additional legal restrictions and OCR are not silently interpreted. Review structured facts against the original source; unsupported values remain pending. The Q2603BCN00826 scenario is test identity and scope only, never a built-in tariff or source of prices.
+
+## Clarification — free comparison-case reference (2026-10-19)
+
+An operation is a comparison case, and its `reference` is a free internal label. It is never compared to documentary identifiers as an identity assertion. Existing extracted `operationReference` and typed references retain their source meaning and are not silently reclassified. Only evidence-backed external identities of the same type can establish a documentary contradiction; manual document assignment establishes membership, not commercial applicability.
+
+Contracts, quotations and tariffs are reference sources. Their extraction and applicability can require review, but economic findings and claim actions target invoices only. Source extraction corrections append revisions without modifying the original commercial terms. Logistics rules v4 change input fingerprints so a fresh run is required; stored historical snapshots/results remain unchanged. Empty applicability decisions in a new result do not establish historical status.

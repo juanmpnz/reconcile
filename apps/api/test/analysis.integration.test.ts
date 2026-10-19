@@ -270,6 +270,146 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     ).toEqual(analyzed.result);
   });
 
+  it('compares only invoice charges against a generic tariff in an arbitrary internal dossier and retains previous runs', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const invoice = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - sin validez comercial',
+        'CARRIER INVOICE',
+        'Invoice number: INV-2026-410',
+        'Provider: Faro Ocean Demo',
+        'Operation reference: SHIPMENT-410',
+        'Agreement reference: CONTRACT-ANNUAL-2026',
+        'Currency: USD',
+        'Total: 160.00',
+        'Route: Port A',
+        'Ocean handling 1 service 160.00 160.00',
+        'Tax amount: 0.00 USD',
+        'Service date: 2026-10-10',
+      ]),
+      'single-invoice.pdf',
+    );
+    const tariff = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - sin validez comercial',
+        'CARRIER AGREEMENT',
+        'Agreement reference: CONTRACT-ANNUAL-2026',
+        'Route: Port A',
+        'Demo agreement accepted 2026-01-01. Not an internal estimate.',
+        'Provider: Faro Ocean Demo',
+        'Validity date basis: service-date',
+        'Origin restriction: unrestricted',
+        'Destination restriction: unrestricted',
+        'Transport mode restriction: unrestricted',
+        'Equipment type restriction: unrestricted',
+        'Contracting party restriction: unrestricted',
+        'Service restriction: unrestricted',
+        'Currency: USD',
+        'Valid from: 2026-01-01',
+        'Valid until: 2026-12-31',
+        'Ocean handling: 1 service at 150.00 USD.',
+      ]),
+      'generic-annual-tariff.pdf',
+      'tariff',
+    );
+    const operation = await operationWith(
+      org,
+      owner,
+      [tariff, invoice],
+      'MY-INTERNAL-FOLDER-ANY-123',
+    );
+    expect(fact(operation, 'agreement').operationReference).toBeNull();
+    expect(fact(operation, 'invoice').operationReference).toBe('SHIPMENT-410');
+    const first = await completed(org, operation.id, owner);
+    expect(first.result?.agreementDecisions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          invoiceDocumentId: invoice,
+          agreementDocumentId: tariff,
+          state: 'applicable',
+        }),
+      ]),
+    );
+    expect(first.result?.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: invoice,
+          code: 'PRICE_OR_QUANTITY_DIFFERENCE',
+          invoiced: '160.00',
+          expected: '150',
+          difference: '10',
+        }),
+      ]),
+    );
+    expect(
+      first.result?.findings.every((finding) => finding.documentId === invoice),
+    ).toBe(true);
+    expect(
+      first.result?.findings.some(
+        (finding) => finding.code === 'OPERATION_MISMATCH',
+      ),
+    ).toBe(false);
+    const originalDownload = await request(
+      `/api/v1/organizations/${org}/documents/${tariff}/download`,
+      owner,
+    );
+    expect(originalDownload.statusCode).toBe(200);
+    const referenceFact = fact(operation, 'agreement');
+    const revised = await request(
+      `${base(org, operation.id)}/fact-revisions`,
+      owner,
+      {
+        expectedFingerprint: operation.fingerprint,
+        document: referenceFact,
+        reason:
+          'Confirm extracted reference conditions against original synthetic tariff',
+      },
+    );
+    expect(revised.statusCode, revised.body).toBe(200);
+    const second = await completed(org, operation.id, owner);
+    expect(second.id).not.toBe(first.id);
+    expect(second.version).toBe(first.version + 1);
+    expect(
+      second.sources.find((source) => source.documentId === tariff)
+        ?.factRevisionId,
+    ).not.toBeNull();
+    expect(second.result?.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ documentId: invoice, difference: '10' }),
+      ]),
+    );
+    expect(
+      second.result?.findings.every(
+        (finding) => finding.documentId === invoice,
+      ),
+    ).toBe(true);
+    const reviewedDownload = await request(
+      `/api/v1/organizations/${org}/documents/${tariff}/download`,
+      owner,
+    );
+    expect(reviewedDownload.rawPayload).toEqual(originalDownload.rawPayload);
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(`${base(org, operation.id)}/analyses/${first.id}`, owner),
+      ),
+    );
+    expect(historical.snapshot).toEqual(first.snapshot);
+    expect(historical.result).toEqual(first.result);
+    const foreign = await verifiedUser();
+    const foreignOrg = await organization(foreign);
+    rejected(
+      await request(
+        `${base(foreignOrg, operation.id)}/analyses/${first.id}`,
+        foreign,
+      ),
+    );
+  });
+
   it('does not manufacture an agreed price from an invoice alone or an expired agreement', async () => {
     const owner = await verifiedUser();
     const org = await organization(owner);

@@ -324,7 +324,7 @@ describe('logistics comparison versioned rules', () => {
     const first = evaluateLogistics(data);
     expect(evaluateLogistics(data)).toEqual(first);
     expect(JSON.stringify(data)).toBe(before);
-    expect(first.ruleVersion).toBe('logistics-v3');
+    expect(first.ruleVersion).toBe('logistics-v4');
   });
 });
 
@@ -650,6 +650,9 @@ describe('generic agreement applicability and economic evidence', () => {
       true,
     );
     get(data, 'carrier').operationReference = 'OTHER';
+    get(data, 'record').references = [
+      { type: 'booking', value: 'BK-1', evidence: source('record') },
+    ];
     expect(
       carrierFindings(data).some((f) => f.code === 'OPERATION_MISMATCH'),
     ).toBe(true);

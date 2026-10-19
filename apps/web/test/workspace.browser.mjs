@@ -408,7 +408,7 @@ try {
     'desktop panel docks right',
   );
   await panel
-    .getByLabel('Referencia de operación', { exact: true })
+    .getByLabel('Referencia interna del expediente', { exact: true })
     .fill('DRAFT-KEPT');
   const focusGate = requestGate();
   heldContext = focusGate;
@@ -423,7 +423,7 @@ try {
   );
   assert.equal(
     await panel
-      .getByLabel('Referencia de operación', { exact: true })
+      .getByLabel('Referencia interna del expediente', { exact: true })
       .inputValue(),
     'DRAFT-KEPT',
   );
@@ -435,7 +435,7 @@ try {
   await refreshedContext;
   assert.equal(
     await panel
-      .getByLabel('Referencia de operación', { exact: true })
+      .getByLabel('Referencia interna del expediente', { exact: true })
       .inputValue(),
     'DRAFT-KEPT',
   );
@@ -446,7 +446,7 @@ try {
     .click();
   assert.equal(
     await panel
-      .getByLabel('Referencia de operación', { exact: true })
+      .getByLabel('Referencia interna del expediente', { exact: true })
       .inputValue(),
     'DRAFT-KEPT',
   );
@@ -468,7 +468,7 @@ try {
   );
   assert.equal(
     await panel
-      .getByLabel('Referencia de operación', { exact: true })
+      .getByLabel('Referencia interna del expediente', { exact: true })
       .inputValue(),
     'DRAFT-KEPT',
   );

@@ -786,6 +786,155 @@ const doc = (docId, kind) => ({
   console.log(
     'PASS mobile operation/dialog layout and keyboard focus containment',
   );
+  // A free expediente reference never needs to match invoice, contract or shipment numbers.
+  operation.reference = 'MY-INTERNAL-CASE-42';
+  const referenceFact = {
+    ...fact(tariff, 'Traginers'),
+    kind: 'agreement',
+    operationReference: null,
+    agreementIdentity: 'ANNUAL-CONTRACT-2026',
+    agreementBasis: 'accepted',
+  };
+  operation.documentIds = [invoice, invoice2, tariff];
+  operation.facts = [
+    { ...fact(invoice, 'Traginers'), operationReference: 'SHIPMENT-123' },
+    fact(invoice2, 'Hapag'),
+    referenceFact,
+  ];
+  const economicFinding = {
+    documentId: invoice,
+    lineId: 'pickup',
+    service: 'pickup',
+    status: 'matched',
+    code: 'PRICE_MATCH',
+    expected: '100',
+    invoiced: '100',
+    difference: '0',
+    currency: 'EUR',
+    explanation: 'Invoice-only verified comparison',
+    evidence: [],
+  };
+  const sourceControl = {
+    ...economicFinding,
+    documentId: tariff,
+    status: 'not-verifiable',
+    code: 'OPERATION_MISMATCH',
+    explanation: 'Original source control retained for traceability',
+  };
+  operation.analyses = [
+    {
+      ...historical,
+      id: id(51),
+      snapshot: {
+        ...historical.snapshot,
+        operationReference: operation.reference,
+        documents: structuredClone(operation.facts),
+      },
+      result: {
+        ruleVersion: 'logistics-v2',
+        agreementDecisions: [],
+        findings: [sourceControl, economicFinding],
+      },
+      stale: false,
+    },
+  ];
+  await page.reload();
+  await has(
+    page.getByRole('heading', { name: operation.reference, exact: true }),
+  );
+  assert.equal(
+    await page
+      .getByText('Revisá las referencias antes de analizar', { exact: true })
+      .count(),
+    0,
+  );
+  await has(
+    page.getByText('No se evaluaron acuerdos para ninguna partida.', {
+      exact: false,
+    }),
+  );
+  assert.equal(
+    await page
+      .getByText('Conserva su resultado original.', { exact: false })
+      .count(),
+    0,
+  );
+  const economicTable = page.getByRole('table', {
+    name: /Importes esperados, facturados y diferencias/,
+  });
+  await has(economicTable);
+  await has(
+    economicTable.getByText('Invoice-only verified comparison', {
+      exact: true,
+    }),
+  );
+  assert.equal(
+    await economicTable
+      .getByText('Original source control retained for traceability', {
+        exact: true,
+      })
+      .count(),
+    0,
+  );
+  await page
+    .locator('summary')
+    .filter({
+      hasText:
+        'Controles de documentos de referencia y apoyo del resultado original',
+    })
+    .click();
+  await has(
+    page.getByText('Original source control retained for traceability', {
+      exact: true,
+    }),
+  );
+  const retainedSource = page
+    .locator('article')
+    .filter({ hasText: 'Original source control retained for traceability' });
+  assert.equal(
+    await retainedSource.getByRole('button').count(),
+    0,
+    'source evidence cannot open economic review or claims',
+  );
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Documentos (3 vinculados)' })
+    .click();
+  await has(page.locator('section[aria-label="Documentos de referencia"]'));
+  await has(page.locator('section[aria-label="Facturas a verificar"]'));
+  await has(
+    page
+      .locator('section[aria-label="Documentos de referencia"]')
+      .getByRole('link', { name: 'annual-tariff.pdf', exact: true }),
+  );
+  assert.equal(
+    await page
+      .locator('section[aria-label="Facturas a verificar"]')
+      .getByRole('link', { name: 'annual-tariff.pdf', exact: true })
+      .count(),
+    0,
+  );
+  await page
+    .getByRole('button', { name: 'Editar operación', exact: true })
+    .click();
+  dialog = page.getByRole('dialog', { name: 'Editar operación', exact: true });
+  assert.equal(
+    await dialog
+      .getByLabel('Referencia interna del expediente', { exact: true })
+      .inputValue(),
+    'MY-INTERNAL-CASE-42',
+  );
+  await has(
+    dialog.getByText(
+      'Identificador libre: no necesita coincidir con la factura, contrato o envío.',
+      { exact: true },
+    ),
+  );
+  await page.keyboard.press('Escape');
+  await noDialog();
+  console.log(
+    'PASS free internal reference, source/invoice separation, read-only source controls and accurate empty applicability feedback',
+  );
   readonly = true;
   await page.reload();
   await has(section);
