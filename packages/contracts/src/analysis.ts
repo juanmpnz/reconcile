@@ -14,7 +14,7 @@ export {
   applicabilityConditionSchema,
 } from './agreement-conditions.js';
 export const ANALYSIS_QUEUE = 'reconcile-analysis';
-export const ANALYSIS_PARSER_VERSION = 'logistics-text-v3';
+export const ANALYSIS_PARSER_VERSION = 'logistics-text-v4';
 const nullableText = z.string().trim().min(1).max(500).nullable();
 const money = z
   .string()
@@ -49,6 +49,22 @@ export const analysisDocumentSchema = z
     shipmentDate: localDate.optional(),
     bookingDate: localDate.optional(),
     invoiceDate: localDate.optional(),
+    exchangeRates: z
+      .array(
+        z
+          .object({
+            from: z.string().regex(/^[A-Z]{3}$/),
+            to: z.string().regex(/^[A-Z]{3}$/),
+            rate: z
+              .string()
+              .regex(/^\d{1,18}(?:\.\d{1,8})?$/)
+              .refine((value) => !/^0(?:\.0+)?$/.test(value)),
+            evidence: z.array(analysisEvidenceSchema).min(1).max(20),
+          })
+          .strict(),
+      )
+      .max(50)
+      .optional(),
     equipmentQuantities: z
       .array(
         z

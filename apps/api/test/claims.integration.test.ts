@@ -641,8 +641,9 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
   it('separates clarification without money and protects tenant, reader, origin and current membership', async () => {
     const { owner, org, op, run, index } = await dossier();
     const unknown =
-      run.result?.findings.findIndex((x) => x.status === 'not-verifiable') ??
-      -1;
+      run.result?.findings.findIndex(
+        (x) => x.status === 'not-verifiable' && x.code === 'SERVICE_NOT_AGREED',
+      ) ?? -1;
     expect(unknown).toBeGreaterThanOrEqual(0);
     await confirm(org, op, run.id, unknown, owner);
     const c = await create(org, op, run.id, unknown, owner);

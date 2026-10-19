@@ -430,3 +430,122 @@ describe('comparison case document roles', () => {
     );
   });
 });
+
+describe('commercial extraction comparison safety', () => {
+  it('retains foreign tariff amounts as per-line FX review without false arithmetic', () => {
+    const input = setup();
+    const invoice = get(input, 'invoice');
+    invoice.lines[0]!.currency = 'EUR';
+    invoice.lines[0]!.unitPrice = null;
+    invoice.lines[0]!.tariffUnitPrice = '100';
+    invoice.lines[0]!.tariffCurrency = 'USD';
+    const findings = evaluateLogistics(input).findings.filter(
+      (f) => f.lineId === 'invoice-freight',
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.code).toBe('FX_CONVERSION_REVIEW');
+    expect(findings[0]?.difference).toBeNull();
+    expect(findings[0]?.invoiced).toBe('100');
+  });
+  it('explains extracted unknown concepts and providers instead of reporting absent rows', () => {
+    const input = setup();
+    const invoice = get(input, 'invoice');
+    invoice.lines[0]!.chargeKey = 'synthetic freight';
+    invoice.lines[1]!.chargeKey = 'synthetic documentation';
+    invoice.lines[0]!.service = 'unknown';
+    invoice.provider = null;
+    const findings = evaluateLogistics(input).findings;
+    expect(findings.find((f) => f.lineId === 'invoice-freight')?.code).toBe(
+      'CONCEPT_UNVERIFIABLE',
+    );
+    expect(findings.find((f) => f.lineId === 'invoice-bl')?.code).toBe(
+      'PROVIDER_UNVERIFIABLE',
+    );
+    expect(findings.some((f) => f.code === 'LINES_MISSING')).toBe(false);
+    expect(findings.some((f) => f.status === 'confirmed')).toBe(false);
+  });
+  it.each(['provider', 'concept'] as const)(
+    'preserves legacy incomplete diagnostics for an unkeyed missing %s',
+    (missing) => {
+      const input = setup();
+      const invoice = get(input, 'invoice');
+      if (missing === 'provider') invoice.provider = null;
+      else invoice.lines[0]!.service = 'unknown';
+      const findings = evaluateLogistics(input).findings.filter(
+        (finding) => finding.lineId === 'invoice-freight',
+      );
+      expect(findings).toHaveLength(1);
+      expect(findings[0]?.code).toBe('LINE_INCOMPLETE');
+      expect(findings[0]?.status).toBe('not-verifiable');
+      expect(findings[0]?.difference).toBeNull();
+    },
+  );
+  it('requires the same commercial charge key even when service and price coincide', () => {
+    const input = setup();
+    get(input, 'invoice').lines[0]!.chargeKey = 'origin THC';
+    get(input, 'agreement').lines[0]!.chargeKey = 'destination THC';
+    const findings = evaluateLogistics(input).findings;
+    expect(
+      findings.some(
+        (f) => f.lineId === 'invoice-freight' && f.code === 'PRICE_MATCH',
+      ),
+    ).toBe(false);
+    get(input, 'agreement').lines[0]!.chargeKey = null;
+    expect(
+      evaluateLogistics(input).findings.some(
+        (f) => f.lineId === 'invoice-freight' && f.code === 'PRICE_MATCH',
+      ),
+    ).toBe(false);
+  });
+  it('matches normalized exact keys without requiring identical display text', () => {
+    const input = setup();
+    get(input, 'invoice').lines[0]!.chargeKey = ' origin  THC ';
+    get(input, 'agreement').lines[0]!.chargeKey = 'Origin THC';
+    get(input, 'agreement').lines[0]!.description =
+      'Different commercial display label';
+    expect(
+      evaluateLogistics(input).findings.find(
+        (f) => f.lineId === 'invoice-freight',
+      )?.code,
+    ).toBe('PRICE_MATCH');
+  });
+  it('does not fabricate a quoted quantity when billing basis supplies independent quantity evidence', () => {
+    const input = setup();
+    const rate = get(input, 'agreement').lines[0]!;
+    rate.quantity = null;
+    rate.amount = null;
+    expect(
+      evaluateLogistics(input).findings.find(
+        (f) => f.lineId === 'invoice-freight',
+      )?.code,
+    ).toBe('PRICE_MATCH');
+    get(input, 'invoice').equipmentQuantities = [];
+    expect(
+      evaluateLogistics(input).findings.find(
+        (f) => f.lineId === 'invoice-freight',
+      )?.code,
+    ).toBe('BILLING_QUANTITY_PENDING');
+  });
+  it.each([
+    'COMMERCIAL_ROWS_PARTIAL',
+    'SOURCE_INCOMPLETE',
+    'COMMERCIAL_TABLE_LIMIT',
+  ])('does not accuse a total mismatch when extraction warns %s', (warning) => {
+    const input = setup();
+    const invoice = get(input, 'invoice');
+    invoice.total = '999';
+    invoice.taxAmount = '0';
+    invoice.warnings = [warning];
+    expect(
+      evaluateLogistics(input).findings.some(
+        (f) => f.code === 'TOTAL_INCONSISTENT',
+      ),
+    ).toBe(false);
+    invoice.warnings = [];
+    expect(
+      evaluateLogistics(input).findings.some(
+        (f) => f.code === 'TOTAL_INCONSISTENT',
+      ),
+    ).toBe(true);
+  });
+});

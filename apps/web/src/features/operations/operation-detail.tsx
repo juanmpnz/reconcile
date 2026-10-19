@@ -774,15 +774,56 @@ function FactSummary({ fact }: { fact: OperationDetail['facts'][number] }) {
       {fact.lines.map((line) => (
         <div key={line.id}>
           <strong>{line.description}</strong>
-          <p>
-            {line.quantity ?? 'Cantidad sin dato'}{' '}
-            {line.unit ?? 'unidad sin dato'} ×{' '}
-            {line.unitPrice ?? 'precio sin dato'} ={' '}
-            {line.amount ?? 'importe sin dato'} {fact.currency ?? ''} ·{' '}
-            {line.route ?? 'Tramo sin dato'}
-          </p>
+          <dl>
+            <dt>Cantidad / unidad</dt>
+            <dd>
+              {line.quantity ?? 'Sin dato'} / {line.unit ?? 'Sin dato'}
+            </dd>
+            <dt>Importe de la partida</dt>
+            <dd>
+              {line.amount ?? 'Sin dato'}{' '}
+              {line.currency ?? fact.currency ?? 'Moneda sin dato'}
+            </dd>
+            <dt>Precio unitario en moneda del importe</dt>
+            <dd>
+              {line.unitPrice ?? 'Sin dato'}{' '}
+              {line.currency ?? fact.currency ?? 'Moneda sin dato'}
+            </dd>
+            {(line.tariffUnitPrice != null || line.tariffCurrency != null) && (
+              <>
+                <dt>Precio unitario original del documento</dt>
+                <dd>
+                  {line.tariffUnitPrice ?? 'Sin dato'}{' '}
+                  {line.tariffCurrency ?? 'Moneda sin dato'}
+                </dd>
+              </>
+            )}
+            <dt>Ruta o tramo</dt>
+            <dd>{line.route ?? 'Sin dato'}</dd>
+          </dl>
         </div>
       ))}
+      {(fact.exchangeRates?.length ?? 0) > 0 && (
+        <section>
+          <h4>Tipos de cambio registrados en el documento</h4>
+          <p>
+            Son datos extraídos de la fuente; no implican una conversión
+            aplicada ni validada por el análisis.
+          </p>
+          {fact.exchangeRates?.map((exchangeRate, index) => (
+            <div key={index}>
+              <p>
+                1 {exchangeRate.from} = {exchangeRate.rate} {exchangeRate.to}
+              </p>
+              {exchangeRate.evidence.map((item, position) => (
+                <blockquote key={position} className="source-evidence">
+                  Página {item.page}: {item.snippet}
+                </blockquote>
+              ))}
+            </div>
+          ))}
+        </section>
+      )}
       {fact.excludedServices.length > 0 && (
         <section>
           <h4>Servicios excluidos del acuerdo</h4>

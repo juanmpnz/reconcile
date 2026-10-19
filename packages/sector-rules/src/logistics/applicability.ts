@@ -8,6 +8,17 @@ const same = (a: string | null | undefined, b: string | null | undefined) =>
   Boolean(
     a?.trim() && b?.trim() && a.trim().toLowerCase() === b.trim().toLowerCase(),
   );
+/** Commercial charge codes never collapse into a broad service category. */
+export function sameCharge(a: AnalysisLine, b: AnalysisLine): boolean {
+  const normalized = (value: string | null | undefined) =>
+    value?.trim().replace(/\s+/g, ' ').toLowerCase() ?? '';
+  if (a.chargeKey != null || b.chargeKey != null)
+    return (
+      Boolean(normalized(a.chargeKey)) &&
+      normalized(a.chargeKey) === normalized(b.chargeKey)
+    );
+  return true;
+}
 export function operationContradiction(
   doc: AnalysisDocument,
   snapshot: AnalysisSnapshot,
@@ -241,9 +252,15 @@ export function decideAgreement(
       );
   } else {
     check('provider', agreement.provider, invoice.provider);
-    const routes = [...agreement.lines, ...agreement.excludedServices].filter(
-      (c) => c.service === line.service,
+    const routes = agreement.lines.filter(
+      (c) => c.service === line.service && sameCharge(c, line),
     );
+    if (!line.chargeKey)
+      routes.push(
+        ...agreement.excludedServices
+          .filter((c) => c.service === line.service)
+          .map((c) => ({ ...line, ...c })),
+      );
     if (routes.some((c) => same(c.route, line.route)))
       add(
         'service-route',

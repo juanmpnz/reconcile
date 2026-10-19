@@ -666,6 +666,8 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
               ].flatMap((condition) => condition?.evidence ?? [])
             : [];
           const evidence = [
+            ...(data.document.exchangeRates?.flatMap((rate) => rate.evidence) ??
+              []),
             ...conditionEvidence,
             ...(data.document.references?.flatMap(
               (reference) => reference.evidence,
@@ -701,6 +703,14 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
           });
           const facts = analysisDocumentSchema.parse({
             ...data.document,
+            ...(data.document.exchangeRates
+              ? {
+                  exchangeRates: data.document.exchangeRates.map((rate) => ({
+                    ...rate,
+                    evidence: rate.evidence.map(mark),
+                  })),
+                }
+              : {}),
             ...(data.document.references
               ? {
                   references: data.document.references.map((reference) => ({
