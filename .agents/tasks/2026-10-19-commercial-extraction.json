@@ -194,7 +194,7 @@
     {
       "command": "Initial CI findings and scoped compatibility correction",
       "status": "passed",
-      "result": "185 unit tests, full quality build, browser acceptance and production smoke passed. Integration exposed one legacy clarification regression; 70/71 cases passed. New commercial diagnostics are now scoped to keyed rows, preserving legacy LINE_INCOMPLETE; corrected CI required before merge."
+      "result": "187 unit tests, browser acceptance and production smoke passed. Integration exposed nondeterministic selection of the first not-verifiable finding in a clarification test (70/71 cases passed). Synthetic PDF-to-rules reproduction confirmed both eligible SERVICE_NOT_AGREED and ineligible AGREEMENT_NOT_APPLICABLE; the test now selects its intended code explicitly. Production claim authorization unchanged. Commercial diagnostics remain scoped with 79 sector regression tests passed. Corrected CI required before merge."
     }
   ],
   "findings": [],
