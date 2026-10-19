@@ -1,6 +1,6 @@
 # Local development
 
-Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 1025, 3001, 5173, 5432, 6379, 8025 and 9000 must be free.
+Requirements: Node 24, pnpm 11.25, Docker with Compose v2. Local ports 1025, 3001, 5173, 5433, 6379, 8025 and 9000 must be free.
 
 ```bash
 cp .env.example .env
@@ -41,4 +41,4 @@ A successful API boot prints `API listening on http://HOST:PORT`. A failure prin
 
 For `EADDRINUSE`, inspect the reported port with `lsof -nP -iTCP:3000 -sTCP:LISTEN` (substitute the reported port). Docker Desktop running is not proof that every Compose service started: run `pnpm infra:up` and `docker compose -f infra/docker/compose.yaml ps`.
 
-If another project uses PostgreSQL port 5432, change only the host side of its Compose mapping (for example `127.0.0.1:5433:5432`) and the DATABASE_URL port to 5433. `pnpm dev` uses DEV_API_PORT (default 3001) for both the API and Vite proxy, independently of an existing PORT=3000 in .env. To select another development API port, change only DEV_API_PORT and restart dev processes; no source edit is needed. Direct production/start commands continue to use PORT (default 3000). AUTH_BASE_URL and WEB_ORIGIN remain the frontend origin (normally http://localhost:5173). Restart dev processes after editing .env. No existing external service needs to be stopped.
+The development database uses host port 5433 (container port 5432). If another project uses host port 5433, change only the host side of its Compose mapping (for example `127.0.0.1:5434:5432`) and the DATABASE_URL port to 5434. `pnpm dev` uses DEV_API_PORT (default 3001) for both the API and Vite proxy, independently of an existing PORT=3000 in .env. To select another development API port, change only DEV_API_PORT and restart dev processes; no source edit is needed. Direct production/start commands continue to use PORT (default 3000). AUTH_BASE_URL and WEB_ORIGIN remain the frontend origin (normally http://localhost:5173). Restart dev processes after editing .env. No existing external service needs to be stopped.

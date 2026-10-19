@@ -17,6 +17,7 @@ import {
   body,
   type Browser,
 } from './support/identity-fixture.js';
+import { makePdf } from './support/pdf-fixture.js';
 describe('reviewed claims through actual identity, PDF extraction, persisted analysis and HTTP', () => {
   let storage: ReturnType<typeof createPrivateDocumentStorage>;
   const f = useIdentityFixture({
@@ -796,15 +797,85 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
     inputs = operationDetailSchema.parse(
       body(await request(base(org, op), owner)),
     );
-    expect(
-      (
-        await mutate('PATCH', base(org, op), owner, {
-          name: inputs.name,
-          reference: 'OTHER-OPERATION',
-          expectedFingerprint: inputs.fingerprint,
-        })
-      ).statusCode,
-    ).toBe(200);
+    // A dossier label is not an external reference. Introduce an actual
+    // evidence-backed contradiction in a replacement operational source.
+    const mismatchedUpload = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${org}/documents`,
+      remoteAddress: owner.address,
+      headers: {
+        origin: f.origin,
+        cookie: [...owner.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+        'content-type': 'application/pdf',
+        'x-document-kind': 'operational',
+        'x-document-filename': 'different-shipment-record.pdf',
+      },
+      payload: makePdf([
+        'DEMO - sin validez comercial',
+        'PICKUP RECORD',
+        'Operation reference: OTHER-SHIPMENT',
+        'Route: Warehouse A to Port A',
+        'Service reference: PICK-DEMO-001',
+      ]),
+    });
+    expect(mismatchedUpload.statusCode, mismatchedUpload.body).toBe(201);
+    const mismatchedDocument = documentDetailSchema.parse(
+      body(mismatchedUpload),
+    );
+    const outbox = await prisma.documentOutbox.findFirstOrThrow({
+      where: { documentId: mismatchedDocument.id },
+    });
+    await processDocumentRun({
+      prisma,
+      storage,
+      payload: {
+        outboxId: outbox.id,
+        organizationId: org,
+        documentId: mismatchedDocument.id,
+        runId: outbox.runId,
+        actorId: outbox.actorId,
+      },
+    });
+    const sourceRecord = inputs.facts.find(
+      (document) => document.kind === 'operational-record',
+    );
+    if (!sourceRecord) throw new Error('Original operational record required');
+    const linked = await mutate('PUT', base(org, op) + '/documents', owner, {
+      documentIds: [
+        ...inputs.documentIds.filter((id) => id !== sourceRecord.documentId),
+        mismatchedDocument.id,
+      ],
+      expectedFingerprint: inputs.fingerprint,
+    });
+    expect(linked.statusCode, linked.body).toBe(200);
+    inputs = operationDetailSchema.parse(body(linked));
+    for (const documentId of [arithmeticDocument, mismatchedDocument.id]) {
+      const document = inputs.facts.find(
+        (fact) => fact.documentId === documentId,
+      );
+      if (!document) throw new Error('Explicit reference facts required');
+      expect(document.references).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'operation',
+            value:
+              documentId === arithmeticDocument
+                ? 'OP-DEMO-062'
+                : 'OTHER-SHIPMENT',
+            evidence: expect.arrayContaining([
+              expect.objectContaining({ documentId, page: 1 }),
+            ]),
+          }),
+        ]),
+      );
+      const revised = await request(base(org, op) + '/fact-revisions', owner, {
+        expectedFingerprint: inputs.fingerprint,
+        document,
+        reason: 'Confirm external reference against its original source',
+      });
+      expect(revised.statusCode, revised.body).toBe(200);
+      inputs = operationDetailSchema.parse(body(revised));
+    }
     const mismatchRun = await analyzed(org, op, owner);
     const mismatchIndex =
       mismatchRun.result?.findings.findIndex(

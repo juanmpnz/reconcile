@@ -25,3 +25,9 @@ After coordinated package rebuilding, `./node_modules/.bin/tsc -p apps/api/tscon
 ## Parser-to-rule execution without services
 
 Corrected synthetic fixture to include explicit accepted agreement evidence and shared `Route: Port A` (required by existing supported extraction/line matching). Executed a temporary Node script using the exact PDF line arrays from the integration regression, `makePdf` → real `extractPdf` PDF.js worker → `deriveAnalysisFacts` → built `evaluateLogistics`. Exit 0: invoice external reference `SHIPMENT-410`, tariff operation reference null, accepted tariff; logistics-v4 decision applicable; invoice-only `PRICE_OR_QUANTITY_DIFFERENCE`, expected 150, invoiced 160.00, difference 10 USD. This validates supported synthetic parsing/rules, not DB/HTTP/worker persistence.
+
+## Existing claim mismatch regression updated
+
+Replaced the obsolete internal dossier rename negative in claims integration with a newly uploaded operational PDF explicitly carrying `Operation reference: OTHER-SHIPMENT`. It replaces the original operational record; both invoice `OP-DEMO-062` and replacement record references are confirmed through fact revisions using their own extracted page evidence. The resulting invoice mismatch remains reviewable as a finding and nonclaimable financially (422). Searched API integration tests for `OPERATION_MISMATCH`/`OTHER-OPERATION`; no other old internal-reference negative assertions found.
+
+Updated mismatch regression formatting and `tsc -p apps/api/tsconfig.test.json --noEmit` passed (exit 0).

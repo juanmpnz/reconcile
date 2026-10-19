@@ -15,7 +15,9 @@
     "infra/docker/compose.yaml",
     ".agents/tasks/2026-10-17-auth-card-width.json",
     ".agents/tasks/2026-10-17-orange-visual-polish.json",
-    ".agents/tasks/2026-10-17-white-canvas-primary-actions.json"
+    ".agents/tasks/2026-10-17-white-canvas-primary-actions.json",
+    ".github/workflows/ci.yml",
+    ".env.example"
   ],
   "acceptance": [
     "Internal case identifier never excludes documentary references.",
@@ -218,6 +220,11 @@
       "command": "pnpm build",
       "status": "passed",
       "result": "All packages, API, worker and web production builds passed; existing bundler annotation/chunk-size warnings only."
+    },
+    {
+      "command": "CI 74cd458 initial production smoke",
+      "status": "passed",
+      "result": "Job118273880568: real built web/API/worker, secure cookies, >1MiB PDF, API recreation and durable volumes passed. Initial quality paused at pre-existing DB port5432 vs Compose5433; browser five groups passed before ambiguous named region selector. Both corrected for rerun."
     }
   ],
   "findings": [],

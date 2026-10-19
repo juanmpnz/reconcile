@@ -83,7 +83,7 @@ Cuando seleccionás una versión publicada, su PDF de origen deja de aportar dat
 ### Primera comparación con los documentos demo
 
 1. Subí los cuatro PDFs demo como se explica arriba, o usá los que ya cargaste. No hace falta volver a subirlos. Esperá que tengan texto extraído.
-2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. La referencia debe coincidir con la de las fuentes; no es una referencia inventada de CargoWise.
+2. Abrí **Operaciones → Crear operación**. Referencia: `OP-DEMO-062`; nombre, por ejemplo, `Prueba de recogida`. Es una referencia interna libre: no necesita coincidir con las fuentes ni con una referencia de CargoWise.
 3. Abrí el bloque **Documentos**, pulsá **Gestionar documentos** y seleccioná las dos facturas, el acuerdo y el registro operativo. Podés elegir hasta 20 documentos de tu organización. Desmarcar un documento quita su vínculo con esta operación; no borra el original ni los análisis históricos. Si un documento seguía procesándose, usá **Recargar datos** cuando termine.
 4. En **Datos para comparar**, abrí **Ver datos y evidencia**. Se obtienen las partidas, exclusiones, vigencia y prestación desde el texto real del PDF. Los campos ausentes siguen ausentes. Revisar datos permite corregirlos con un motivo; conserva documento original, autor y revisión. El tipo de fuente no se cambia desde esta revisión.
 5. Pulsá **Analizar operación**. El worker pasa de En espera a Analizando y al resultado. Podés salir y volver; no necesita mantener el diálogo abierto.
@@ -97,7 +97,7 @@ La evidencia se agrupa por documento, con página y fragmento. Las citas idénti
 
 ### Corregir la operación sin empezar de nuevo
 
-Usá **Editar operación** para cambiar nombre y referencia. Por ejemplo, si pusiste `test` en la referencia y los PDF dicen `OP-DEMO-062`, corregí la operación; no cambies los documentos para forzar su coincidencia. Los avisos muestran la referencia esperada y la encontrada. Una referencia ausente no demuestra pertenencia a la operación.
+Usá **Editar operación** para cambiar nombre y referencia interna. Podés conservar `test` aunque los PDF indiquen `OP-DEMO-062`: son identificadores distintos. No cambies documentos ni referencias externas para forzar coincidencias. La asignación vincula documentos al expediente; la aplicabilidad comercial y las contradicciones externas se comprueban por separado.
 
 Después de guardar cambios en la operación, sus documentos o los datos revisados, el resultado anterior queda conservado y puede aparecer como desactualizado. Pulsá **Volver a analizar** para generar uno nuevo. Mientras hay un análisis en espera o en curso, esperá a que termine para editar la operación o sus vínculos. Si otra persona cambió los datos mientras editabas, la aplicación rechaza la versión antigua y conserva tu borrador para revisarlo; no sobrescribe sus cambios silenciosamente.
 

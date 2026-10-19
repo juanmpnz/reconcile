@@ -900,20 +900,16 @@ const doc = (docId, kind) => ({
     .locator('summary')
     .filter({ hasText: 'Documentos (3 vinculados)' })
     .click();
-  await has(
-    page.getByRole('region', { name: 'Documentos de referencia', exact: true }),
-  );
-  await has(
-    page.getByRole('region', { name: 'Facturas a verificar', exact: true }),
-  );
+  await has(page.locator('section[aria-label="Documentos de referencia"]'));
+  await has(page.locator('section[aria-label="Facturas a verificar"]'));
   await has(
     page
-      .getByRole('region', { name: 'Documentos de referencia', exact: true })
+      .locator('section[aria-label="Documentos de referencia"]')
       .getByRole('link', { name: 'annual-tariff.pdf', exact: true }),
   );
   assert.equal(
     await page
-      .getByRole('region', { name: 'Facturas a verificar', exact: true })
+      .locator('section[aria-label="Facturas a verificar"]')
       .getByRole('link', { name: 'annual-tariff.pdf', exact: true })
       .count(),
     0,
