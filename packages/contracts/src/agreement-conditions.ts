@@ -48,6 +48,13 @@ export const agreementApplicabilitySchema = z
   .strict();
 export const analysisLineSchema = z
   .object({
+    chargeKey: nullableText.optional(),
+    tariffUnitPrice: money.optional(),
+    tariffCurrency: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .nullable()
+      .optional(),
     currency: z
       .string()
       .regex(/^[A-Z]{3}$/)

@@ -324,7 +324,7 @@ describe('logistics comparison versioned rules', () => {
     const first = evaluateLogistics(data);
     expect(evaluateLogistics(data)).toEqual(first);
     expect(JSON.stringify(data)).toBe(before);
-    expect(first.ruleVersion).toBe('logistics-v4');
+    expect(first.ruleVersion).toBe('logistics-v5');
   });
 });
 

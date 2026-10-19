@@ -147,3 +147,7 @@ Extraction remains a bounded text-label/explicit-row adapter, not arbitrary OCR 
 ## 2026-10-19 — Comparison-case reference correction
 
 Branch implementation separates the free internal case label from external document identity. Reference documents supply conditions; invoice documents alone receive economic findings. Existing immutable runs are retained and the rules version advances to logistics-v4, requiring a new analysis. The UI separates source documents and invoices, removes the incorrect identifier-equality preflight and distinguishes absent legacy decisions from an empty current decision set. Verification is tracked in `.agents/tasks/2026-10-19-comparison-case.json`; deployment is not certified by source changes. Explicit-label/table extraction limits remain unchanged.
+
+## 2026-10-19 — Commercial table extraction
+
+Implementation on a separate branch adds bounded header/column parsing for commercial invoice rows and quotation equipment alternatives, separate original tariff/billed currency facts, evidenced FX metadata and source-incompleteness warnings. Unknown provider/service/applicability remain pending; no OCR, automatic FX conversion or universal layout support is introduced. Additive optional JSON fields preserve existing snapshots. Parser v4 and rules v5 require a new analysis without rewriting history. Verification tracked in `.agents/tasks/2026-10-19-commercial-extraction.json`. Actual private PDFs remain outside the public repository; only synthetic regression fixtures enter git.

@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js';
 import {
   decideAgreement,
+  sameCharge,
   operationContradiction,
   operationContext,
 } from './applicability.js';
@@ -14,7 +15,7 @@ import type {
   AnalysisResult,
   AnalysisSnapshot,
 } from '@reconcile/domain';
-export const LOGISTICS_RULE_VERSION = 'logistics-v4';
+export const LOGISTICS_RULE_VERSION = 'logistics-v5';
 const Arithmetic = Decimal.clone({ precision: 128 });
 const decimal = (value: string | null | undefined): value is string =>
   value != null && /^-?\d{1,30}(?:\.\d{1,12})?$/.test(value);
@@ -477,6 +478,13 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         ),
       );
     if (
+      !invoice.warnings.some((warning) =>
+        [
+          'COMMERCIAL_ROWS_PARTIAL',
+          'SOURCE_INCOMPLETE',
+          'COMMERCIAL_TABLE_LIMIT',
+        ].includes(warning),
+      ) &&
       decimal(invoice.total) &&
       decimal(invoice.taxAmount) &&
       allAmounts.every(decimal) &&
@@ -500,7 +508,42 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
     }
     for (const line of invoice.lines) {
       if (
-        line.service === 'unknown' ||
+        line.tariffCurrency &&
+        !same(line.tariffCurrency, line.currency ?? invoice.currency)
+      ) {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'FX_CONVERSION_REVIEW',
+            'La tarifa original y el importe facturado están en monedas distintas; la conversión requiere revisión documentada.',
+          ),
+        );
+        continue;
+      }
+      if (line.service === 'unknown') {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'CONCEPT_UNVERIFIABLE',
+            'La partida fue extraída, pero su concepto no tiene una regla de comparación soportada.',
+          ),
+        );
+        continue;
+      }
+      if (!invoice.provider) {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'PROVIDER_UNVERIFIABLE',
+            'La partida fue extraída, pero falta identificar y revisar el proveedor de la factura.',
+          ),
+        );
+        continue;
+      }
+      if (
         !decimal(line.amount) ||
         !decimal(line.quantity) ||
         !decimal(line.unitPrice) ||
@@ -602,6 +645,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       }
       const exclusion = agreement.excludedServices.find(
         (item) =>
+          !line.chargeKey &&
           item.service === line.service &&
           same(item.route, line.route) &&
           item.evidence.length > 0,
@@ -657,10 +701,12 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       const agreedLines = agreement.lines.filter(
         (item) =>
           item.service === line.service &&
+          sameCharge(item, line) &&
           same(item.route, line.route) &&
           (!item.billingBasis ||
             (item.billingBasis === line.billingBasis &&
-              same(item.description, line.description))) &&
+              (Boolean(item.chargeKey || line.chargeKey) ||
+                same(item.description, line.description)))) &&
           (!item.equipmentType ||
             same(
               item.equipmentType,
@@ -675,7 +721,7 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       if (
         !agreed ||
         !decimal(agreed.unitPrice) ||
-        !decimal(agreed.quantity) ||
+        (!agreed.billingBasis && !decimal(agreed.quantity)) ||
         !agreed.unit ||
         agreed.evidence.length === 0
       ) {
@@ -780,6 +826,18 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
           );
           continue;
         }
+      }
+      // A rate may omit quantity, but a calculation never may.
+      if (!decimal(quantity)) {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'BILLING_QUANTITY_PENDING',
+            'Falta cantidad documentada para calcular el importe esperado.',
+          ),
+        );
+        continue;
       }
       const expected = new Arithmetic(agreed.unitPrice)
         .times(quantity)

@@ -43,6 +43,9 @@ export type AnalysisEvidence = {
   revisionId: string | null;
 };
 export type AnalysisLine = {
+  chargeKey?: string | null | undefined;
+  tariffUnitPrice?: string | null | undefined;
+  tariffCurrency?: string | null | undefined;
   currency?: string | null | undefined;
   equipmentType?: string | null | undefined;
   billingBasis?:
@@ -60,6 +63,14 @@ export type AnalysisLine = {
   evidence: AnalysisEvidence[];
 };
 export type AnalysisDocument = {
+  exchangeRates?:
+    | Array<{
+        from: string;
+        to: string;
+        rate: string;
+        evidence: AnalysisEvidence[];
+      }>
+    | undefined;
   references?:
     | Array<{
         type:

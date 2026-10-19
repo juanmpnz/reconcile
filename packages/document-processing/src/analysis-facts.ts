@@ -4,6 +4,7 @@ import {
   type ExtractionResult,
   type DocumentKind,
 } from '@reconcile/contracts';
+import { commercialFacts } from './commercial-tables.js';
 /** Bounded label/table adapter. Unknown layouts remain missing, never inferred from totals. */
 export function deriveAnalysisFacts(input: {
   documentId: string;
@@ -25,6 +26,8 @@ export function deriveAnalysisFacts(input: {
     snippet: snippet.slice(0, 500),
     revisionId: null,
   });
+  const commercial = commercialFacts(result, ev);
+  lines.push(...commercial.lines);
   const label = (pattern: string): string | null => {
     const matches: { value: string; page: number; snippet: string }[] = [];
     for (const p of result.pages)
@@ -47,10 +50,10 @@ export function deriveAnalysisFacts(input: {
   };
   const currency = values.get('currency')?.match(/^[A-Z]{3}$/)?.[0] ?? null;
   const total = values.get('total')?.match(/^-?\d+(?:\.\d+)?$/)?.[0] ?? null;
-  let route = label('Route');
+  let route = label('Route') ?? commercial.route;
   const scopes: string[] = [];
   const bases = new Set<string>();
-  const parserWarnings: string[] = [];
+  const parserWarnings: string[] = [...commercial.warnings];
   let agreementBasis: AnalysisDocumentInput['agreementBasis'] = 'unknown';
   for (const p of result.pages)
     for (const raw of p.text.split('\n')) {
@@ -228,8 +231,8 @@ export function deriveAnalysisFacts(input: {
           evidence: [ev(page.page, raw.trim())],
         });
     }
-  const origin = label('Origin');
-  const destination = label('Destination');
+  const origin = label('Origin') ?? commercial.origin;
+  const destination = label('Destination') ?? commercial.destination;
   const transportMode = label('Transport mode');
   const equipmentType = label('Equipment type');
   const contractingParty = label('Contracting party');
@@ -283,7 +286,7 @@ export function deriveAnalysisFacts(input: {
       .flatMap((line) => line.evidence);
   const equipmentQuantities: NonNullable<
     AnalysisDocumentInput['equipmentQuantities']
-  > = [];
+  > = [...commercial.equipmentQuantities];
   for (const page of result.pages)
     for (const raw of page.text.split('\n')) {
       const match = raw
@@ -300,6 +303,8 @@ export function deriveAnalysisFacts(input: {
     const value = label(name);
     return value && /^\d+(?:\.\d+)?$/.test(value) ? value : null;
   };
+  if (lines.length > 100 || equipmentQuantities.length > 50)
+    parserWarnings.push('COMMERCIAL_ROWS_PARTIAL');
   return analysisDocumentSchema.parse({
     documentId,
     extractionRunId,
@@ -322,7 +327,8 @@ export function deriveAnalysisFacts(input: {
     shipmentDate: date(label('Shipment date')),
     bookingDate: date(label('Booking date')),
     invoiceDate: date(label('Invoice date')),
-    equipmentQuantities,
+    equipmentQuantities: equipmentQuantities.slice(0, 50),
+    exchangeRates: commercial.exchangeRates,
     blQuantity: count('BL quantity'),
     shipmentQuantity: count('Shipment quantity'),
     ...(input.kind === 'quotation' || input.kind === 'tariff'
@@ -360,7 +366,7 @@ export function deriveAnalysisFacts(input: {
     serviceStatus: status?.match(/^Completed(?:\s|$)/i)
       ? 'completed'
       : 'unknown',
-    lines,
+    lines: lines.slice(0, 100),
     evidence,
     warnings: [
       'LABEL_BASED_EXTRACTION',

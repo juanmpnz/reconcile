@@ -410,6 +410,146 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     );
   });
 
+  it('extracts commercial original-currency rows through uploaded PDFs and protects nested FX review evidence', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const invoice = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - synthetic commercial fixture, no commercial validity',
+        'Invoice number: SYNTHETIC-COMMERCIAL-001',
+        'Currency: EUR',
+        'Total: 171.00',
+        'Tax amount: 0.00 EUR',
+        'DE: Test Port A | A: Test Port B',
+        "002 CONT. 40' X 9'6 HIGH CUBE CONT.",
+        'Concepto original   Precio tarifa   Divisa   Qty   Ud.   Importe EUR   IVA',
+        'Freight charge   100.00   USD   2   CTR   180.00   EX',
+        'Transit adjustment   -5.00   USD   2   CTR   -9.00   EX',
+        '1 USD = 0.90 EUR',
+      ]),
+      'synthetic-commercial-invoice.pdf',
+    );
+    const tariff = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - synthetic commercial fixture, no commercial validity',
+        'Quotation reference: SYNTHETIC-QUOTE-001',
+        'From Test Port A (Port) to Test Port B (Port)',
+        'Freight Charges   Curr   20STD   40STD   40HC',
+        'Freight charge   USD   100.00   110.00   100.00',
+        'Transit adjustment   USD   -5.00   -5.00   -5.00',
+      ]),
+      'synthetic-commercial-tariff.pdf',
+      'quotation',
+    );
+    const operation = await operationWith(
+      org,
+      owner,
+      [invoice, tariff],
+      'COMMERCIAL-LOCAL-FOLDER',
+    );
+    const extracted = fact(operation, 'invoice');
+    expect(extracted.provider).toBeNull();
+    expect(extracted.lines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'Freight charge',
+          quantity: '2',
+          tariffUnitPrice: '100.00',
+          tariffCurrency: 'USD',
+          unitPrice: null,
+          amount: '180.00',
+          currency: 'EUR',
+          equipmentType: '40HC',
+          billingBasis: 'container',
+        }),
+        expect.objectContaining({
+          description: 'Transit adjustment',
+          tariffUnitPrice: '-5.00',
+          tariffCurrency: 'USD',
+          amount: '-9.00',
+          currency: 'EUR',
+        }),
+      ]),
+    );
+    expect(fact(operation, 'agreement').lines).toHaveLength(6);
+    const fx = extracted.exchangeRates?.[0];
+    if (!fx) throw new Error('Literal source FX must be visible');
+    expect(fx).toMatchObject({ from: 'USD', to: 'EUR', rate: '0.90' });
+    expect(fx.evidence[0]?.snippet).toBe('1 USD = 0.90 EUR');
+    const first = await completed(org, operation.id, owner);
+    expect(first.parserVersion).toBe('logistics-text-v4');
+    expect(
+      first.result?.findings.some(
+        (finding) => finding.code === 'LINES_MISSING',
+      ),
+    ).toBe(false);
+    for (const line of extracted.lines) {
+      expect(
+        first.result?.findings.some(
+          (finding) =>
+            finding.documentId === invoice && finding.lineId === line.id,
+        ),
+      ).toBe(true);
+    }
+    // Provider, acceptance and validity are not invented from a table layout.
+    expect(
+      first.result?.findings.some((finding) => finding.status === 'confirmed'),
+    ).toBe(false);
+    const path = `${base(org, operation.id)}/fact-revisions`;
+    for (const forged of [
+      { ...fx.evidence[0], page: 2 },
+      { ...fx.evidence[0], documentId: tariff },
+      {
+        ...fx.evidence[0],
+        snippet: 'Invented exchange rate evidence absent from source',
+      },
+    ]) {
+      const response = await request(path, owner, {
+        expectedFingerprint: operation.fingerprint,
+        document: {
+          ...extracted,
+          exchangeRates: [{ ...fx, evidence: [forged] }],
+        },
+        reason: 'Attempted forged nested FX review evidence',
+      });
+      expect(response.statusCode, response.body).toBe(400);
+      expect(body(response).code).toBe('INVALID_EVIDENCE');
+    }
+    const revised = await request(path, owner, {
+      expectedFingerprint: operation.fingerprint,
+      document: extracted,
+      reason: 'Confirm original commercial rows and quoted exchange rate',
+    });
+    expect(revised.statusCode, revised.body).toBe(200);
+    const reviewed = fact(
+      operationDetailSchema.parse(body(revised)),
+      'invoice',
+    );
+    expect(reviewed.revisionId).not.toBeNull();
+    expect(
+      reviewed.exchangeRates?.[0]?.evidence.every(
+        (item) => item.revisionId === reviewed.revisionId,
+      ),
+    ).toBe(true);
+    const next = await completed(org, operation.id, owner);
+    expect(
+      next.snapshot.documents.find(
+        (document) => document.documentId === invoice,
+      )?.exchangeRates?.[0]?.evidence[0]?.revisionId,
+    ).toBe(reviewed.revisionId);
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(`${base(org, operation.id)}/analyses/${first.id}`, owner),
+      ),
+    );
+    expect(historical.snapshot).toEqual(first.snapshot);
+    expect(historical.result).toEqual(first.result);
+  });
+
   it('does not manufacture an agreed price from an invoice alone or an expired agreement', async () => {
     const owner = await verifiedUser();
     const org = await organization(owner);

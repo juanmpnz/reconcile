@@ -1,0 +1,208 @@
+{
+  "id": "2026-10-19-commercial-extraction",
+  "summary": "Extract evidence-backed commercial invoice rows and equipment tariff matrices without inventing missing facts.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root (contracts/application), /root/commercial_parser (parser), /root/commercial_engine (rules)",
+  "scope": [
+    "packages/",
+    "apps/",
+    "docs/",
+    ".agents/tasks/2026-10-19-commercial-extraction.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Visible invoice rows preserve quantities, billed currency amounts, original tariff prices, negatives and equipment grouping.",
+    "Commercial quotation matrix rates remain separated by equipment/currency; duplicate recaps and uncertain prices cannot become verified amounts.",
+    "Provider absence, source incompleteness, acceptance, route scope and date basis remain honest unknowns.",
+    "Parser version permits new analysis from existing stored text without rewriting historical runs; no private source data is published."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "document-ai-engineer",
+    "backend-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "frontend-engineer",
+    "ui-engineer",
+    "accessibility-reviewer"
+  ],
+  "semanticRouting": "Bounded commercial parsing, additive monetary/source contracts, nested evidence validation, invoice rule safety and display of distinct rate/billed amounts. No new dependency or external AI; sensitive documents stay local.",
+  "excludedRoles": [
+    {
+      "role": "data-engineer",
+      "reason": "No DB schema migration; optional versioned JSON facts preserve history."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No external connectors."
+    },
+    {
+      "role": "platform-engineer",
+      "reason": "No dependencies, CI or infrastructure changes."
+    },
+    {
+      "role": "ux-designer",
+      "reason": "Existing source/evidence display only; no new navigation or flow."
+    },
+    {
+      "role": "visual-designer",
+      "reason": "Existing DS metadata presentation only, no visual redesign."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "product-manager",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning on actual local source layout and confirmed limits before implementation.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning on actual local source layout and confirmed limits before implementation.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-planning.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning on actual local source layout and confirmed limits before implementation.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review,34 targeted tests; apostrophefix rechecked10tests. No DB/browserdeployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-review.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review,34 targeted tests; apostrophefix rechecked10tests. No DB/browserdeployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-review.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review,34 targeted tests; apostrophefix rechecked10tests. No DB/browserdeployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review,34 targeted tests; apostrophefix rechecked10tests. No DB/browserdeployment certification.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-review.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/commercial_parser",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implementation and scoped parser/rule tests and types; independent review tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-parser.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/commercial_engine",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Implementation and scoped parser/rule tests and types; independent review tracked separately.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-engine.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Existing DS semantic source/billed/FX display; web typespassed; no runtime/browser claim.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-ui.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Existing DS semantic source/billed/FX display; web typespassed; no runtime/browser claim.",
+      "evidence": [".agents/reviews/2026-10-19-commercial-ui.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination and source display inspection: semantic dl labels, evidence and original vsbilledcurrency distinct, no new controls; no browser claim.",
+      "evidence": [
+        ".agents/reviews/2026-10-19-commercial-ui.md",
+        ".agents/reviews/2026-10-19-commercial-review.md"
+      ]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination and source display inspection: semantic dl labels, evidence and original vsbilledcurrency distinct, no new controls; no browser claim.",
+      "evidence": [
+        ".agents/reviews/2026-10-19-commercial-ui.md",
+        ".agents/reviews/2026-10-19-commercial-review.md"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "Targeted commercial and legacy parser tests",
+      "status": "passed",
+      "result": "19 tests passed; finalcurlyapostrophe10commercial tests independently rerun."
+    },
+    {
+      "command": "Sector-rules regression suite and typecheck",
+      "status": "passed",
+      "result": "77 tests and sector typecheckpassed."
+    },
+    {
+      "command": "Web typecheck",
+      "status": "passed",
+      "result": "Passed for additive source/billed/FX display."
+    },
+    {
+      "command": "Service-backed integration and browser acceptance",
+      "status": "not-run",
+      "result": "No Docker/local DB/browser; CI must pass beforemerge. Added synthetic API provenance regression; APItypespassed."
+    },
+    {
+      "command": "pnpm check components and isolated architecture rerun (local)",
+      "status": "passed",
+      "result": "Harness, format, lint and types passed; 184 tests passed initially. Existing architecture test exceeded its 5s timeout under parallel load; isolated rerun passed all 3 cases without code changes. Unified CI required before merge."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Bounded supported headers only; no OCR or universal PDF/table parsing.",
+    "Commercial rows retain unknown service semantics; provider absent, missing acceptance/datebasis, scope mismatches and FXauthorization remain pending. No automatic FX conversion.",
+    "Commercial route values preserved but no canonical port/segment resolver or inferred applicability evidence.",
+    "Existing human-reviewed fact revisions are preserved, not silently re-extracted.",
+    "No private invoices, source identifiers, names or PDFtext are published; onlysynthetic fixtures."
+  ],
+  "evidence": [".agents/reviews/2026-10-19-commercial-review.md"],
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Money fields, parser trust boundaries and evidence-backed matching require independent domain/security/QA review."
+}

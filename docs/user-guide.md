@@ -167,3 +167,13 @@ La extracción sigue siendo acotada: reconoce etiquetas explícitas como `Bookin
 Los documentos de referencia no producen gastos ni hallazgos económicos propios. Sus condiciones desconocidas se muestran en aplicabilidad. Los resultados históricos permanecen disponibles; eventuales hallazgos antiguos sobre fuentes se conservan como evidencia histórica, sin nuevas acciones económicas.
 
 La extracción sigue limitada a etiquetas y filas explícitamente soportadas. No garantiza interpretar matrices comerciales arbitrarias ni PDFs de imagen sin OCR; el sistema debe mantener esos datos pendientes.
+
+## Lectura de tablas comerciales
+
+El extractor reconoce tablas con columnas explícitas de concepto, precio de tarifa, divisa, cantidad, unidad, importe facturado e impuesto; también matrices de cotización con alternativas de equipo. Conserva el precio/divisa original separado del importe/divisa facturado, los signos negativos y el equipo de cada bloque. Las matrices son alternativas, no importes acumulables.
+
+Los tipos de cambio visibles se muestran como datos documentales con evidencia; esta versión no los aplica automáticamente. Un proveedor ausente, un concepto sin regla soportada, una aceptación no acreditada o un ámbito incompatible siguen pendientes. Reconocer filas no confirma la aplicabilidad comercial.
+
+Las notas de lectura dudosa y las fuentes incompletas requieren revisión. No se sustituyen importes dudosos por valores supuestos ni se confirma un error de total a partir de filas incompletas. El lector sigue acotado a encabezados/columnas soportados y no añade OCR ni interpretación universal de PDFs.
+
+Después del despliegue, usá **Volver a analizar** para generar un resultado nuevo con el texto almacenado. Los análisis previos no se reescriben. Las revisiones humanas previas conservan sus datos; si contienen una extracción antigua incompleta, revisalas explícitamente contra el documento.
