@@ -32,6 +32,8 @@ import {
   outcomeLabels,
   outcomeIcons,
   observedMissingFacts,
+  invoiceFindings,
+  applicabilityEmptyMessage,
 } from './presentation';
 import { WarningsList } from './warnings';
 import { useState } from 'react';
@@ -295,55 +297,11 @@ export function OperationDetailView({
         disabled={disabled || busy || query.isFetching}
       />
       <WarningsList warnings={data.warnings} filenames={filenames} />
-      {data.facts.some(
-        (fact) => fact.operationReference !== data.reference,
-      ) && (
-        <section
-          className="reference-preflight"
-          aria-label="Referencias de los documentos"
-        >
-          <strong>Revisá las referencias antes de analizar</strong>
-          <p>
-            Referencia esperada de la operación: {data.reference}. Las
-            referencias diferentes se analizarán como no verificables; no se
-            corrigen automáticamente.
-          </p>
-          <DataTable
-            label="Referencias encontradas en los documentos"
-            searchLabel="Buscar referencias de esta operación"
-            data={data.facts.filter(
-              (fact) => fact.operationReference !== data.reference,
-            )}
-            getRowId={(fact) => fact.documentId}
-            columns={[
-              {
-                id: 'document',
-                label: 'Documento',
-                accessor: (fact) =>
-                  filenames.get(fact.documentId) ?? 'Documento vinculado',
-              },
-              {
-                id: 'reference',
-                label: 'Referencia encontrada',
-                accessor: (fact) =>
-                  fact.operationReference ?? 'Sin referencia identificada',
-              },
-            ]}
-          />
-
-          <a
-            href="#comparison-facts"
-            onClick={() => {
-              const heading = document.getElementById('comparison-facts');
-              const panel = heading?.closest('details');
-              if (panel) panel.open = true;
-              heading?.focus();
-            }}
-          >
-            {data.capabilities.canWrite ? 'Revisar datos' : 'Ver datos'}
-          </a>
-        </section>
-      )}
+      <p className="permission-note">
+        Referencia interna del expediente: {data.reference}. No necesita
+        aparecer en la factura ni en el contrato. Las referencias externas se
+        revisan por su tipo y evidencia.
+      </p>
 
       <p className="permission-note">
         La comparación identifica diferencias y evidencia disponible. No aprueba
@@ -492,60 +450,104 @@ export function OperationDetailView({
           {!data.documentIds.length ? (
             <EmptyState title="No hay documentos vinculados">
               <p>
-                Vinculá las facturas y registros operativos de esta operación.
-                Los acuerdos reutilizables se seleccionan en «Acuerdos por
-                factura».
+                Vinculá una factura y un contrato, cotización o tarifa de
+                referencia. También podés seleccionar acuerdos reutilizables en
+                «Acuerdos por factura».
               </p>
             </EmptyState>
           ) : (
-            <DataTable
-              label="Documentos vinculados a la operación"
-              searchLabel="Buscar documentos vinculados"
-              data={data.documentIds.map((id, index) => ({
-                id,
-                query: documentResults[index],
-              }))}
-              getRowId={(item) => item.id}
-              columns={[
-                {
-                  id: 'document',
-                  label: 'Documento',
-                  accessor: (item) =>
-                    item.query?.data?.filename ?? 'Documento vinculado',
-                  render: (item) => (
-                    <>
-                      {renderLink(
-                        item.query?.data?.filename ?? 'Documento vinculado',
-                        documentPath(organizationId, item.id),
-                        navigate,
-                      )}
-                      {item.query?.isError && (
-                        <p className="metadata">
-                          No se pudo cargar el nombre. Abrí el documento para
-                          reintentar.
-                        </p>
-                      )}
-                    </>
-                  ),
-                },
-                {
-                  id: 'kind',
-                  label: 'Tipo',
-                  accessor: (item) =>
-                    item.query?.data
-                      ? kindLabels[item.query.data.kind]
-                      : 'Consultando…',
-                },
-                {
-                  id: 'status',
-                  label: 'Extracción',
-                  accessor: (item) =>
-                    item.query?.data
-                      ? statusLabels[item.query.data.status]
-                      : 'Consultando…',
-                },
-              ]}
-            />
+            <>
+              <p className="metadata">
+                Los contratos, cotizaciones y tarifas aportan condiciones. Solo
+                las facturas se verifican económicamente.
+              </p>
+              {(['reference', 'invoice', 'support'] as const).map((role) => (
+                <section
+                  key={role}
+                  aria-label={
+                    role === 'reference'
+                      ? 'Documentos de referencia'
+                      : role === 'invoice'
+                        ? 'Facturas a verificar'
+                        : 'Documentos de apoyo'
+                  }
+                >
+                  <h4>
+                    {role === 'reference'
+                      ? 'Documentos de referencia'
+                      : role === 'invoice'
+                        ? 'Facturas a verificar'
+                        : 'Documentos de apoyo'}
+                  </h4>
+                  <DataTable
+                    label={
+                      role === 'reference'
+                        ? 'Documentos de referencia'
+                        : role === 'invoice'
+                          ? 'Facturas a verificar'
+                          : 'Documentos de apoyo'
+                    }
+                    searchLabel="Buscar documentos vinculados"
+                    data={data.documentIds
+                      .map((id, index) => ({
+                        id,
+                        query: documentResults[index],
+                      }))
+                      .filter((item) => {
+                        const kind = item.query?.data?.kind;
+                        return role === 'reference'
+                          ? kind === 'quotation' || kind === 'tariff'
+                          : role === 'invoice'
+                            ? kind === 'invoice'
+                            : kind !== 'quotation' &&
+                              kind !== 'tariff' &&
+                              kind !== 'invoice';
+                      })}
+                    getRowId={(item) => item.id}
+                    columns={[
+                      {
+                        id: 'document',
+                        label: 'Documento',
+                        accessor: (item) =>
+                          item.query?.data?.filename ?? 'Documento vinculado',
+                        render: (item) => (
+                          <>
+                            {renderLink(
+                              item.query?.data?.filename ??
+                                'Documento vinculado',
+                              documentPath(organizationId, item.id),
+                              navigate,
+                            )}
+                            {item.query?.isError && (
+                              <p className="metadata">
+                                No se pudo cargar el nombre. Abrí el documento
+                                para reintentar.
+                              </p>
+                            )}
+                          </>
+                        ),
+                      },
+                      {
+                        id: 'kind',
+                        label: 'Tipo',
+                        accessor: (item) =>
+                          item.query?.data
+                            ? kindLabels[item.query.data.kind]
+                            : 'Consultando…',
+                      },
+                      {
+                        id: 'status',
+                        label: 'Extracción',
+                        accessor: (item) =>
+                          item.query?.data
+                            ? statusLabels[item.query.data.status]
+                            : 'Consultando…',
+                      },
+                    ]}
+                  />
+                </section>
+              ))}
+            </>
           )}
         </section>
       </Accordion>
@@ -562,8 +564,10 @@ export function OperationDetailView({
             Datos para comparar
           </h3>
           <p className="metadata">
-            Revisá los candidatos extraídos antes de analizar. Los formatos no
-            reconocidos y los campos ausentes no se completan con suposiciones.
+            Revisá los candidatos extraídos antes de analizar. Corregir una
+            lectura conserva el original y no modifica el contrato. Los formatos
+            no reconocidos y los campos ausentes no se completan con
+            suposiciones.
           </p>
 
           {!data.facts.length ? (
@@ -582,7 +586,11 @@ export function OperationDetailView({
                     <p>
                       {fact.provider ?? 'Proveedor sin dato'} ·{' '}
                       {fact.operationReference ?? 'Referencia sin dato'} ·{' '}
-                      {fact.total ?? 'Total sin dato'} {fact.currency ?? ''}
+                      {fact.kind === 'invoice'
+                        ? `${fact.total ?? 'Total sin dato'} ${fact.currency ?? ''}`
+                        : fact.kind === 'agreement'
+                          ? 'Fuente de precios y condiciones'
+                          : 'Evidencia operativa'}
                     </p>
                   </div>
                   {data.capabilities.canWrite && (
@@ -803,7 +811,7 @@ function FactSummary({ fact }: { fact: OperationDetail['facts'][number] }) {
 }
 function ResultSummary({ run }: { run: AnalysisRun }) {
   if (!run.result) return null;
-  const counts = findingCounts(run.result.findings);
+  const counts = findingCounts(invoiceFindings(run));
   return (
     <div
       className="result-counts"
@@ -883,24 +891,49 @@ function ResultTable({
           </article>
         ))}
         {!run.result.agreementDecisions?.length && (
-          <p>
-            Este análisis no registra decisiones estructuradas de aplicabilidad.
-            Conserva su resultado original.
-          </p>
+          <p>{applicabilityEmptyMessage(run.result.agreementDecisions)}</p>
         )}
       </section>
-      <h4>Hallazgos económicos</h4>
-      {!run.result.findings.length && (
+      <h4>Resultados económicos de facturas</h4>
+      {invoiceFindings(run).length !== run.result.findings.length && (
+        <Accordion>
+          <AccordionTrigger>
+            Controles de documentos de referencia y apoyo del resultado original
+          </AccordionTrigger>
+          <p className="permission-note">
+            Se conserva la evidencia original, sin presentarla como cargos
+            facturados ni habilitar reclamos sobre estos documentos.
+          </p>
+          {run.result.findings
+            .filter((finding) => !invoiceFindings(run).includes(finding))
+            .map((finding, index) => (
+              <article key={index}>
+                <h5>
+                  {finding.documentId
+                    ? (filenames.get(finding.documentId) ??
+                      'Documento de referencia o apoyo')
+                    : 'Control general'}
+                </h5>
+                <p>{finding.explanation}</p>
+                <EvidenceList
+                  evidence={finding.evidence}
+                  filenames={filenames}
+                  organizationId={organizationId}
+                />
+              </article>
+            ))}
+        </Accordion>
+      )}
+      {!invoiceFindings(run).length && (
         <p>
           No hay partidas analizables. Revisá los datos y la evidencia
           disponible.
         </p>
       )}
       {(['arithmetic', 'service'] as const).map((group) => {
-        const findings =
-          run.result?.findings.filter(
-            (finding) => findingGroup(finding.code) === group,
-          ) ?? [];
+        const findings = invoiceFindings(run).filter(
+          (finding) => findingGroup(finding.code) === group,
+        );
         if (!findings.length) return null;
         return (
           <section className="result-group" key={group}>
@@ -937,6 +970,11 @@ function ResultTable({
                   {findings.map((finding, index) => (
                     <TableRow key={index}>
                       <TableCell>
+                        <strong>
+                          {(finding.documentId &&
+                            filenames.get(finding.documentId)) ||
+                            'Factura'}
+                        </strong>
                         {run.snapshot.documents.find(
                           (document) =>
                             document.documentId === finding.documentId,

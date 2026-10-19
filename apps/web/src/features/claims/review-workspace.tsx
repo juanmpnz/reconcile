@@ -241,8 +241,9 @@ export function FindingReviewCell({ findingIndex }: { findingIndex: number }) {
   const invoice = run.snapshot.documents.find(
     (document) => document.documentId === finding.documentId,
   );
+  if (invoice?.kind !== 'invoice') return null;
   const concept =
-    invoice?.lines.find((line) => line.id === finding.lineId)?.description ??
+    invoice.lines.find((line) => line.id === finding.lineId)?.description ??
     'Control de la factura';
   const history = (
     data?.decisions.filter(

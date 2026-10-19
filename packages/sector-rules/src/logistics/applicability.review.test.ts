@@ -128,7 +128,7 @@ describe('independent agreement applicability acceptance', () => {
       ),
     ).toBe(true);
   });
-  it('does not convert a missing operational identity into a verified charge', () => {
+  it('compares a linked invoice without requiring an external operational identity', () => {
     const input = setup();
     const invoice = get(input, 'invoice');
     invoice.operationReference = null;
@@ -137,7 +137,7 @@ describe('independent agreement applicability acceptance', () => {
     const result = evaluateLogistics(input);
     expect(
       result.findings.some((finding) => finding.code === 'PRICE_MATCH'),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       result.findings.some((finding) => finding.status === 'not-verifiable'),
     ).toBe(true);
@@ -371,4 +371,62 @@ it('uses equipment and actual quantity evidenced only by the linked operation re
       (finding) => finding.code === 'PRICE_MATCH',
     ),
   ).toBe(true);
+});
+
+describe('comparison case document roles', () => {
+  it('uses an arbitrary internal label and never emits economic findings for the agreement', () => {
+    const input = setup();
+    input.operationReference = 'My invoice check';
+    const invoice = get(input, 'invoice');
+    invoice.operationReference = 'INVOICE-2026-17';
+    const agreement = get(input, 'agreement');
+    agreement.operationReference = 'Q2603BCN00826';
+    const result = evaluateLogistics(input);
+    expect(
+      result.findings.filter((item) => item.code === 'PRICE_MATCH'),
+    ).toHaveLength(2);
+    expect(
+      result.findings.every((item) => item.documentId === invoice.documentId),
+    ).toBe(true);
+    expect(
+      result.agreementDecisions?.every((item) => item.state === 'applicable'),
+    ).toBe(true);
+  });
+  it('keeps agreement external contradictions in applicability rather than economic findings', () => {
+    const input = setup();
+    get(input, 'invoice').references = [
+      { type: 'booking', value: 'BK-1', evidence: source('invoice') },
+    ];
+    const agreement = get(input, 'agreement');
+    agreement.references = [
+      { type: 'booking', value: 'BK-OTHER', evidence: source('agreement') },
+    ];
+    const result = evaluateLogistics(input);
+    expect(
+      result.agreementDecisions?.every(
+        (item) => item.state === 'not-applicable',
+      ),
+    ).toBe(true);
+    expect(
+      result.findings.some((item) => item.documentId === agreement.documentId),
+    ).toBe(false);
+    expect(result.findings.some((item) => item.code === 'PRICE_MATCH')).toBe(
+      false,
+    );
+  });
+  it('does not infer commercial applicability from case assignment alone', () => {
+    const input = setup();
+    input.operationReference = 'Anything';
+    get(input, 'invoice').operationReference = null;
+    get(input, 'agreement').provider = 'Different provider';
+    const result = evaluateLogistics(input);
+    expect(
+      result.agreementDecisions?.every(
+        (item) => item.state === 'not-applicable',
+      ),
+    ).toBe(true);
+    expect(result.findings.some((item) => item.code === 'PRICE_MATCH')).toBe(
+      false,
+    );
+  });
 });

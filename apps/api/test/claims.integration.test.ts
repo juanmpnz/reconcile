@@ -189,6 +189,57 @@ describe('reviewed claims through actual identity, PDF extraction, persisted ana
     expect(response.statusCode, response.body).toBe(201);
     return claimDetailSchema.parse(body(response));
   }
+  it('rejects a persisted legacy tariff finding as a financial review target without changing review history', async () => {
+    const { owner, org, op, run, index } = await dossier();
+    const tariff = run.snapshot.documents.find(
+      (document) => document.kind === 'agreement',
+    );
+    const result = run.result;
+    if (!tariff || !result)
+      throw new Error('Synthetic legacy fixture requires agreement and result');
+    // Model an older engine result that incorrectly targeted a reference source.
+    // The API must not trust the finding shape as authority to review a tariff.
+    await prisma.analysisRun.update({
+      where: { id: run.id },
+      data: {
+        result: {
+          ...result,
+          findings: result.findings.map((finding, findingIndex) =>
+            findingIndex === index
+              ? { ...finding, documentId: tariff.documentId }
+              : finding,
+          ),
+        },
+      },
+    });
+    const before = await review(org, op, owner);
+    const auditCount = await prisma.identityAuditEvent.count({
+      where: { organizationId: org, action: 'finding.reviewed' },
+    });
+    const response = await request(
+      base(org, op) + `/analyses/${run.id}/decisions`,
+      owner,
+      {
+        findingIndex: index,
+        action: 'confirm',
+        reason: 'Attempt to review a legacy reference-source finding',
+        expectedVersion: before.version,
+        expectedFingerprint: before.fingerprint,
+      },
+    );
+    expect(response.statusCode, response.body).toBe(422);
+    expect(body(response).code).toBe('INVOICE_SOURCE_REQUIRED');
+    const after = await review(org, op, owner);
+    expect(after.version).toBe(before.version);
+    expect(after.decisions).toEqual(before.decisions);
+    expect(after.claims).toEqual(before.claims);
+    expect(
+      await prisma.identityAuditEvent.count({
+        where: { organizationId: org, action: 'finding.reviewed' },
+      }),
+    ).toBe(auditCount);
+  });
+
   it('keeps append-only human reviews, authoritative 62 USD draft, versioned exports and explicit manual follow-up', async () => {
     const { owner, org, op, run, index } = await dossier();
     const first = await review(org, op, owner);

@@ -445,10 +445,17 @@ export function createClaimService({ prisma }: { prisma: PrismaClient }) {
             run.fingerprint !== current.fingerprint
           )
             throw new DocumentError(409, 'STALE_ANALYSIS');
-          if (
-            !analysisResultSchema.parse(run.result).findings[data.findingIndex]
-          )
-            throw new DocumentError(400, 'FINDING_NOT_FOUND');
+          const finding = analysisResultSchema.parse(run.result).findings[
+            data.findingIndex
+          ];
+          if (!finding) throw new DocumentError(400, 'FINDING_NOT_FOUND');
+          const source = analysisSnapshotSchema
+            .parse(run.snapshot)
+            .documents.find(
+              (document) => document.documentId === finding.documentId,
+            );
+          if (!source || source.kind !== 'invoice')
+            throw new DocumentError(422, 'INVOICE_SOURCE_REQUIRED');
           if (current.op.reviewVersion >= 1000)
             throw new DocumentError(409, 'REVIEW_LIMIT');
           const updated = await tx.operation.update({

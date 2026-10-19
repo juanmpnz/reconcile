@@ -1,0 +1,238 @@
+{
+  "id": "2026-10-19-comparison-case",
+  "summary": "Free internal comparison-case references; agreements are sources and invoices are evaluated.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root, /root/engine, /root/ui, /root/api_tests",
+  "scope": [
+    "packages/sector-rules/",
+    "apps/web/",
+    "apps/api/test/",
+    "docs/",
+    ".agents/tasks/2026-10-19-comparison-case.json",
+    ".agents/reviews/",
+    "packages/application/",
+    "infra/docker/compose.yaml",
+    ".agents/tasks/2026-10-17-auth-card-width.json",
+    ".agents/tasks/2026-10-17-orange-visual-polish.json",
+    ".agents/tasks/2026-10-17-white-canvas-primary-actions.json"
+  ],
+  "acceptance": [
+    "Internal case identifier never excludes documentary references.",
+    "Reference documents supply applicability and pricing, never economic findings.",
+    "External same-type contradictions and unknown applicability remain explicit.",
+    "New analysis and historical results distinguished; immutable history retained."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "frontend-engineer",
+    "ui-engineer",
+    "backend-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer",
+    "platform-engineer"
+  ],
+  "semanticRouting": "Domain identity and invoice/source distinction, UI review flow and tenant integration tests; independent planning/review required. No parser, storage or schema changes.",
+  "excludedRoles": [
+    {
+      "role": "data-engineer",
+      "reason": "No schema or migrations; existing immutable snapshots retained."
+    },
+    {
+      "role": "document-ai-engineer",
+      "reason": "No parser changes; unsupported extraction remains pending."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No external connectors."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "product-manager",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Product/domain/architecture/design consultation; not final runtime QA.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Product/domain/architecture/design consultation; not final runtime QA.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-planning.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Product/domain/architecture/design consultation; not final runtime QA.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-planning.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Product/domain/architecture/design consultation; not final runtime QA.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-planning.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/planning",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Product/domain/architecture/design consultation; not final runtime QA.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "platform-engineer",
+      "reviewer": "/root/review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final bounded source review, 69 engine and 4 presentation tests; no DB/browser/deployment verification.",
+      "evidence": [".agents/reviews/2026-10-19-comparison-review.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordination, source inspection and honest historical evidence repair; aggregate validation pending.",
+      "evidence": [
+        ".agents/reviews/2026-10-19-historical-evidence-repair.md",
+        ".agents/reviews/2026-10-19-comparison-engine.md"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "Independent focused engine and presentation tests",
+      "status": "passed",
+      "result": "69 engine and 4 presentation tests passed."
+    },
+    {
+      "command": "Local PostgreSQL integration and service smoke",
+      "status": "not-run",
+      "result": "No PostgreSQL/Redis/S3/Docker; CI executes real-service integration and smoke before merge."
+    },
+    {
+      "command": "pnpm check",
+      "status": "failed",
+      "result": "Harness checks, formatting, lint and all workspace typechecks passed. Unit stage 166 passed / one local 5s architecture timeout; complete suite rerun passed."
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --testTimeout=20000 --maxWorkers=2",
+      "status": "passed",
+      "result": "167 tests in 28 files passed. Architecture test took 4 seconds."
+    },
+    {
+      "command": "API integration test TypeScript check",
+      "status": "passed",
+      "result": "Both new regression test files pass API TypeScript checking after rebuild."
+    },
+    {
+      "command": "Browser installation/acceptance",
+      "status": "not-run",
+      "result": "Chromium download returned truncated archive; browser assertions added but not executed locally."
+    },
+    {
+      "command": "Synthetic PDFs \u2192 extractPdf \u2192 deriveAnalysisFacts \u2192 evaluateLogistics",
+      "status": "passed",
+      "result": "/root/api_tests verified actual PDF fixture with free internal label, accepted generic tariff, distinct invoice shipment identity: applicable and invoice-only 10 USD difference. No DB/HTTP claim."
+    },
+    {
+      "command": "pnpm build",
+      "status": "passed",
+      "result": "All packages, API, worker and web production builds passed; existing bundler annotation/chunk-size warnings only."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Parser remains explicit-label/row limited; arbitrary tariff matrices and OCR not added.",
+    "Production deploy completion requires Coolify status; merge only triggers configured pipeline.",
+    "GitHub publication rejected by automatic approval review after ownership verification; no remote branch, PR, merge or deployment. Explicit permission to publish to public juanmpnz/reconcile required.",
+    "Current task remains reviewed until service/browser acceptance executes; final diff gate requires verified state and is not claimed passed."
+  ],
+  "evidence": [
+    ".agents/reviews/2026-10-19-comparison-review.md",
+    ".agents/reviews/2026-10-19-comparison-main.md"
+  ],
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Financial applicability and document exclusion require independent domain/security/QA review."
+}

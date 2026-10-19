@@ -155,3 +155,15 @@ Para revisar un caso:
 Para el escenario Q2603BCN00826, revisá Valencia → Mundra, vigencia 01/04/2026–31/12/2026 y la fecha que el acuerdo exige. Elegí el tipo y cantidad reales de contenedores; no sumes las columnas 20’STD, 40’STD y 40’HC. Cada concepto conserva su moneda y su base por BL, envío o contenedor. Un componente incluido en un paquete no se vuelve a sumar. El ejemplo no contiene precios autorizados: deben salir del documento y de su revisión.
 
 La extracción sigue siendo acotada: reconoce etiquetas explícitas como `Booking reference:`, `BL reference:`, `Quotation reference:`, `Origin:`, `Destination:`, `Equipment type:`, `Validity date basis:` (`service-date`, `shipment-date`, `booking-date` o `invoice-date`) y las fechas correspondientes en formato ISO. Una matriz arbitraria de proveedor requiere revisión; no se interpreta automáticamente como tres servicios sumables. Las condiciones adicionales que el motor no puede verificar quedan pendientes. No existe conversión automática entre USD, EUR e INR sin respaldo de cambio aplicable.
+
+## Comparar una factura con un contrato o tarifa
+
+1. Crear una operación con una referencia interna libre (por ejemplo, `REVISION-001`). No debe coincidir con números documentales.
+2. Vincular el contrato, cotización o tarifa como documento de referencia y la factura como documento a verificar.
+3. Revisar la extracción contra los originales. Corregir una lectura crea una revisión; no cambia el contrato. Las referencias de envío, booking o BL se conservan como identificadores externos distintos del expediente.
+4. Ejecutar un análisis nuevo. Tras actualizar reglas, abrir o recargar un resultado anterior no lo recalcula.
+5. Revisar aplicabilidad y resultados por factura: coincidencias, diferencias o datos pendientes. Un acuerdo asignado no queda aceptado automáticamente; sus condiciones deben estar respaldadas.
+
+Los documentos de referencia no producen gastos ni hallazgos económicos propios. Sus condiciones desconocidas se muestran en aplicabilidad. Los resultados históricos permanecen disponibles; eventuales hallazgos antiguos sobre fuentes se conservan como evidencia histórica, sin nuevas acciones económicas.
+
+La extracción sigue limitada a etiquetas y filas explícitamente soportadas. No garantiza interpretar matrices comerciales arbitrarias ni PDFs de imagen sin OCR; el sistema debe mantener esos datos pendientes.

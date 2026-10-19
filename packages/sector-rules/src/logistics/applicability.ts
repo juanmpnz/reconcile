@@ -12,31 +12,27 @@ export function operationContradiction(
   doc: AnalysisDocument,
   snapshot: AnalysisSnapshot,
 ): boolean {
-  const refs = doc.references?.filter((r) => r.type === 'operation') ?? [];
+  // The case reference is a user label, never an external shipment identity.
+  // Only compare typed external identities with evidence from assigned records.
+  const externalTypes = ['operation', 'booking', 'bl', 'shipment'];
   const operational =
-    doc.references?.filter((r) =>
-      ['booking', 'bl', 'shipment'].includes(r.type),
+    doc.references?.filter(
+      (ref) => externalTypes.includes(ref.type) && ref.evidence.length > 0,
     ) ?? [];
   const anchor = snapshot.documents
     .filter(
       (other) =>
         other.documentId !== doc.documentId &&
-        other.kind === 'operational-record' &&
-        same(other.operationReference, snapshot.operationReference),
+        other.kind === 'operational-record',
     )
-    .flatMap((other) => other.references ?? []);
-  const conflict = operational.some((ref) => {
+    .flatMap((other) => other.references ?? [])
+    .filter((ref) => ref.evidence.length > 0);
+  return operational.some((ref) => {
     const known = anchor.filter((other) => other.type === ref.type);
     return (
       known.length > 0 && !known.some((other) => same(other.value, ref.value))
     );
   });
-  return (
-    conflict ||
-    refs.some((r) => !same(r.value, snapshot.operationReference)) ||
-    (doc.operationReference !== null &&
-      !same(doc.operationReference, snapshot.operationReference))
-  );
 }
 export function operationContext(
   snapshot: AnalysisSnapshot,
@@ -46,7 +42,7 @@ export function operationContext(
     (doc) =>
       doc.kind === 'operational-record' &&
       !operationContradiction(doc, snapshot) &&
-      (same(doc.operationReference, snapshot.operationReference) ||
+      (same(doc.operationReference, invoice.operationReference) ||
         doc.references?.some(
           (ref) =>
             ref.type !== 'agreement' &&
@@ -120,7 +116,7 @@ export function decideAgreement(
       'El acuerdo contiene una referencia explícita de otra operación.',
     );
   for (const ref of agreement.references ?? []) {
-    if (['agreement', 'quotation', 'operation'].includes(ref.type)) continue;
+    if (['agreement', 'quotation'].includes(ref.type)) continue;
     const actual = [
       ...(invoice.references ?? []),
       ...linked.flatMap((d) => d.references ?? []),
@@ -164,26 +160,8 @@ export function decideAgreement(
       'La operación cita explícitamente este acuerdo; sus condiciones se verifican por separado.',
       citation.flatMap((ref) => ref.evidence),
     );
-  if (
-    !invoice.operationReference &&
-    !(invoice.references ?? []).some(
-      (ref) =>
-        ref.type === 'operation' &&
-        same(ref.value, snapshot.operationReference),
-    ) &&
-    !linked.some((doc) =>
-      doc.references?.some((ref) =>
-        invoice.references?.some(
-          (other) => other.type === ref.type && same(other.value, ref.value),
-        ),
-      ),
-    )
-  )
-    add(
-      'operation-link',
-      'unknown',
-      'Falta evidencia de vinculación de la factura con la operación.',
-    );
+  // Assignment establishes case membership. Commercial applicability remains
+  // independently verified below; no external operation identity is mandatory.
   for (const key of [
     'contractingParty',
     'origin',

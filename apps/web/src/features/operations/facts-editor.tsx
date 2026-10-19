@@ -27,7 +27,10 @@ const textFields = [
   ['shipmentDate', 'Fecha de envío (AAAA-MM-DD)'],
   ['bookingDate', 'Fecha de booking (AAAA-MM-DD)'],
   ['invoiceDate', 'Fecha de factura (AAAA-MM-DD)'],
-  ['operationReference', 'Referencia de operación'],
+  [
+    'operationReference',
+    'Referencia externa de envío (no la interna del expediente)',
+  ],
   ['currency', 'Moneda (ISO, por ejemplo USD)'],
   ['total', 'Total'],
   ['taxAmount', 'Impuestos'],

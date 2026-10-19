@@ -127,14 +127,19 @@
 }
 @media (hover: hover) {
   .sidebar-link {
-    transition: background-color 180ms ease-out, color 180ms ease-out;
+    transition:
+      background-color 180ms ease-out,
+      color 180ms ease-out;
   }
   .sidebar-link:hover {
     background: #fff7ef;
     color: #2f3238;
   }
   .kpi-card {
-    transition: border-color 200ms ease-out, box-shadow 200ms ease-out, transform 200ms ease-out;
+    transition:
+      border-color 200ms ease-out,
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out;
   }
   .kpi-card:hover {
     border-color: #ff7a18;

@@ -1,0 +1,135 @@
+{
+  "id": "2026-10-17-auth-card-width",
+  "summary": "Widen and refine login, two-factor challenge and authenticator setup cards while retaining their existing flows.",
+  "state": "reviewed",
+  "owner": "principal-engineer",
+  "implementer": "/root/auth_card_ui (ui-engineer); /root (documentation)",
+  "scope": [
+    "apps/web/src/styles/application.css",
+    "apps/web/src/styles/auth-security.css",
+    "apps/web/src/features/auth/security.tsx",
+    "docs/design/identity-interface.md",
+    "docs/status.md",
+    ".agents/tasks/2026-10-17-auth-card-width.json"
+  ],
+  "acceptance": [
+    "Login and code challenge cards are visibly wider on desktop, with comfortable form spacing.",
+    "Authenticator setup has enough width for QR, manual key and two-column recovery codes without clipping.",
+    "At narrow widths the cards fit the viewport, long content wraps, and every control remains reachable.",
+    "No authentication behavior, wording, document structure or routes change."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "ux-designer",
+    "visual-designer",
+    "ui-engineer",
+    "frontend-engineer",
+    "accessibility-reviewer",
+    "qa-engineer",
+    "security-engineer"
+  ],
+  "semanticRouting": "Existing auth flow and identity behavior remain unchanged; this is responsive layout and visual hierarchy only. UX and visual design are consulted before CSS implementation because login and MFA card proportions change.",
+  "excludedRoles": [
+    {
+      "role": "solution-architect",
+      "reason": "The task record triggers the harness route, but no boundaries, contracts or auth architecture change."
+    },
+    {
+      "role": "product-manager",
+      "reason": "No capability, copy or acceptance policy changes."
+    },
+    {
+      "role": "platform-engineer",
+      "reason": "No dependency, CI, deployment or infrastructure change."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/auth_layout_ux",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Preimplementation consultation and final CSS/TSX/design diff reread of proportions, 320px fit and unchanged flow; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/auth_layout_visual",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Preimplementation consultation and final CSS/TSX/design diff reread of widths, responsive spacing and restrained card treatment; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/auth_card_ui",
+      "mode": "sequential",
+      "status": "not-run",
+      "examined": "Historical record claimed: Implemented and inspected CSS/TSX diff; no runtime review. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/auth_card_frontend_review",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Final CSS/TSX diff, responsive cascade and unchanged authentication logic; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/auth_card_a11y_review",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Final CSS/TSX diff, inferred 320px fit, wrapping, labels, focus and messages; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/auth_card_security_review",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Final CSS/TSX diff and design-width documentation; credential, MFA, session and secret handling unchanged; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/auth_card_qa_review",
+      "mode": "independent",
+      "status": "not-run",
+      "examined": "Historical record claimed: Final CSS/TSX, task, design and status diff; source-level acceptance and no runtime claims. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "not-run",
+      "examined": "Historical record claimed: CSS/TSX diff and status/design/task documentation; source only. Original execution evidence was not persisted; this review cannot be independently verified.",
+      "evidence": [".agents/reviews/2026-10-19-historical-evidence-repair.md"]
+    }
+  ],
+  "checks": [
+    {
+      "command": "Tests, pnpm check, service smoke and browser review",
+      "status": "not-run",
+      "result": "User's no-tests preference remains in force; runtime layout unverified."
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "result": "Static whitespace check by independent frontend and QA reviewers; no tests/build/browser were run."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "No automated tests or browser checks were run per user preference; actual 320px/200% zoom rendering, QR scannability and runtime appearance remain unverified.",
+    "The shared account layout also widens registration, recovery and email-verification cards, intentionally keeping access screens consistent.",
+    "2026-10-19 evidence repair: invalid prose-as-file references removed; affected historical reviews marked not-run, no replacement approval invented."
+  ],
+  "evidence": [],
+  "changeClass": "ui",
+  "risk": "medium",
+  "independentReviewRequired": true,
+  "independenceRationale": "Authentication and MFA screens are critical to access, so independent source review is warranted even though this task changes visual layout only."
+}
