@@ -485,7 +485,7 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     expect(fx).toMatchObject({ from: 'USD', to: 'EUR', rate: '0.90' });
     expect(fx.evidence[0]?.snippet).toBe('1 USD = 0.90 EUR');
     const first = await completed(org, operation.id, owner);
-    expect(first.parserVersion).toBe('logistics-text-v4');
+    expect(first.parserVersion).toBe('logistics-text-v5');
     expect(
       first.result?.findings.some(
         (finding) => finding.code === 'LINES_MISSING',
