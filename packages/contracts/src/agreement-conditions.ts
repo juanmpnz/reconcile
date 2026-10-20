@@ -48,6 +48,32 @@ export const agreementApplicabilitySchema = z
   .strict();
 export const analysisLineSchema = z
   .object({
+    pricingTerms: z
+      .object({
+        behavior: z.enum(['fixed', 'variable', 'unknown']),
+        cadence: z.enum(['per-unit', 'monthly', 'annual', 'unknown']),
+        dateBasis: z
+          .enum([
+            'service-date',
+            'shipment-date',
+            'booking-date',
+            'invoice-date',
+            'unknown',
+          ])
+          .optional(),
+        validFrom: z.iso.date().nullable(),
+        validUntil: z.iso.date().nullable(),
+        evidence: z.array(analysisEvidenceSchema).min(1).max(20),
+      })
+      .strict()
+      .refine(
+        (terms) =>
+          !terms.validFrom ||
+          !terms.validUntil ||
+          terms.validFrom <= terms.validUntil,
+        'Invalid price period',
+      )
+      .optional(),
     chargeKey: nullableText.optional(),
     tariffUnitPrice: money.optional(),
     tariffCurrency: z

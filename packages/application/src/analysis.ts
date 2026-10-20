@@ -19,12 +19,15 @@ import {
   operationListQuerySchema,
   operationUpdateSchema,
   operationDocumentsSchema,
+  operationAttachDocumentSchema,
   factRevisionInputSchema,
   extractionResultSchema,
   documentKindSchema,
 } from '@reconcile/contracts';
 import { authorizeDocuments, DocumentError } from './documents.js';
 import { agreementDto, normalizeAgreementApplicability } from './agreements.js';
+const DOCUMENT_FACTS_MAX_BYTES = 64 * 1024;
+const ANALYSIS_RESULT_MAX_BYTES = 512 * 1024;
 function boundedJson(value: unknown, code: string, maxBytes = 128 * 1024) {
   if (Buffer.byteLength(JSON.stringify(value), 'utf8') > maxBytes)
     throw new DocumentError(422, code);
@@ -43,6 +46,7 @@ export async function collectAnalysisInputs(
   tx: Tx,
   organizationId: string,
   operationId: string,
+  strictDocumentId?: string,
 ) {
   const op = await operation(tx, organizationId, operationId);
   const links = await tx.operationDocument.findMany({
@@ -219,9 +223,15 @@ export async function collectAnalysisInputs(
           services.length === 1 ? (services[0] ?? null) : null,
         );
       }
-      boundedJson(fact, 'DOCUMENT_FACTS_LIMIT', 16 * 1024);
+      boundedJson(fact, 'DOCUMENT_FACTS_LIMIT', DOCUMENT_FACTS_MAX_BYTES);
       facts.push(fact);
-    } catch {
+    } catch (error) {
+      if (
+        doc.id === strictDocumentId &&
+        error instanceof DocumentError &&
+        error.code === 'DOCUMENT_FACTS_LIMIT'
+      )
+        throw error;
       warnings.push('DOCUMENT_FACTS_UNSUPPORTED:' + doc.id);
     }
   }
@@ -610,6 +620,80 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       );
       return detail(organizationId, operationId, actorId);
     },
+    async attach(
+      organizationId: string,
+      operationId: string,
+      actorId: string,
+      input: unknown,
+    ) {
+      const { documentId, expectedFingerprint } =
+        operationAttachDocumentSchema.parse(input);
+      await prisma.$transaction(
+        async (tx) => {
+          await authorizeDocuments(tx, organizationId, actorId, true);
+          await operation(tx, organizationId, operationId);
+          await tx.$queryRaw`SELECT id FROM operations WHERE id = ${operationId}::uuid AND "organizationId" = ${organizationId}::uuid FOR UPDATE`;
+          const current = await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+          );
+          if (current.fingerprint !== expectedFingerprint)
+            throw new DocumentError(409, 'STALE_OPERATION');
+          const document = await tx.document.findFirst({
+            where: { id: documentId, organizationId },
+            select: { id: true },
+          });
+          if (!document) throw new DocumentError(404, 'NOT_FOUND');
+          const before = current.links.map((link) => link.documentId).sort();
+          if (before.includes(documentId)) return;
+          if (before.length >= 20)
+            throw new DocumentError(422, 'DOCUMENT_LINK_LIMIT');
+          if (
+            await tx.analysisRun.count({
+              where: {
+                organizationId,
+                operationId,
+                status: { in: ['queued', 'processing'] },
+              },
+            })
+          )
+            throw new DocumentError(409, 'ANALYSIS_ACTIVE');
+          const changed = await tx.operation.update({
+            where: { id: operationId },
+            data: { revision: { increment: 1 } },
+          });
+          await tx.operationDocument.create({
+            data: { organizationId, operationId, documentId },
+          });
+          // Reject this new over-budget source atomically while read-only views
+          // keep surfacing unsupported legacy sources as explicit warnings.
+          await collectAnalysisInputs(
+            tx,
+            organizationId,
+            operationId,
+            documentId,
+          );
+          await tx.identityAuditEvent.create({
+            data: {
+              organizationId,
+              actorId,
+              action: 'operation.documents.updated',
+              outcome: 'success',
+              details: {
+                operationId,
+                revision: changed.revision,
+                before: { documentIds: before },
+                after: { documentIds: [...before, documentId].sort() },
+                attachment: true,
+              },
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      );
+      return detail(organizationId, operationId, actorId);
+    },
     async revise(
       organizationId: string,
       operationId: string,
@@ -617,7 +701,11 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
       input: unknown,
     ) {
       const data = factRevisionInputSchema.parse(input);
-      boundedJson(data.document, 'DOCUMENT_FACTS_LIMIT', 16 * 1024);
+      boundedJson(
+        data.document,
+        'DOCUMENT_FACTS_LIMIT',
+        DOCUMENT_FACTS_MAX_BYTES,
+      );
       await prisma.$transaction(
         async (tx) => {
           await authorizeDocuments(tx, organizationId, actorId, true);
@@ -675,8 +763,12 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
             ...(data.document.equipmentQuantities?.flatMap(
               (equipment) => equipment.evidence,
             ) ?? []),
+            ...(data.document.billingPeriod?.evidence ?? []),
             ...data.document.evidence,
-            ...data.document.lines.flatMap((l) => l.evidence),
+            ...data.document.lines.flatMap((l) => [
+              ...l.evidence,
+              ...(l.pricingTerms?.evidence ?? []),
+            ]),
             ...data.document.excludedServices.flatMap((s) => s.evidence),
           ];
           if (
@@ -759,11 +851,27 @@ export function createAnalysisService({ prisma }: { prisma: PrismaClient }) {
                   },
                 }
               : {}),
+            ...(data.document.billingPeriod
+              ? {
+                  billingPeriod: {
+                    ...data.document.billingPeriod,
+                    evidence: data.document.billingPeriod.evidence.map(mark),
+                  },
+                }
+              : {}),
             revisionId: id,
             evidence: data.document.evidence.map(mark),
             lines: data.document.lines.map((l) => ({
               ...l,
               evidence: l.evidence.map(mark),
+              ...(l.pricingTerms
+                ? {
+                    pricingTerms: {
+                      ...l.pricingTerms,
+                      evidence: l.pricingTerms.evidence.map(mark),
+                    },
+                  }
+                : {}),
             })),
             excludedServices: data.document.excludedServices.map((s) => ({
               ...s,
@@ -957,7 +1065,7 @@ export async function processAnalysisRun({
     result = analysisResultSchema.parse(
       evaluateLogistics(analysisSnapshotSchema.parse(run.snapshot)),
     );
-    boundedJson(result, 'ANALYSIS_RESULT_LIMIT');
+    boundedJson(result, 'ANALYSIS_RESULT_LIMIT', ANALYSIS_RESULT_MAX_BYTES);
   } catch (error) {
     result = undefined;
     status =

@@ -9,6 +9,7 @@ import {
   operationUpdateSchema,
   operationDetailSchema,
   operationDocumentsSchema,
+  operationAttachDocumentSchema,
   operationListSchema,
 } from '@reconcile/contracts';
 import type { AnalysisDocumentInput } from '@reconcile/contracts';
@@ -159,6 +160,38 @@ export async function linkDocuments(
       'PUT',
     ),
   );
+}
+export async function attachDocument(
+  organizationId: string,
+  operationId: string,
+  documentId: string,
+  expectedFingerprint: string,
+) {
+  const result = parseResponse(
+    operationDetailSchema,
+    await request(
+      `${endpoint(organizationId, operationId)}/documents/attach`,
+      json(
+        operationAttachDocumentSchema.parse({
+          documentId,
+          expectedFingerprint,
+        }),
+      ),
+    ),
+  );
+  if (
+    result.id !== operationId ||
+    result.organizationId !== organizationId ||
+    !result.documentIds.includes(documentId) ||
+    result.analyses.some(
+      (run) =>
+        run.operationId !== operationId ||
+        run.organizationId !== organizationId ||
+        run.snapshot.organizationId !== organizationId,
+    )
+  )
+    throw new Error('La respuesta no corresponde a la operación solicitada.');
+  return result;
 }
 export async function saveFacts(
   organizationId: string,

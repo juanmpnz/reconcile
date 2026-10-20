@@ -1,4 +1,4 @@
-/* global URL, document, window, structuredClone, FormData */
+/* global URL, document, window, structuredClone, FormData, Buffer */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { chooseSelect } from './select.browser-helper.mjs';
@@ -152,6 +152,8 @@ const doc = (docId, kind) => ({
     analyses: [],
     capabilities: { canWrite: true },
   };
+  let sourceUploadCount = 0;
+  let attachAttempts = 0;
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route('**/api/**', async (route) => {
@@ -257,7 +259,30 @@ const doc = (docId, kind) => ({
       };
     else if (path.endsWith(`/operations/${op}`))
       result = { ...operation, capabilities: { canWrite: !readonly } };
-    else if (path.endsWith('/documents'))
+    else if (
+      path.endsWith(`/operations/${op}/documents/attach`) &&
+      req.method() === 'POST'
+    ) {
+      attachAttempts += 1;
+      const body = req.postDataJSON();
+      assert.equal(body.documentId, tariff);
+      assert.equal(body.expectedFingerprint, operation.fingerprint);
+      if (attachAttempts === 1) {
+        status = 409;
+        result = { code: 'STALE_OPERATION' };
+      } else {
+        operation.documentIds = [
+          ...new Set([...operation.documentIds, body.documentId]),
+        ];
+        operation.revision += 1;
+        operation.fingerprint = 'd'.repeat(64);
+        result = { ...operation, capabilities: { canWrite: !readonly } };
+      }
+    } else if (path.endsWith('/documents') && req.method() === 'POST') {
+      sourceUploadCount += 1;
+      assert.equal(req.headers()['x-document-kind'], 'tariff');
+      result = doc(tariff, 'tariff');
+    } else if (path.endsWith('/documents'))
       result = {
         items: [doc(tariff, 'tariff')],
         total: 1,
@@ -483,17 +508,76 @@ const doc = (docId, kind) => ({
     'PASS create reusable terms from existing PDF; keyboard Escape/focus recovery',
   );
   await page.goto(opUrl);
-  const section = page.getByRole('region', { name: 'Acuerdos por factura' });
+  await has(page.getByRole('heading', { name: '1. Preparar documentos' }));
+  await has(page.getByRole('button', { name: 'Subir factura', exact: true }));
+  await page
+    .getByRole('button', { name: 'Subir contrato o tarifa', exact: true })
+    .click();
+  const sourcePanel = page.getByRole('dialog', {
+    name: 'Subir contrato o tarifa',
+    exact: true,
+  });
+  await sourcePanel.getByLabel('Archivo PDF').setInputFiles({
+    name: 'synthetic-source.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nsynthetic transport fixture'),
+  });
+  await sourcePanel
+    .getByRole('button', { name: 'Subir contrato o tarifa', exact: true })
+    .click();
+  await has(
+    sourcePanel.getByText('El PDF ya está guardado.', { exact: false }),
+  );
+  await sourcePanel
+    .getByRole('button', { name: 'Reintentar vinculación', exact: true })
+    .click();
+  await noDialog();
+  assert.equal(
+    sourceUploadCount,
+    1,
+    'failed attach retry does not upload PDF twice',
+  );
+  assert.equal(attachAttempts, 2);
+  assert.equal(operation.documentIds.includes(tariff), true);
+  await has(
+    page
+      .locator('section[aria-label="Documentos de referencia"]')
+      .getByRole('link', { name: 'annual-tariff.pdf', exact: true }),
+  );
+  console.log(
+    'PASS upload reference directly from operation; attach conflict retry preserves PDF and invoice links',
+  );
+  assert.equal(
+    await page
+      .getByRole('button', {
+        name: 'Registrar acuerdo reutilizable',
+        exact: true,
+      })
+      .first()
+      .isVisible(),
+    false,
+    'advanced registration starts collapsed',
+  );
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
+  const section = page.getByRole('region', {
+    name: 'Tarifas guardadas y acuerdos spot',
+  });
   await has(section);
   assert.equal(
     await section
-      .getByRole('button', { name: 'Cargar contrato nuevo', exact: true })
+      .getByRole('button', {
+        name: 'Registrar acuerdo reutilizable',
+        exact: true,
+      })
       .count(),
     2,
   );
   assert.equal(
     await section
-      .getByText('Sin acuerdo seleccionado', { exact: true })
+      .getByText('Sin versión guardada seleccionada', { exact: true })
       .count(),
     2,
   );
@@ -581,6 +665,10 @@ const doc = (docId, kind) => ({
   operation.analyses = [historical];
   const originalHistory = JSON.stringify(historical.snapshot);
   await page.reload();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
   await has(
     page.getByRole('heading', {
       name: 'Aplicabilidad de acuerdos',
@@ -654,6 +742,10 @@ const doc = (docId, kind) => ({
     distanceKm: null,
   };
   await page.reload();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
   await has(
     section.getByText('Falta una distancia positiva revisada.', {
       exact: true,
@@ -713,6 +805,10 @@ const doc = (docId, kind) => ({
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
   await has(section);
   assert.equal(
     await page.evaluate(
@@ -741,7 +837,10 @@ const doc = (docId, kind) => ({
   await page.keyboard.press('Escape');
   await noDialog();
   await section
-    .getByRole('button', { name: 'Cargar contrato nuevo', exact: true })
+    .getByRole('button', {
+      name: 'Registrar acuerdo reutilizable',
+      exact: true,
+    })
     .first()
     .click();
   dialog = page.getByRole('dialog');
@@ -839,6 +938,10 @@ const doc = (docId, kind) => ({
     },
   ];
   await page.reload();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
   await has(
     page.getByRole('heading', { name: operation.reference, exact: true }),
   );
@@ -896,10 +999,6 @@ const doc = (docId, kind) => ({
     0,
     'source evidence cannot open economic review or claims',
   );
-  await page
-    .locator('summary')
-    .filter({ hasText: 'Documentos (3 vinculados)' })
-    .click();
   await has(page.locator('section[aria-label="Documentos de referencia"]'));
   await has(page.locator('section[aria-label="Facturas a verificar"]'));
   await has(
@@ -935,8 +1034,125 @@ const doc = (docId, kind) => ({
   console.log(
     'PASS free internal reference, source/invoice separation, read-only source controls and accurate empty applicability feedback',
   );
+  // Price equality must remain distinct from unresolved commercial applicability.
+  const candidateBase = {
+    invoiceDocumentId: invoice,
+    lineId: 'pickup',
+    referenceDocumentId: tariff,
+    referenceLineId: 'pickup',
+    concept: 'transport',
+    invoiceConcept: 'Synthetic transport',
+    referenceConcept: 'Reference transport',
+    status: 'pending',
+    priceStatus: 'equal',
+    claimable: false,
+    aliasVersion: 'synthetic-alias-v1',
+    expectedCurrency: 'EUR',
+    actualCurrency: 'EUR',
+    quantity: '1',
+    currency: 'EUR',
+    expectedUnitPrice: '100',
+    actualUnitPrice: '100',
+    expectedAmount: '100',
+    actualAmount: '100',
+    difference: '0',
+    conditions: [
+      {
+        name: 'provider',
+        state: 'unknown',
+        reason: 'Proveedor pendiente de confirmar',
+        evidence: [],
+      },
+    ],
+    reasons: ['Precio coincidente con proveedor pendiente'],
+    calculation: '1 × 100 = 100 EUR',
+    evidence: [],
+  };
+  operation.analyses[0].result.comparisonCandidates = [
+    candidateBase,
+    {
+      ...candidateBase,
+      lineId: 'unknown-charge',
+      invoiceConcept: 'Synthetic unknown charge',
+      referenceDocumentId: null,
+      referenceLineId: null,
+      referenceConcept: null,
+      priceStatus: 'unknown',
+      expectedUnitPrice: null,
+      actualUnitPrice: null,
+      expectedAmount: null,
+      actualAmount: null,
+      difference: null,
+      reasons: ['Falta una fuente compatible para este concepto'],
+    },
+  ];
+  operation.analyses[0].snapshot.documents[0].lines[0].tariffUnitPrice = '125';
+  operation.analyses[0].snapshot.documents[0].lines[0].tariffCurrency = 'USD';
+  await page.reload();
+  const candidateRegion = page.getByRole('region', {
+    name: 'Comparación de factura contra referencia',
+    exact: true,
+  });
+  await has(candidateRegion);
+  await has(candidateRegion.getByText('Precio coincidente', { exact: true }));
+  await has(
+    candidateRegion.getByText('Precio no verificable', { exact: true }),
+  );
+  assert.equal(
+    await candidateRegion
+      .getByText('Pendiente de verificar', { exact: true })
+      .count(),
+    2,
+  );
+  assert.equal(
+    await candidateRegion
+      .getByRole('button', { name: /reclamo|confirmar|revisar hallazgo/i })
+      .count(),
+    0,
+    'proposed matches never expose claim actions',
+  );
+  await candidateRegion
+    .getByRole('button', { name: 'Ver detalle', exact: true })
+    .first()
+    .click();
+  await has(
+    candidateRegion.getByText(
+      'Precio unitario original de la factura: 125 USD.',
+      { exact: true },
+    ),
+  );
+  await has(
+    candidateRegion.getByText('Importe registrado en la factura: 100 EUR.', {
+      exact: true,
+    }),
+  );
+  await has(
+    candidateRegion.getByText(
+      'Esta propuesta no habilita acciones de reclamo.',
+      { exact: true },
+    ),
+  );
+  assert.equal(
+    await page
+      .locator('details')
+      .filter({
+        has: page.locator('summary', {
+          hasText: 'Controles detallados y aplicabilidad del análisis',
+        }),
+      })
+      .getAttribute('open'),
+    null,
+    'secondary analysis controls start collapsed when candidate comparisons exist',
+  );
+  console.log(
+    'PASS proposed per-line price equality remains pending; missing source and original currencies remain explicit without claim actions',
+  );
   readonly = true;
   await page.reload();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Opciones avanzadas de acuerdos' })
+    .click();
   await has(section);
   assert.equal(
     await section.getByRole('button').count(),
