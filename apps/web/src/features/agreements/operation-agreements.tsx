@@ -1,7 +1,11 @@
 import { Label } from '../../design-system/controls';
 import { agreementQueries } from './hooks';
 import { useSetOperationAgreementsMutation } from './hooks';
-import { FormActions } from '../../design-system/layout';
+import {
+  Accordion,
+  AccordionTrigger,
+  FormActions,
+} from '../../design-system/layout';
 import { FormField, Input } from '../../design-system/controls';
 
 import { Select } from '../../design-system/select';
@@ -26,6 +30,7 @@ import { useMounted } from '../../lib/use-mounted';
 import { errorMessage } from '../../lib/forms';
 import { documentPath } from '../documents/api';
 import { operationsKey } from '../operations/api';
+import { LinkDialog } from '../operations/link-dialog';
 import { AgreementConflictError } from './api';
 import { CreateAgreementDialog } from './create-dialog';
 import { applicabilityNotes, pricingLabel } from './presentation';
@@ -42,37 +47,64 @@ export function OperationAgreements({
   filenames: Map<string, string>;
   disabled: boolean;
 }) {
+  const client = useQueryClient();
   const invoices = operation.facts.filter((fact) => fact.kind === 'invoice');
   return (
-    <section
-      className="operation-section"
-      aria-labelledby="operation-agreements"
-    >
-      <h3 id="operation-agreements">Acuerdos por factura</h3>
-      <p className="metadata">
-        Elegí explícitamente una tarifa guardada o spot para cada factura. Un
-        mismo proveedor puede tener ambas. El PDF se reutiliza sin volver a
-        subirlo.
-      </p>
-      {!invoices.length ? (
-        <p>
-          Vinculá una factura y esperá su extracción para seleccionar sus
+    <Accordion className="operation-panel">
+      <AccordionTrigger>Opciones avanzadas de acuerdos</AccordionTrigger>
+      <section
+        className="operation-section"
+        aria-labelledby="operation-agreements"
+      >
+        <h3 id="operation-agreements">Tarifas guardadas y acuerdos spot</h3>
+        <p className="metadata">
+          Estas opciones son opcionales: podés comparar usando el contrato,
+          cotización o tarifa vinculado al expediente. Usá esta sección si
+          necesitás seleccionar una versión guardada o registrar condiciones
+          spot por factura. La selección propone una fuente; no verifica sus
           condiciones.
         </p>
-      ) : (
-        invoices.map((invoice) => (
-          <InvoiceAgreement
-            key={invoice.documentId}
+        {operation.capabilities.canWrite && (
+          <LinkDialog
             userId={userId}
             organizationId={organizationId}
-            operation={operation}
-            invoice={invoice}
-            filename={filenames.get(invoice.documentId) ?? 'Factura vinculada'}
+            operationId={operation.id}
+            documentIds={operation.documentIds}
+            fingerprint={operation.fingerprint}
+            activeRun={operation.analyses.some(
+              (run) => run.status === 'queued' || run.status === 'processing',
+            )}
             disabled={disabled}
+            label="Gestionar todos los documentos y apoyos"
+            onSaved={async () => {
+              await client.invalidateQueries({
+                queryKey: operationsKey(userId, organizationId),
+              });
+            }}
           />
-        ))
-      )}
-    </section>
+        )}
+        {!invoices.length ? (
+          <p>
+            Vinculá una factura y esperá su extracción para seleccionar sus
+            condiciones.
+          </p>
+        ) : (
+          invoices.map((invoice) => (
+            <InvoiceAgreement
+              key={invoice.documentId}
+              userId={userId}
+              organizationId={organizationId}
+              operation={operation}
+              invoice={invoice}
+              filename={
+                filenames.get(invoice.documentId) ?? 'Factura vinculada'
+              }
+              disabled={disabled}
+            />
+          ))
+        )}
+      </section>
+    </Accordion>
   );
 }
 function InvoiceAgreement({
@@ -104,7 +136,7 @@ function InvoiceAgreement({
         binding.distanceKm ?? '',
       )
     : [
-        'Sin selección explícita. Si ya vinculaste una tarifa como documento, el análisis conserva ese respaldo. Sin condiciones aplicables, los controles quedan pendientes.',
+        'Se usarán como candidatas las fuentes vinculadas al expediente. El análisis comprobará su aplicabilidad; no hace falta registrar otra tarifa para iniciar ese recorrido.',
       ];
   const mutationDisabled =
     disabled ||
@@ -158,13 +190,13 @@ function InvoiceAgreement({
         </>
       ) : (
         <p>
-          <strong>Sin acuerdo seleccionado</strong>
+          <strong>Sin versión guardada seleccionada</strong>
         </p>
       )}
       {notes.length > 0 && (
         <div className="document-warning">
           <strong>
-            {binding ? 'Pendiente de verificar' : 'Sin selección explícita'}
+            {binding ? 'Pendiente de verificar' : 'Selección guardada opcional'}
           </strong>
           <ul>
             {notes.map((note) => (
@@ -188,7 +220,7 @@ function InvoiceAgreement({
             userId={userId}
             organizationId={organizationId}
             disabled={mutationDisabled}
-            label="Cargar contrato nuevo"
+            label="Registrar acuerdo reutilizable"
             onCreated={setCreated}
           />
           <CreateAgreementDialog

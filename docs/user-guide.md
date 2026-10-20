@@ -148,7 +148,7 @@ Para revisar un caso:
 
 1. En la organización correcta, subí la factura, el acuerdo y el respaldo operativo. Vinculá los documentos de la operación sin cambiar artificialmente el número de la cotización para hacerlo coincidir con la factura.
 2. Abrí la operación y revisá los datos contra los PDFs. El editor avanzado permite completar referencias tipadas, origen/destino, modalidad, equipo, cantidades reales, fechas y condiciones documentadas. Un dato desconocido debe quedar nulo o desconocido; usá «sin restricción» únicamente con evidencia explícita.
-3. En «Acuerdos por factura», seleccioná una versión guardada y registrá el motivo. Podés conservar una selección pendiente o contradictoria para revisarla: seleccionar no verifica sus condiciones. El sistema conserva usuario, fecha y motivo; las selecciones históricas previas a esta ampliación pueden no tener esos datos.
+3. Para la comparación básica, basta con los documentos vinculados. En «Opciones avanzadas de acuerdos» podés seleccionar una versión reutilizable o spot y registrar el motivo. Seleccionar no verifica sus condiciones; una fuente pendiente o contradictoria sigue requiriendo revisión.
 4. Ejecutá un nuevo análisis. Revisá por separado la vinculación documental, la aplicabilidad (candidatos, condiciones y faltantes) y los hallazgos económicos. Si hay varios candidatos compatibles, elegí una versión explícitamente. Una contradicción debe corregirse con evidencia, no ocultarse mediante selección.
 5. Si cambian datos, documentos o selección, el resultado anterior queda desactualizado y conserva su snapshot. Recalculá para obtener una nueva ejecución; consultá el historial para comparar las versiones.
 
@@ -159,7 +159,7 @@ La extracción sigue siendo acotada: reconoce etiquetas explícitas como `Bookin
 ## Comparar una factura con un contrato o tarifa
 
 1. Crear una operación con una referencia interna libre (por ejemplo, `REVISION-001`). No debe coincidir con números documentales.
-2. Vincular el contrato, cotización o tarifa como documento de referencia y la factura como documento a verificar.
+2. Dentro de la operación, usar la sección de documentos de referencia para subir o asignar el contrato, cotización o tarifa, y la sección de facturas para subir o asignar la factura. No hace falta publicar un acuerdo reutilizable. Una carga que no pudo asociarse puede reintentarse sin volver a subir el PDF.
 3. Revisar la extracción contra los originales. Corregir una lectura crea una revisión; no cambia el contrato. Las referencias de envío, booking o BL se conservan como identificadores externos distintos del expediente.
 4. Ejecutar un análisis nuevo. Tras actualizar reglas, abrir o recargar un resultado anterior no lo recalcula.
 5. Revisar aplicabilidad y resultados por factura: coincidencias, diferencias o datos pendientes. Un acuerdo asignado no queda aceptado automáticamente; sus condiciones deben estar respaldadas.
@@ -177,3 +177,15 @@ Los tipos de cambio visibles se muestran como datos documentales con evidencia; 
 Las notas de lectura dudosa y las fuentes incompletas requieren revisión. No se sustituyen importes dudosos por valores supuestos ni se confirma un error de total a partir de filas incompletas. El lector sigue acotado a encabezados/columnas soportados y no añade OCR ni interpretación universal de PDFs.
 
 Después del despliegue, usá **Volver a analizar** para generar un resultado nuevo con el texto almacenado. Los análisis previos no se reescriben. Las revisiones humanas previas conservan sus datos; si contienen una extracción antigua incompleta, revisalas explícitamente contra el documento.
+
+## Comparación de conceptos y precios originales
+
+El resultado nuevo presenta cada concepto de factura junto con su referencia propuesta, los precios originales con sus respectivas monedas, la cantidad observada en la factura y el cálculo cuando su base es compatible. Un catálogo versionado de equivalencias reconoce ciertos nombres en español e inglés y abreviaturas explícitas, conservando los textos y evidencias originales. No utiliza importes iguales para decidir una correspondencia. Un nombre desconocido o varios candidatos permanecen pendientes.
+
+La igualdad o diferencia de precio se muestra separada del estado comercial. Puede haber precios iguales y condiciones pendientes de proveedor, ruta, equipo, aceptación, vigencia o conversión. Estas observaciones no generan reclamos, ahorros recuperados ni importes reclamables. Los hallazgos económicos y su revisión mantienen un flujo separado. Las diferencias opuestas no se compensan automáticamente: cada partida conserva su explicación.
+
+La vigencia del acuerdo, el periodo facturado y el carácter fijo o variable de cada tarifa son datos distintos. Una unidad mensual o anual no demuestra que el precio sea fijo. Las tarifas recurrentes permanecen pendientes si falta una regla respaldada para la duración facturada; no se multiplica una cantidad genérica de factura como si fueran meses o años. Un recargo variable no se declara sobrecargo solo por superar una cotización anterior.
+
+El precio original en moneda extranjera puede contrastarse con una tarifa de esa moneda aunque el importe contabilizado esté convertido; la validez de la conversión sigue pendiente por separado. Si faltan el precio o la moneda original, no se sustituye uno por datos de la otra moneda.
+
+Las opciones de acuerdos reutilizables y spot quedan en un apartado avanzado. Los resultados nuevos usan parser v5 y reglas v6; ejecutar un análisis nuevo no modifica las revisiones ni los resultados históricos. El catálogo de equivalencias y los formatos de extracción siguen siendo acotados, sin OCR ni traducción universal.

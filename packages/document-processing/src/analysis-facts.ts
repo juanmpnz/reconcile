@@ -28,6 +28,7 @@ export function deriveAnalysisFacts(input: {
   });
   const commercial = commercialFacts(result, ev);
   lines.push(...commercial.lines);
+  evidence.push(...commercial.metadataEvidence.route);
   const label = (pattern: string): string | null => {
     const matches: { value: string; page: number; snippet: string }[] = [];
     for (const p of result.pages)
@@ -258,13 +259,20 @@ export function deriveAnalysisFacts(input: {
             ? ('unknown' as const)
             : ('restricted' as const),
       value: conditionValue,
-      evidence: evidence.filter(
-        (e) =>
-          e.snippet.toLowerCase().startsWith(name.toLowerCase() + ':') ||
-          e.snippet
-            .toLowerCase()
-            .startsWith(name.toLowerCase() + ' restriction:'),
-      ),
+      evidence: [
+        ...evidence.filter(
+          (e) =>
+            e.snippet.toLowerCase().startsWith(name.toLowerCase() + ':') ||
+            e.snippet
+              .toLowerCase()
+              .startsWith(name.toLowerCase() + ' restriction:'),
+        ),
+        ...(name === 'Origin' && conditionValue === commercial.origin
+          ? commercial.metadataEvidence.origin
+          : name === 'Destination' && conditionValue === commercial.destination
+            ? commercial.metadataEvidence.destination
+            : []),
+      ].slice(0, 20),
     };
   };
   const serviceLabel = label('Service');
@@ -329,6 +337,9 @@ export function deriveAnalysisFacts(input: {
     invoiceDate: date(label('Invoice date')),
     equipmentQuantities: equipmentQuantities.slice(0, 50),
     exchangeRates: commercial.exchangeRates,
+    ...(commercial.billingPeriod
+      ? { billingPeriod: commercial.billingPeriod }
+      : {}),
     blQuantity: count('BL quantity'),
     shipmentQuantity: count('Shipment quantity'),
     ...(input.kind === 'quotation' || input.kind === 'tariff'

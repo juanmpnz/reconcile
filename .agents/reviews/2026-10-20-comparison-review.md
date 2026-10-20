@@ -1,0 +1,50 @@
+# Independent comparison review — 2026-10-20
+
+Execution `/root/commercial_review`, independent of implementation executions. Roles: logistics-domain, solution-architect, security-engineer, qa-engineer and accessibility-reviewer. Initial staged status: changes-requested. Subsequent amendments below record reinspection and the current scoped disposition; this is not a production or CI approval.
+
+Read AGENTS.md, WORKFLOW.md, task record, relevant role profiles, planning review and ADR 0010. Inspected current additive contracts, application attachment and nested review evidence paths, bilingual alias dictionary, observation engine, legacy evaluation path, direct upload/association and comparison UI. No private source document or source-derived numbers/layouts are used in this review record.
+
+## Initial staged findings
+
+- High: current per-unit fixed pricing observations do not enforce explicit line price-period dates. Monthly/annual dates have a separate check, but per-unit line effectiveness must also use an evidenced date basis/date. Unknown date basis stays pending; document validity alone is insufficient.
+- High: legacy economic evaluation remains capable of definitive money findings despite newly explicit variable/recurring/out-of-period terms. Pending observational candidates cannot compensate for unsafe confirmed legacy findings. Apply compatible guards to the definitive path and verify regression behavior.
+- Medium: comparison result arrays and nested repeated evidence are not yet bounded as ADR 0010 requires. Candidate expansion can multiply across rows and references; define limits with explicit incomplete/pending behavior rather than overflowing payload budgets or silently claiming complete coverage.
+- Medium: one shared comparison currency becomes null when source currencies differ while two numeric unit prices are still displayed. Preserve and display each source price currency separately; do not show unlabeled monetary numbers as if comparable.
+
+## Preliminary positive observations
+
+Source-price observations have a separate result channel and literal `claimable: false`; existing claims consume findings rather than these observations. Original-currency values remain separate from booked invoice amounts; unknown conversion is visible. Explicit aliases distinguish origin versus destination and unknown concepts do not match by similar prices. The new additive attach use case authorizes current organization membership, verifies document tenancy, locks the operation, checks fingerprint, refuses active-run changes, increments revision and audits association. New pricing/billing nested evidence enters existing source ownership/page/snippet validation and append-only revision marking. These are source inspections, not runtime verification.
+
+## Remaining review
+
+Reinspect final implementation after findings are addressed; run independent targeted rules/parser/contracts checks and inspect final public diff. API integration, browser keyboard/focus/mobile workflow and final CI need actual execution evidence. No deployment, universal bilingual coverage, FX validation, full source applicability or accessibility certification is claimed.
+
+Additional staged findings: independent nullish fallback for original unit price and original currency can pair a booked-currency price with a different original currency when original metadata is partial. Select source-price/currency atomically or keep pending. Recurring monthly/annual candidates must not calculate expected amounts using generic invoice quantity without a documented temporal quantity; pending status alone does not justify an unsupported monetary calculation.
+
+UI source concern requiring runtime verification: after successful upload followed by association failure, `uploadedId` disables the kind Select, but retry parses the kind from FormData before the guarded async action. Disabled form controls can be omitted; use validated controlled kind state or skip upload-only parsing for a saved PDF. Verify association retry does not re-upload and remains keyboard accessible. Initial targeted observational/parser suites passed 30 tests; this does not cover the open findings above and is not final approval.
+
+Budget finding (high): read-only local source verification with the rebuilt parser confirms a supported reference can exceed the existing per-document fact budget, causing analysis intake failure before comparison. No private-derived size, identifier or document contents are recorded here. Keep explicit per-document and aggregate limits, adjust them proportionately with boundary/oversize regression tests or reduce repeated provenance without losing evidence, and recheck intake before approval.
+
+Aggregate follow-up: after rebuilding the parser and rules, ran the local extracted reference/invoice facts through strict snapshot/result contracts and the observational engine. The enlarged bounded document budget covers these sources and input snapshots remain within their aggregate cap. A supported comparison result still exceeds the retained result budget, so application analysis would fail despite successful extraction. No private metrics are recorded. Keep this high finding open until result provenance is compacted or a proportionate explicit result cap is introduced with oversize regression coverage and end-to-end local budget recheck.
+
+## Final source and targeted verification amendment
+
+Reinspected the updated engine after the staged findings. Original price/currency are selected atomically; each side has its own displayed currency. Explicit per-line periods now use the documented date basis; missing date basis remains pending. Recurring or incompatible unit/equipment/cadence comparisons do not emit unsupported aggregate amounts or calculations. Generic freight requires evidenced mode context, origin/destination concepts stay distinct, fuel concepts are not merged indiscriminately, and package/variable/emissions conditions remain pending. A shared legacy guard prevents pending commercial terms from becoming definitive economic findings. Eight bounded alternatives retain ambiguity/limit reasons rather than selecting a price silently.
+
+Re-ran the final targeted suites for comparisons, legacy evaluation/applicability, commercial parsing and additive contracts: 132 tests passed across five files. Independently inspected synthetic negative tests for incomplete original price/currency, unsupported billing basis, recurring periods, expired line terms, alias scope and bounded ambiguity. A transient regression in aggregate unit compatibility was found during reinspection, reported to the implementer, fixed and included in the final successful run.
+
+Source accessibility/UX review confirms DS sheets, labeled file/type controls, visible status text and errors, semantic sections, table detail buttons with expanded state and a focusable explanation for disabled analysis. The upload retry now validates controlled kind state, preserving saved PDF association retry. Optional publication is collapsed; attached source and invoice are the primary flow. Browser tests cover retry, keyboard/focus and mobile, but were not executed by this reviewer; full runtime accessibility/visual evidence remains CI-dependent and is not certified here.
+
+Budget fix source review: explicit per-document facts and result bounds were enlarged proportionately, while cumulative snapshot and HTTP request bounds remain finite and separate. Re-ran local read-only extraction through strict contracts and the rebuilt engine: supported sources now fit those explicit limits, yield observations and never claimable candidate money. The guarded worker path clears oversize results and persists a failed analysis reason before completion rather than storing partial financial results. No private-derived measurements or source details are recorded here. Synthetic boundary regressions and service-backed CI remain required to finish the budget evidence.
+
+Application security source review: additive document association remains tenant/member scoped, current-fingerprint guarded, locked, conflict-safe and audited; new nested evidence is validated against original source/run/page/snippet and receives the appended revision marker. Historical contracts/results remain additive and prior snapshots are not rewritten. No external model/service, dependency, secret or private document is introduced into the public diff.
+
+Current disposition: domain/architecture/security and targeted QA source findings are resolved; budget boundary integration execution and browser runtime checks remain explicitly pending. Final full release verification belongs to CI for the actual published SHA.
+
+## Budget boundary completion and scoped approval
+
+Inspected the completed synthetic API budget scenarios. A larger supported extracted reference fits the finite document bound and remains reviewable; excessive document facts are rejected on association/revision without appending history. A generated result exceeding the old result threshold but below the explicit new bound persists; a later excessive expansion fails with `ANALYSIS_RESULT_LIMIT`, stores no result and leaves the previous immutable run unchanged. These tests exercise actual uploaded PDF processing, source collection and worker outcomes when run in service-backed CI; only their source was inspected here.
+
+All high/medium findings from this independent review are resolved in the reexamined source. Disposition: passed for domain, architecture, security, static accessibility/UX inspection and independently executed targeted QA. Full service integration, browser keyboard/focus/mobile and publication-SHA verification remain explicitly required from CI before release completion. This scoped approval does not claim those executions occurred locally.
+
+Final independent API source/test TypeScript check: `pnpm --filter @reconcile/api typecheck` passed (both application and integration-test TypeScript configurations). `git diff --check` also passed during final inspection.

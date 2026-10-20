@@ -1,0 +1,219 @@
+{
+  "id": "2026-10-20-contract-invoice-comparison",
+  "summary": "Compare linked contract and invoice concepts across languages with explicit price observations and applicability, and simplify operation document intake.",
+  "state": "verified",
+  "owner": "principal-engineer",
+  "implementer": "/root, /root/commercial_engine, /root/commercial_parser, /root/commercial_ui, /root/api_tests",
+  "scope": [
+    "packages/",
+    "apps/",
+    "docs/",
+    ".agents/tasks/2026-10-20-contract-invoice-comparison.json",
+    ".agents/reviews/"
+  ],
+  "acceptance": [
+    "Operation accepts a reference PDF and invoice PDF directly without mandatory agreement publication; additive linking is tenant authorized, conflict safe and audited.",
+    "Each extracted invoice concept receives evidence-backed reference candidates using versioned bilingual semantics, unit and equipment scope; unknown or ambiguous matches remain pending.",
+    "Source-currency prices remain distinct from booked amounts, commercial applicability and FX authorization; no unsupported claims or net savings.",
+    "Fixed/variable price semantics and monthly/annual cadence are explicit and evidenced; no inference from absence.",
+    "Primary UI separates reference extraction, invoice review and per-line comparison, with advanced agreement features collapsed.",
+    "Earlier analyses/reviewed facts remain immutable, and complete synthetic intake-to-analysis and negative cases are tested."
+  ],
+  "requiredRoles": [
+    "principal-engineer",
+    "product-manager",
+    "logistics-domain",
+    "solution-architect",
+    "ux-designer",
+    "visual-designer",
+    "frontend-engineer",
+    "ui-engineer",
+    "document-ai-engineer",
+    "backend-engineer",
+    "security-engineer",
+    "qa-engineer",
+    "accessibility-reviewer"
+  ],
+  "semanticRouting": "Money rules, bilingual concept semantics, additive JSON contracts, document evidence trust boundaries, authorized operation association and UI workflow change.",
+  "excludedRoles": [
+    {
+      "role": "data-engineer",
+      "reason": "No DB migration; additive versioned JSON contracts preserve history."
+    },
+    {
+      "role": "integration-engineer",
+      "reason": "No external integration or AI service."
+    },
+    {
+      "role": "platform-engineer",
+      "reason": "No dependency, container or CI changes planned; revisit if needed."
+    }
+  ],
+  "reviews": [
+    {
+      "role": "product-manager",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning and ADR before dependent implementation; source comparison and applicability separated.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-planning.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning and ADR before dependent implementation; source comparison and applicability separated.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-planning.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/extract_plan",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Planning and ADR before dependent implementation; source comparison and applicability separated.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-planning.md"]
+    },
+    {
+      "role": "ux-designer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Design plan before implementation; semantic sections, DS controls, retry state and candidate display. Static checks passed; browser execution awaits CI.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-ui.md"]
+    },
+    {
+      "role": "visual-designer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Design plan before implementation; semantic sections, DS controls, retry state and candidate display. Static checks passed; browser execution awaits CI.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-ui.md"]
+    },
+    {
+      "role": "frontend-engineer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Design plan before implementation; semantic sections, DS controls, retry state and candidate display. Static checks passed; browser execution awaits CI.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-ui.md"]
+    },
+    {
+      "role": "ui-engineer",
+      "reviewer": "/root/commercial_ui",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Design plan before implementation; semantic sections, DS controls, retry state and candidate display. Static checks passed; browser execution awaits CI.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-ui.md"]
+    },
+    {
+      "role": "document-ai-engineer",
+      "reviewer": "/root/commercial_parser",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Explicit metadata, recurring units and evidenced price semantics; parser tests and types passed.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-parser.md"]
+    },
+    {
+      "role": "backend-engineer",
+      "reviewer": "/root/api_tests",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Atomic additive association, evidence provenance and synthetic intake-to-result regression; types and isolated PDF pipeline passed. Services await CI.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-api.md"]
+    },
+    {
+      "role": "principal-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Coordinated ownership, contracts and bounds; final independent review and CI still required.",
+      "evidence": ["docs/adr/0010-contract-invoice-comparison.md"]
+    },
+    {
+      "role": "logistics-domain",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "solution-architect",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "security-engineer",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "accessibility-reviewer",
+      "reviewer": "/root/commercial_review",
+      "mode": "independent",
+      "status": "passed",
+      "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
+      "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Inspected actual published-sha CI job logs: all75HTTP/service integration cases, all231unit cases, browser and production jobs passed; final harness task state is now closed. Independent domain/security/source QA review remains separately attributed.",
+      "evidence": [
+        ".agents/reviews/2026-10-20-comparison-review.md",
+        "https://github.com/juanmpnz/reconcile/actions/runs/39385632393",
+        "https://github.com/juanmpnz/reconcile/actions/runs/39385632395"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "Targeted parser, engine, contracts, API/web types and static checks",
+      "status": "passed",
+      "result": "Scoped evidence recorded per implementation/review; complete CI remains required."
+    },
+    {
+      "command": "Local browser and service-backed integration",
+      "status": "not-run",
+      "result": "No local Docker services or Chromium; browser download failed. CI must run real service and browser suites before merge."
+    },
+    {
+      "command": "pnpm check",
+      "status": "passed",
+      "result": "Full local harness/format/lint/types, 231 unit tests and all builds passed. Later bounded-budget edits passed API/application types; final unified CI required."
+    },
+    {
+      "command": "GitHub Quality39385632393 and Production39385632395 on d59cafff4d9f61b563b735a75af8b72ccc2a683f",
+      "status": "passed",
+      "result": "231 unit tests/full check, 75 real-service integration tests, worker/storage smoke, browser acceptance and production recreation/persistence passed. Initial overall Quality failed only because this task intentionally remained reviewed pending runtime evidence. This documentation closure must pass final unified CI before merge."
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "Bounded deterministic aliases and text extraction; no universal translation or OCR.",
+    "Source correspondence does not certify commercial applicability or claims.",
+    "Monthly/annual unit rates are observed but recurring totals require documented temporal quantity rules; no unsupported subscription calculation."
+  ],
+  "evidence": ["docs/adr/0010-contract-invoice-comparison.md"],
+  "changeClass": "domain",
+  "risk": "high",
+  "independentReviewRequired": true,
+  "independenceRationale": "Independent domain, security, QA and accessibility review required for money semantics, tenant association, evidence and changed workflow."
+}

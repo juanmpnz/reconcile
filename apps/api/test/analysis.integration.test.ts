@@ -9,7 +9,11 @@ import {
   analysisRunSchema,
   type OperationDetail,
 } from '@reconcile/contracts';
-import { createPrivateDocumentStorage } from '@reconcile/document-processing';
+import {
+  createPrivateDocumentStorage,
+  deriveAnalysisFacts,
+  extractPdf,
+} from '@reconcile/document-processing';
 import { startDocumentProcessing } from '@reconcile/worker/documents';
 import { startAnalysisProcessing } from '@reconcile/worker/analyses';
 import {
@@ -481,7 +485,7 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     expect(fx).toMatchObject({ from: 'USD', to: 'EUR', rate: '0.90' });
     expect(fx.evidence[0]?.snippet).toBe('1 USD = 0.90 EUR');
     const first = await completed(org, operation.id, owner);
-    expect(first.parserVersion).toBe('logistics-text-v4');
+    expect(first.parserVersion).toBe('logistics-text-v5');
     expect(
       first.result?.findings.some(
         (finding) => finding.code === 'LINES_MISSING',
@@ -541,6 +545,487 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
         (document) => document.documentId === invoice,
       )?.exchangeRates?.[0]?.evidence[0]?.revisionId,
     ).toBe(reviewed.revisionId);
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(`${base(org, operation.id)}/analyses/${first.id}`, owner),
+      ),
+    );
+    expect(historical.snapshot).toEqual(first.snapshot);
+    expect(historical.result).toEqual(first.result);
+  });
+
+  it('attaches one uploaded document additively with optimistic locking, authorization and preserved analysis history', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const original = await dossier(org, owner);
+    const prior = await completed(org, original.id, owner);
+    const extra = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - synthetic attachment fixture',
+        'Invoice number: EXTRA-1',
+      ]),
+      'extra.pdf',
+    );
+    const attach = (
+      actor: Browser,
+      documentId: string,
+      expectedFingerprint: string,
+      origin: string | null = fixture.origin,
+    ) =>
+      request(
+        `${base(org, original.id)}/documents/attach`,
+        actor,
+        { documentId, expectedFingerprint },
+        origin,
+      );
+    const response = await attach(owner, extra, original.fingerprint);
+    expect(response.statusCode, response.body).toBe(200);
+    const changed = operationDetailSchema.parse(body(response));
+    expect(new Set(changed.documentIds)).toEqual(
+      new Set([...original.documentIds, extra]),
+    );
+    expect(changed.revision).toBe(original.revision + 1);
+    expect(changed.analyses.find((run) => run.id === prior.id)?.stale).toBe(
+      true,
+    );
+    const audits = await prisma.identityAuditEvent.count({
+      where: { organizationId: org, action: 'operation.documents.updated' },
+    });
+    const repeat = await attach(owner, extra, changed.fingerprint);
+    expect(repeat.statusCode, repeat.body).toBe(200);
+    expect(operationDetailSchema.parse(body(repeat)).revision).toBe(
+      changed.revision,
+    );
+    expect(
+      await prisma.identityAuditEvent.count({
+        where: { organizationId: org, action: 'operation.documents.updated' },
+      }),
+    ).toBe(audits);
+    expect((await attach(owner, extra, original.fingerprint)).statusCode).toBe(
+      409,
+    );
+    const viewer = await verifiedUser();
+    expect(
+      (await accept(viewer, await invite(owner, org, viewer))).statusCode,
+    ).toBe(200);
+    expect((await attach(viewer, extra, changed.fingerprint)).statusCode).toBe(
+      403,
+    );
+    expect(
+      (
+        await attach(
+          owner,
+          extra,
+          changed.fingerprint,
+          'https://hostile.invalid',
+        )
+      ).statusCode,
+    ).toBe(403);
+    const outsider = await verifiedUser();
+    const foreignOrg = await organization(outsider);
+    const foreignDoc = await upload(
+      foreignOrg,
+      outsider,
+      makePdf(['DEMO - foreign attachment']),
+      'foreign.pdf',
+    );
+    expect(
+      (await attach(owner, foreignDoc, changed.fingerprint)).statusCode,
+    ).toBe(404);
+    const more = await upload(
+      org,
+      owner,
+      makePdf(['DEMO - second attachment']),
+      'second.pdf',
+    );
+    const queued = await enqueue(org, original.id, owner);
+    expect((await attach(owner, more, changed.fingerprint)).statusCode).toBe(
+      409,
+    );
+    await completed(org, original.id, owner, queued.id);
+    const beforeRace = await detail(org, original.id, owner);
+    const race = await Promise.all([
+      attach(owner, more, beforeRace.fingerprint),
+      attach(owner, more, beforeRace.fingerprint),
+    ]);
+    expect(race.map((result) => result.statusCode).sort()).toEqual([200, 409]);
+    const final = await detail(org, original.id, owner);
+    expect(new Set(final.documentIds)).toEqual(
+      new Set([...original.documentIds, extra, more]),
+    );
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(`${base(org, original.id)}/analyses/${prior.id}`, owner),
+      ),
+    );
+    expect(historical.snapshot).toEqual(prior.snapshot);
+    expect(historical.result).toEqual(prior.result);
+  });
+
+  it('compares independent commercial PDF aliases after additive intake without inventing provider or FX approval', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const invoice = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - independently invented intake comparison fixture',
+        'Invoice number: DEMO-INTAKE-241',
+        'Currency: EUR',
+        'Total: 206.60',
+        'Tax amount: 0.00 EUR',
+        'DE: Synthetic Cedar | A: Synthetic Maple',
+        "002 CONT. 40' X 9'6 HIGH CUBE CONT.",
+        'Concepto original   Precio tarifa   Divisa   Qty   Ud.   Importe EUR   IVA',
+        'Sea freight   67.00   USD   2   CTR   120.60   EX',
+        'OHC   23.00   EUR   2   CTR   46.00   EX',
+        'Documentation fee   15.00   EUR   2   CTR   30.00   EX',
+        'Widget levy   5.00   EUR   2   CTR   10.00   EX',
+        '1 USD = 0.90 EUR',
+      ]),
+      'independent-intake-invoice.pdf',
+    );
+    const quotation = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - independently invented intake comparison fixture',
+        'Quotation reference: DEMO-INTAKE-TERMS-82',
+        'From Synthetic Cedar (Port) to Synthetic Maple (Port)',
+        'Freight Charges   Curr   20STD   40STD   40HC',
+        'Ocean freight   USD   51.00   61.00   67.00',
+        'Origin handling charge   EUR   18.00   21.00   23.00',
+        'Documentation   EUR   9.00   11.00   12.00',
+        'Unmapped widget tariff   EUR   5.00   5.00   5.00',
+      ]),
+      'independent-intake-reference.pdf',
+      'quotation',
+    );
+    const created = await request(base(org), owner, {
+      reference: 'ANY-LOCAL-COMPARISON-LABEL',
+      name: 'Independent PDF intake',
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    let operation = operationDetailSchema.parse(body(created));
+    const attach = async (documentId: string) => {
+      const response = await request(
+        `${base(org, operation.id)}/documents/attach`,
+        owner,
+        { documentId, expectedFingerprint: operation.fingerprint },
+      );
+      expect(response.statusCode, response.body).toBe(200);
+      operation = operationDetailSchema.parse(body(response));
+    };
+    await attach(invoice);
+    const previous = await completed(org, operation.id, owner);
+    await attach(quotation);
+    expect(operation.documentIds).toHaveLength(2);
+    expect(
+      operation.analyses.find((run) => run.id === previous.id)?.stale,
+    ).toBe(true);
+    const invoiceFacts = fact(operation, 'invoice');
+    const referenceFacts = fact(operation, 'agreement');
+    expect(invoiceFacts.provider).toBeNull();
+    expect(referenceFacts.provider).toBeNull();
+    expect(invoiceFacts.lines).toHaveLength(4);
+    expect(referenceFacts.lines).toHaveLength(12);
+    const run = await completed(org, operation.id, owner);
+    const candidates = run.result?.comparisonCandidates;
+    expect(candidates).toHaveLength(4);
+    if (!candidates)
+      throw new Error('Structured candidates must survive API result parsing');
+    const freight = candidates.find(
+      (candidate) => candidate.invoiceConcept === 'Sea freight',
+    );
+    expect(freight).toMatchObject({
+      invoiceDocumentId: invoice,
+      referenceDocumentId: quotation,
+      referenceConcept: 'Ocean freight',
+      concept: 'ocean-freight',
+      priceStatus: 'equal',
+      status: 'pending',
+      expectedUnitPrice: '67.00',
+      actualUnitPrice: '67.00',
+      expectedCurrency: 'USD',
+      actualCurrency: 'USD',
+      claimable: false,
+    });
+    expect(
+      invoiceFacts.lines.find((line) => line.description === 'Sea freight'),
+    ).toMatchObject({
+      currency: 'EUR',
+      amount: '120.60',
+      tariffCurrency: 'USD',
+      tariffUnitPrice: '67.00',
+    });
+    expect(
+      candidates.find((candidate) => candidate.invoiceConcept === 'OHC'),
+    ).toMatchObject({
+      concept: 'origin-handling',
+      referenceConcept: 'Origin handling charge',
+      priceStatus: 'equal',
+      status: 'pending',
+      claimable: false,
+    });
+    expect(
+      candidates.find(
+        (candidate) => candidate.invoiceConcept === 'Documentation fee',
+      ),
+    ).toMatchObject({
+      concept: 'documentation',
+      referenceConcept: 'Documentation',
+      priceStatus: 'different',
+      expectedUnitPrice: '12.00',
+      actualUnitPrice: '15.00',
+      status: 'pending',
+      claimable: false,
+    });
+    expect(
+      candidates.find(
+        (candidate) => candidate.invoiceConcept === 'Widget levy',
+      ),
+    ).toMatchObject({
+      concept: null,
+      referenceDocumentId: null,
+      referenceLineId: null,
+      priceStatus: 'unknown',
+      status: 'pending',
+      claimable: false,
+    });
+    for (const candidate of candidates) {
+      expect(candidate.invoiceDocumentId).toBe(invoice);
+      expect(
+        candidate.evidence.some(
+          (evidence) =>
+            evidence.documentId === invoice &&
+            evidence.page === 1 &&
+            evidence.snippet.length > 0,
+        ),
+      ).toBe(true);
+      if (candidate.referenceLineId) {
+        expect(
+          referenceFacts.lines.find(
+            (line) => line.id === candidate.referenceLineId,
+          )?.equipmentType,
+        ).toBe('40HC');
+        expect(
+          candidate.evidence.some(
+            (evidence) =>
+              evidence.documentId === quotation && evidence.page === 1,
+          ),
+        ).toBe(true);
+      }
+    }
+    expect(
+      run.result?.findings.some((finding) => finding.code === 'LINES_MISSING'),
+    ).toBe(false);
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(
+          `${base(org, operation.id)}/analyses/${previous.id}`,
+          owner,
+        ),
+      ),
+    );
+    expect(historical.snapshot).toEqual(previous.snapshot);
+    expect(historical.result).toEqual(previous.result);
+  });
+
+  it('accepts bounded larger extracted reference facts and rejects oversized inputs without appending history', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const referenceBytes = (count: number, length: number) =>
+      makePdf([
+        'DEMO - independently generated reference budget fixture',
+        'Quotation reference: SYNTHETIC-BUDGET-TERMS',
+        'All rates are variable from 2026-01-01 to 2026-12-31.',
+        'Freight Charges   Curr   20STD   40STD   40HC',
+        ...Array.from(
+          { length: count },
+          (_, index) =>
+            `Synthetic charge ${index + 1} ${'x'.repeat(length)} USD 7.00 9.00 11.00`,
+        ),
+      ]);
+    const derive = async (bytes: Buffer) =>
+      deriveAnalysisFacts({
+        documentId: randomUUID(),
+        extractionRunId: randomUUID(),
+        kind: 'quotation',
+        corrections: [],
+        result: await extractPdf(bytes),
+      });
+    const supportedBytes = referenceBytes(15, 15);
+    const supportedFacts = await derive(supportedBytes);
+    const supportedSize = Buffer.byteLength(JSON.stringify(supportedFacts));
+    expect(supportedSize).toBeGreaterThan(16 * 1024);
+    expect(supportedSize).toBeLessThan(64 * 1024);
+    const invoice = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - synthetic budget invoice',
+        'Invoice number: BUDGET-1',
+        'Currency: EUR',
+        'Total: 13.00',
+        'Tax amount: 0.00 EUR',
+        'Route: Synthetic Port',
+        'Ocean handling 1 service 13.00 13.00',
+      ]),
+      'budget-invoice.pdf',
+    );
+    const reference = await upload(
+      org,
+      owner,
+      supportedBytes,
+      'bounded-reference.pdf',
+      'quotation',
+    );
+    const operation = await operationWith(
+      org,
+      owner,
+      [invoice, reference],
+      'INDEPENDENT-REFERENCE-BUDGET',
+    );
+    const referenceFact = fact(operation, 'agreement');
+    expect(Buffer.byteLength(JSON.stringify(referenceFact))).toBeGreaterThan(
+      16 * 1024,
+    );
+    const first = await completed(org, operation.id, owner);
+    const revised = await request(
+      `${base(org, operation.id)}/fact-revisions`,
+      owner,
+      {
+        expectedFingerprint: operation.fingerprint,
+        document: referenceFact,
+        reason: 'Confirm complete extracted reference within bounded budget',
+      },
+    );
+    expect(revised.statusCode, revised.body).toBe(200);
+    const current = operationDetailSchema.parse(body(revised));
+    const second = await completed(org, operation.id, owner);
+    expect(second.version).toBe(first.version + 1);
+    const oversizedBytes = referenceBytes(30, 30);
+    const oversizedFacts = await derive(oversizedBytes);
+    expect(Buffer.byteLength(JSON.stringify(oversizedFacts))).toBeGreaterThan(
+      64 * 1024,
+    );
+    const oversized = await upload(
+      org,
+      owner,
+      oversizedBytes,
+      'oversized-reference.pdf',
+      'quotation',
+    );
+    const rejectedAttach = await request(
+      `${base(org, operation.id)}/documents/attach`,
+      owner,
+      { documentId: oversized, expectedFingerprint: current.fingerprint },
+    );
+    // The additive transaction rolls back if the expanded source facts exceed the bound.
+    expect(rejectedAttach.statusCode, rejectedAttach.body).toBe(422);
+    expect(body(rejectedAttach).code).toBe('DOCUMENT_FACTS_LIMIT');
+    const rejectedRevision = await request(
+      `${base(org, operation.id)}/fact-revisions`,
+      owner,
+      {
+        expectedFingerprint: current.fingerprint,
+        document: {
+          ...oversizedFacts,
+          documentId: referenceFact.documentId,
+          extractionRunId: referenceFact.extractionRunId,
+        },
+        reason: 'Reject excessive document facts before persisting a review',
+      },
+    );
+    expect(rejectedRevision.statusCode, rejectedRevision.body).toBe(422);
+    expect(body(rejectedRevision).code).toBe('DOCUMENT_FACTS_LIMIT');
+    const final = await detail(org, operation.id, owner);
+    expect(final.documentIds).toEqual(current.documentIds);
+    expect(final.factRevisions).toHaveLength(current.factRevisions.length);
+    expect(final.analyses).toHaveLength(2);
+    const historical = analysisRunSchema.parse(
+      body(
+        await request(`${base(org, operation.id)}/analyses/${first.id}`, owner),
+      ),
+    );
+    expect(historical.snapshot).toEqual(first.snapshot);
+    expect(historical.result).toEqual(first.result);
+  });
+
+  it('persists bounded expanded comparison results and fails oversized results without overwriting an earlier run', async () => {
+    const owner = await verifiedUser();
+    const org = await organization(owner);
+    const invoiceBytes = (count: number) =>
+      makePdf([
+        'DEMO - independent comparison result budget',
+        'Currency: EUR',
+        "002 CONT. 40' X HIGH CUBE CONT.",
+        'Concepto original   Precio tarifa   Divisa   Qty   Ud.   Importe EUR   IVA',
+        ...Array.from({ length: count }, () => 'OHC 23.00 USD 2 CTR 41.40 EX'),
+        '1 USD = 0.90 EUR',
+      ]);
+    const invoice = await upload(
+      org,
+      owner,
+      invoiceBytes(6),
+      'bounded-result-invoice.pdf',
+    );
+    const reference = await upload(
+      org,
+      owner,
+      makePdf([
+        'DEMO - independent comparison result budget',
+        'All rates are variable from 2026-01-01 to 2026-12-31.',
+        'Freight Charges   Curr   20STD   40STD   40HC',
+        ...Array.from(
+          { length: 12 },
+          (_, index) =>
+            `OHC USD ${index + 7}.00 ${index + 8}.00 ${index + 9}.00`,
+        ),
+      ]),
+      'bounded-result-reference.pdf',
+      'quotation',
+    );
+    const operation = await operationWith(
+      org,
+      owner,
+      [invoice, reference],
+      'BOUNDED-RESULT-EXPANSION',
+    );
+    const first = await completed(org, operation.id, owner);
+    expect(Buffer.byteLength(JSON.stringify(first.result))).toBeGreaterThan(
+      128 * 1024,
+    );
+    expect(Buffer.byteLength(JSON.stringify(first.result))).toBeLessThan(
+      512 * 1024,
+    );
+    const extra = await upload(
+      org,
+      owner,
+      invoiceBytes(12),
+      'oversized-result-extra-invoice.pdf',
+    );
+    const attached = await request(
+      `${base(org, operation.id)}/documents/attach`,
+      owner,
+      { documentId: extra, expectedFingerprint: operation.fingerprint },
+    );
+    expect(attached.statusCode, attached.body).toBe(200);
+    const queued = await enqueue(org, operation.id, owner);
+    await analyses.process(await jobFor(queued.id));
+    const failed = analysisRunSchema.parse(
+      body(
+        await request(
+          `${base(org, operation.id)}/analyses/${queued.id}`,
+          owner,
+        ),
+      ),
+    );
+    expect(failed.status).toBe('failed');
+    expect(failed.errorCode).toBe('ANALYSIS_RESULT_LIMIT');
+    expect(failed.result).toBeNull();
     const historical = analysisRunSchema.parse(
       body(
         await request(`${base(org, operation.id)}/analyses/${first.id}`, owner),
@@ -1009,6 +1494,44 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     const forgedEvidence = { ...originalEvidence, documentId: randomUUID() };
     const nestedCases = [
       {
+        billingPeriod: {
+          from: '2026-10-01',
+          to: '2026-10-31',
+          evidence: [forgedEvidence],
+        },
+      },
+      {
+        billingPeriod: {
+          from: '2026-10-01',
+          to: '2026-10-31',
+          evidence: [{ ...originalEvidence, page: 2 }],
+        },
+      },
+      {
+        lines: carrier.lines.map((line) => ({
+          ...line,
+          pricingTerms: {
+            behavior: 'fixed',
+            cadence: 'monthly',
+            validFrom: null,
+            validUntil: null,
+            evidence: [forgedEvidence],
+          },
+        })),
+      },
+      {
+        lines: carrier.lines.map((line) => ({
+          ...line,
+          pricingTerms: {
+            behavior: 'fixed',
+            cadence: 'monthly',
+            validFrom: null,
+            validUntil: null,
+            evidence: [{ ...originalEvidence, page: 2 }],
+          },
+        })),
+      },
+      {
         references: [
           {
             type: 'booking',
@@ -1061,6 +1584,21 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
       document: {
         ...carrier,
         total: '211.00',
+        billingPeriod: {
+          from: '2026-10-01',
+          to: '2026-10-31',
+          evidence: [originalEvidence],
+        },
+        lines: carrier.lines.map((line) => ({
+          ...line,
+          pricingTerms: {
+            behavior: 'fixed',
+            cadence: 'monthly',
+            validFrom: null,
+            validUntil: null,
+            evidence: [originalEvidence],
+          },
+        })),
         references: [
           {
             type: 'booking',
@@ -1094,6 +1632,12 @@ describe('explainable analysis with actual uploaded PDFs, identity, PostgreSQL, 
     const reviewedCarrier = fact(revised, 'invoice', 'Faro Ocean Demo');
     expect(reviewedCarrier.total).toBe('211.00');
     expect(reviewedCarrier.revisionId).not.toBeNull();
+    expect(reviewedCarrier.billingPeriod?.evidence[0]?.revisionId).toBe(
+      reviewedCarrier.revisionId,
+    );
+    expect(
+      reviewedCarrier.lines[0]?.pricingTerms?.evidence[0]?.revisionId,
+    ).toBe(reviewedCarrier.revisionId);
     expect(reviewedCarrier.references?.[0]?.evidence[0]?.revisionId).toBe(
       reviewedCarrier.revisionId,
     );

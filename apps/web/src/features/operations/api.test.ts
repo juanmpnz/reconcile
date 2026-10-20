@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createOperation,
+  attachDocument,
   getOperation,
   listOperations,
   updateOperation,
@@ -29,6 +30,47 @@ const detail = {
 };
 afterEach(() => vi.unstubAllGlobals());
 describe('operation response boundaries', () => {
+  it('attaches additively by POST with the current fingerprint and validates the returned destination', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ ...detail, documentIds: [foreignId] }),
+      );
+    vi.stubGlobal('fetch', fetch);
+    const attached = await attachDocument(
+      organizationId,
+      operationId,
+      foreignId,
+      detail.fingerprint,
+    );
+    expect(attached.documentIds).toEqual([foreignId]);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/operations/${operationId}/documents/attach`),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          documentId: foreignId,
+          expectedFingerprint: detail.fingerprint,
+        }),
+      }),
+    );
+    fetch.mockResolvedValue(
+      Response.json({
+        ...detail,
+        organizationId: foreignId,
+        documentIds: [foreignId],
+      }),
+    );
+    await expect(
+      attachDocument(
+        organizationId,
+        operationId,
+        foreignId,
+        detail.fingerprint,
+      ),
+    ).rejects.toThrow('no corresponde');
+  });
   it('rejects a validly shaped cross-tenant list', async () => {
     vi.stubGlobal(
       'fetch',

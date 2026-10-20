@@ -43,6 +43,56 @@ export function commercialFacts(
     destination: string | null = null;
   let route: string | null = null;
   const routeCandidates = new Set<string>();
+  const metadataEvidence: Record<
+    'origin' | 'destination' | 'route',
+    Evidence[]
+  > = { origin: [], destination: [], route: [] };
+  let billingPeriod: AnalysisDocumentInput['billingPeriod'];
+  const billingPeriods = new Set<string>();
+  let globalPricing: Line['pricingTerms'];
+  let surchargePricing: Line['pricingTerms'];
+  for (const page of result.pages)
+    for (const raw of page.text.split('\n')) {
+      if (
+        !/\bnot\b|uncertain|to be confirmed/i.test(raw) &&
+        /(?:subject to all surcharges(?: as they are)? valid at time of shipment|all surcharges as valid at time of shipment apply)/i.test(
+          raw,
+        )
+      ) {
+        surchargePricing = {
+          behavior: 'variable',
+          dateBasis: 'shipment-date',
+          cadence: 'unknown',
+          validFrom: null,
+          validUntil: null,
+          evidence: [ev(page.page, raw.trim())],
+        };
+        break;
+      }
+    }
+  const dateBasisStatements: {
+    basis: NonNullable<Line['pricingTerms']>['dateBasis'];
+    evidence: Evidence;
+  }[] = [];
+  const pricingStatements = new Set<string>();
+  let invalidPricing = false;
+  const pricingIdentity = (terms: Line['pricingTerms']) =>
+    terms
+      ? JSON.stringify([
+          terms.behavior,
+          terms.cadence,
+          terms.dateBasis ?? 'unknown',
+          terms.validFrom,
+          terms.validUntil,
+        ])
+      : null;
+  const validDate = (value: string) => {
+    const date = new Date(value + 'T00:00:00Z');
+    return (
+      Number.isFinite(date.getTime()) &&
+      date.toISOString().slice(0, 10) === value
+    );
+  };
   let currentEquipment: string | null = null;
   const partial = () => warnings.add('COMMERCIAL_ROWS_PARTIAL');
   const add = (line: Omit<Line, 'id'>, reference = false) => {
@@ -61,9 +111,16 @@ export function commercialFacts(
           item.equipmentType === line.equipmentType &&
           item.currency === line.currency &&
           item.unitPrice === line.unitPrice &&
-          item.billingBasis === line.billingBasis,
+          item.billingBasis === line.billingBasis &&
+          pricingIdentity(item.pricingTerms) ===
+            pricingIdentity(line.pricingTerms),
       );
       if (previous) {
+        if (previous.pricingTerms && line.pricingTerms)
+          previous.pricingTerms.evidence = [
+            ...previous.pricingTerms.evidence,
+            ...line.pricingTerms.evidence,
+          ].slice(0, 20);
         for (const evidence of line.evidence)
           if (
             previous.evidence.length < 20 &&
@@ -87,8 +144,69 @@ export function commercialFacts(
   for (const page of result.pages) {
     let invoiceCurrency: string | null = null;
     let matrix: string[] = [];
+    let surchargeSection = false;
     for (const raw of page.text.split('\n')) {
       const text = raw.trim();
+      const basis = text.match(
+        /^Price validity date basis:\s*(service-date|shipment-date|booking-date|invoice-date|unknown)$/i,
+      );
+      if (basis?.[1]) {
+        const value = basis[1].toLowerCase();
+        if (
+          value === 'service-date' ||
+          value === 'shipment-date' ||
+          value === 'booking-date' ||
+          value === 'invoice-date' ||
+          value === 'unknown'
+        )
+          dateBasisStatements.push({
+            basis: value,
+            evidence: ev(page.page, text),
+          });
+      }
+      const pricing = text.match(
+        /^All rates are (fixed|variable)(?: from (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2}))?\.$/i,
+      );
+      if (pricing?.[1]) {
+        const from = pricing[2] ?? null,
+          to = pricing[3] ?? null;
+        if (
+          (!from || validDate(from)) &&
+          (!to || validDate(to)) &&
+          (!from || !to || from <= to)
+        ) {
+          const behavior =
+            pricing[1].toLowerCase() === 'fixed' ? 'fixed' : 'variable';
+          pricingStatements.add(JSON.stringify([behavior, from, to]));
+          globalPricing = {
+            behavior,
+            cadence: 'unknown',
+            validFrom: from,
+            validUntil: to,
+            evidence: [ev(page.page, text)],
+          };
+        } else {
+          invalidPricing = true;
+          warnings.add('PRICING_TERMS_REQUIRE_REVIEW');
+        }
+      }
+      const period = text.match(
+        /^Billing period:\s*(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})$/i,
+      );
+      if (period?.[1] && period[2]) {
+        if (
+          validDate(period[1]) &&
+          validDate(period[2]) &&
+          period[1] <= period[2]
+        ) {
+          billingPeriods.add(period[1] + '/' + period[2]);
+          billingPeriod = {
+            from: period[1],
+            to: period[2],
+            evidence: [ev(page.page, text)],
+          };
+        } else warnings.add('BILLING_PERIOD_REQUIRES_REVIEW');
+      }
       if (/no se recibi[oó] la p[aá]gina|missing original page/i.test(text))
         warnings.add('SOURCE_INCOMPLETE');
       const routeMatch = text.match(
@@ -108,8 +226,12 @@ export function commercialFacts(
         destination = quoteRoute[2].trim();
         route = `${origin} → ${destination}`;
       }
-      if (routeMatch || quoteRoute)
+      if (routeMatch || quoteRoute) {
         routeCandidates.add(JSON.stringify([origin, destination, route]));
+        for (const name of ['origin', 'destination', 'route'] as const)
+          if (metadataEvidence[name].length < 20)
+            metadataEvidence[name].push(ev(page.page, text));
+      }
       if (/^\d+\s+CONT\./i.test(text)) {
         currentEquipment = null;
         invoiceCurrency = null;
@@ -142,6 +264,7 @@ export function commercialFacts(
         /^(?:Freight Charges|Surcharge\s*\/\s*Concept)\s+Curr\s+(.+)$/i,
       );
       if (matrixHeader?.[1]) {
+        surchargeSection = /^Surcharge/i.test(text);
         matrix = matrixHeader[1].split(/\s+/).map(equipment);
         if (
           matrix.length > 3 ||
@@ -156,7 +279,7 @@ export function commercialFacts(
       }
       if (invoiceCurrency) {
         const row = text.match(
-          /^(.+?)\s+(-?[\d.,]+)\s+([A-Z]{3})\s+([\d.,]+)\s+(CTR|BIL|BL|SHIPMENT)\s+(-?[\d.,]+)\s+([A-Z0-9]+)$/,
+          /^(.+?)\s+(-?[\d.,]+)\s+([A-Z]{3})\s+([\d.,]+)\s+(CTR|BIL|BL|SHIPMENT|MONTH|YEAR)\s+(-?[\d.,]+)\s+([A-Z0-9]+)$/,
         );
         if (row?.[1] && row[3] && row[5]) {
           const unitPrice = commercialDecimal(row[2] ?? ''),
@@ -175,7 +298,9 @@ export function commercialFacts(
                   ? 'container'
                   : row[5] === 'SHIPMENT'
                     ? 'shipment'
-                    : 'bl',
+                    : row[5] === 'BIL' || row[5] === 'BL'
+                      ? 'bl'
+                      : 'other',
               equipmentType: row[5] === 'CTR' ? currentEquipment : null,
               unitPrice: row[3] === invoiceCurrency ? unitPrice : null,
               tariffUnitPrice: unitPrice,
@@ -183,13 +308,27 @@ export function commercialFacts(
               amount,
               currency: invoiceCurrency,
               evidence: [ev(page.page, text)],
+              ...(row[5] === 'MONTH' || row[5] === 'YEAR'
+                ? {
+                    pricingTerms: {
+                      behavior: 'unknown' as const,
+                      cadence:
+                        row[5] === 'MONTH'
+                          ? ('monthly' as const)
+                          : ('annual' as const),
+                      validFrom: null,
+                      validUntil: null,
+                      evidence: [ev(page.page, text)],
+                    },
+                  }
+                : {}),
             });
           else warnings.add('COMMERCIAL_ROWS_PARTIAL');
           continue;
         }
       }
       if (invoiceCurrency && text) {
-        if (/\s(?:CTR|BIL|BL|SHIPMENT)\s/.test(text)) partial();
+        if (/\s(?:CTR|BIL|BL|SHIPMENT|MONTH|YEAR)\s/.test(text)) partial();
         else invoiceCurrency = null;
       }
       if (
@@ -223,6 +362,9 @@ export function commercialFacts(
                   amount: null,
                   currency: row[2] ?? null,
                   evidence: [ev(page.page, text)],
+                  ...(surchargeSection && surchargePricing
+                    ? { pricingTerms: surchargePricing }
+                    : {}),
                 },
                 true,
               ),
@@ -277,6 +419,61 @@ export function commercialFacts(
       }
     }
   }
+  if (billingPeriods.size > 1) {
+    billingPeriod = undefined;
+    warnings.add('BILLING_PERIOD_REQUIRES_REVIEW');
+  }
+  if (pricingStatements.size > 1 || invalidPricing) {
+    globalPricing = undefined;
+    warnings.add('PRICING_TERMS_REQUIRE_REVIEW');
+  }
+  if (globalPricing)
+    for (const line of lines) {
+      if (!line.pricingTerms) line.pricingTerms = globalPricing;
+      else {
+        const conflict =
+          line.pricingTerms.behavior !== 'unknown' &&
+          line.pricingTerms.behavior !== globalPricing.behavior;
+        line.pricingTerms = {
+          ...line.pricingTerms,
+          behavior: conflict ? 'unknown' : globalPricing.behavior,
+          validFrom: globalPricing.validFrom,
+          validUntil: globalPricing.validUntil,
+          evidence: [
+            ...line.pricingTerms.evidence,
+            ...globalPricing.evidence,
+          ].slice(0, 20),
+        };
+        if (conflict) warnings.add('PRICING_TERMS_REQUIRE_REVIEW');
+      }
+    }
+  if (dateBasisStatements.length) {
+    const first = dateBasisStatements[0];
+    const conflict = dateBasisStatements.some(
+      (item) => item.basis !== first?.basis,
+    );
+    const basis = conflict ? 'unknown' : (first?.basis ?? 'unknown');
+    for (const line of lines) {
+      const terms = line.pricingTerms;
+      const lineConflict =
+        terms?.dateBasis &&
+        terms.dateBasis !== 'unknown' &&
+        terms.dateBasis !== basis;
+      line.pricingTerms = {
+        behavior: terms?.behavior ?? 'unknown',
+        cadence: terms?.cadence ?? 'unknown',
+        validFrom: terms?.validFrom ?? null,
+        validUntil: terms?.validUntil ?? null,
+        dateBasis: lineConflict ? 'unknown' : basis,
+        evidence: [
+          ...(terms?.evidence ?? []),
+          ...dateBasisStatements.map((item) => item.evidence),
+        ].slice(0, 20),
+      };
+      if (lineConflict) warnings.add('PRICING_TERMS_REQUIRE_REVIEW');
+    }
+    if (conflict) warnings.add('PRICING_TERMS_REQUIRE_REVIEW');
+  }
   if (routeCandidates.size > 1) {
     origin = null;
     destination = null;
@@ -286,6 +483,8 @@ export function commercialFacts(
   if (lines.length) warnings.add('HEADER_BASED_COMMERCIAL_EXTRACTION');
   return {
     lines,
+    metadataEvidence,
+    billingPeriod,
     warnings: [...warnings],
     exchangeRates,
     equipmentQuantities,

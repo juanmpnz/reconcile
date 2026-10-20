@@ -14,7 +14,7 @@ export {
   applicabilityConditionSchema,
 } from './agreement-conditions.js';
 export const ANALYSIS_QUEUE = 'reconcile-analysis';
-export const ANALYSIS_PARSER_VERSION = 'logistics-text-v4';
+export const ANALYSIS_PARSER_VERSION = 'logistics-text-v5';
 const nullableText = z.string().trim().min(1).max(500).nullable();
 const money = z
   .string()
@@ -34,6 +34,15 @@ const localDate = z
 const service = z.enum(['ocean-handling', 'pickup', 'unknown']);
 export const analysisDocumentSchema = z
   .object({
+    billingPeriod: z
+      .object({
+        from: z.iso.date(),
+        to: z.iso.date(),
+        evidence: z.array(analysisEvidenceSchema).min(1).max(20),
+      })
+      .strict()
+      .refine((period) => period.from <= period.to, 'Invalid billing period')
+      .optional(),
     documentId: z.uuid(),
     extractionRunId: z.uuid(),
     revisionId: z.uuid().nullable(),
@@ -135,6 +144,58 @@ export const analysisFindingSchema = z.object({
   evidence: z.array(analysisEvidenceSchema),
 });
 export const analysisResultSchema = z.object({
+  comparisonCandidates: z
+    .array(
+      z.object({
+        invoiceDocumentId: z.uuid(),
+        lineId: z.string().min(1).max(100),
+        referenceDocumentId: z.uuid().nullable(),
+        referenceLineId: z.string().min(1).max(100).nullable(),
+        concept: nullableText,
+        invoiceConcept: z.string().min(1).max(500),
+        referenceConcept: nullableText,
+        status: z.enum(['correct', 'difference', 'pending']),
+        priceStatus: z.enum(['equal', 'different', 'unknown']),
+        claimable: z.literal(false),
+        aliasVersion: z.string().min(1).max(100),
+        quantity: money,
+        currency: nullableText,
+        expectedCurrency: nullableText,
+        actualCurrency: nullableText,
+        expectedUnitPrice: money,
+        actualUnitPrice: money,
+        expectedAmount: z
+          .string()
+          .regex(/^-?\d{1,40}(?:\.\d{1,16})?$/)
+          .nullable(),
+        actualAmount: z
+          .string()
+          .regex(/^-?\d{1,40}(?:\.\d{1,16})?$/)
+          .nullable(),
+        difference: z
+          .string()
+          .regex(/^-?\d{1,40}(?:\.\d{1,16})?$/)
+          .nullable(),
+        conditions: z.array(
+          z.object({
+            name: z.string(),
+            state: z.enum([
+              'verified',
+              'unknown',
+              'contradictory',
+              'unrestricted',
+            ]),
+            reason: z.string(),
+            evidence: z.array(analysisEvidenceSchema),
+          }),
+        ),
+        reasons: z.array(z.string()),
+        calculation: z.string().nullable(),
+        evidence: z.array(analysisEvidenceSchema),
+      }),
+    )
+    .max(16000)
+    .optional(),
   ruleVersion: z.string(),
   agreementDecisions: z
     .array(
@@ -180,6 +241,12 @@ export const operationDocumentsSchema = z
       .array(z.uuid())
       .max(20)
       .refine((ids) => new Set(ids).size === ids.length),
+  })
+  .strict();
+export const operationAttachDocumentSchema = z
+  .object({
+    documentId: z.uuid(),
+    expectedFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
 export const factRevisionInputSchema = z

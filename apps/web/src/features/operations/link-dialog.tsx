@@ -1,3 +1,4 @@
+import type { DocumentKind } from '@reconcile/contracts';
 import { Label } from '../../design-system/controls';
 import { documentQueries } from '../documents/hooks';
 import { useLinkDocumentsMutation } from './hooks';
@@ -20,6 +21,8 @@ export function LinkDialog({
   activeRun,
   disabled,
   onSaved,
+  label = 'Gestionar documentos',
+  allowedKinds,
 }: {
   userId: string;
   organizationId: string;
@@ -29,6 +32,8 @@ export function LinkDialog({
   activeRun: boolean;
   disabled: boolean;
   onSaved: () => Promise<void>;
+  label?: string;
+  allowedKinds?: readonly DocumentKind[];
 }) {
   const linkDocumentsMutation = useLinkDocumentsMutation(userId);
 
@@ -46,7 +51,7 @@ export function LinkDialog({
   });
   return (
     <Dialog
-      title="Gestionar documentos"
+      title={label}
       description="Elegí hasta 20 documentos. Desmarcar quita la asociación con esta operación; no borra el PDF, su extracción ni los análisis anteriores."
       open={open && !disabled}
       busy={busy}
@@ -62,7 +67,7 @@ export function LinkDialog({
       }}
       trigger={
         <Button variant="outline" disabled={disabled || activeRun}>
-          Gestionar documentos
+          {label}
         </Button>
       }
     >
@@ -142,33 +147,43 @@ export function LinkDialog({
           <p>
             No hay documentos en esta página. Cargalos primero en Documentos.
           </p>
+        ) : documents.data.items.filter(
+            (item) => !allowedKinds || allowedKinds.includes(item.kind),
+          ).length === 0 ? (
+          <p>
+            No hay documentos de este tipo en esta página. Podés subir uno desde
+            el expediente o buscar en la siguiente página.
+          </p>
         ) : (
-          documents.data.items.map((item) => (
-            <Label className="document-choice" key={item.id}>
-              <Checkbox
-                checked={selected.includes(item.id)}
-                disabled={
-                  busy || (!selected.includes(item.id) && selected.length >= 20)
-                }
-                onChange={(event) =>
-                  setSelected(
-                    event.target.checked
-                      ? [...selected, item.id]
-                      : selected.filter((id) => id !== item.id),
-                  )
-                }
-              />
-              <span>
-                {item.filename}
-                {documentIds.includes(item.id) && (
-                  <small>Vinculado actualmente</small>
-                )}
-                <small>
-                  {kindLabels[item.kind]} · {statusLabels[item.status]}
-                </small>
-              </span>
-            </Label>
-          ))
+          documents.data.items
+            .filter((item) => !allowedKinds || allowedKinds.includes(item.kind))
+            .map((item) => (
+              <Label className="document-choice" key={item.id}>
+                <Checkbox
+                  checked={selected.includes(item.id)}
+                  disabled={
+                    busy ||
+                    (!selected.includes(item.id) && selected.length >= 20)
+                  }
+                  onChange={(event) =>
+                    setSelected(
+                      event.target.checked
+                        ? [...selected, item.id]
+                        : selected.filter((id) => id !== item.id),
+                    )
+                  }
+                />
+                <span>
+                  {item.filename}
+                  {documentIds.includes(item.id) && (
+                    <small>Vinculado actualmente</small>
+                  )}
+                  <small>
+                    {kindLabels[item.kind]} · {statusLabels[item.status]}
+                  </small>
+                </span>
+              </Label>
+            ))
         )}
         <div className="pagination">
           <Button

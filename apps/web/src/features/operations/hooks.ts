@@ -6,6 +6,8 @@ export const useCreateOperationMutation = (userId: string) =>
   useOrganizationMutation(userId, api.createOperation);
 export const useLinkDocumentsMutation = (userId: string) =>
   useOrganizationMutation(userId, api.linkDocuments);
+export const useAttachDocumentMutation = (userId: string) =>
+  useOrganizationMutation(userId, api.attachDocument);
 export const useSaveFactsMutation = (userId: string) =>
   useOrganizationMutation(userId, api.saveFacts);
 export const useRequestAnalysisMutation = (userId: string) =>

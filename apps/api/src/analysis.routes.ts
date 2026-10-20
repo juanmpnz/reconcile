@@ -9,6 +9,7 @@ import {
   operationCreateSchema,
   operationUpdateSchema,
   operationDocumentsSchema,
+  operationAttachDocumentSchema,
   factRevisionInputSchema,
 } from '@reconcile/contracts';
 export function registerAnalysisRoutes(
@@ -126,6 +127,23 @@ export function registerAnalysisRoutes(
         if (!input.success)
           throw new DocumentError(400, 'INVALID_DOCUMENT_LINKS');
         return service.link(
+          req.params.organizationId,
+          req.params.operationId ?? '',
+          who,
+          input.data,
+        );
+      }),
+  );
+  server.post<{ Params: Params }>(
+    base + '/:operationId/documents/attach',
+    { bodyLimit: 4096 },
+    (req, reply) =>
+      bounded(reply, async () => {
+        const who = await actor(req, reply, true);
+        const input = operationAttachDocumentSchema.safeParse(req.body);
+        if (!input.success)
+          throw new DocumentError(400, 'INVALID_DOCUMENT_LINKS');
+        return service.attach(
           req.params.organizationId,
           req.params.operationId ?? '',
           who,

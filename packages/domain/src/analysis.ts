@@ -43,6 +43,22 @@ export type AnalysisEvidence = {
   revisionId: string | null;
 };
 export type AnalysisLine = {
+  pricingTerms?:
+    | {
+        behavior: 'fixed' | 'variable' | 'unknown';
+        cadence: 'per-unit' | 'monthly' | 'annual' | 'unknown';
+        dateBasis?:
+          | 'service-date'
+          | 'shipment-date'
+          | 'booking-date'
+          | 'invoice-date'
+          | 'unknown'
+          | undefined;
+        validFrom: string | null;
+        validUntil: string | null;
+        evidence: AnalysisEvidence[];
+      }
+    | undefined;
   chargeKey?: string | null | undefined;
   tariffUnitPrice?: string | null | undefined;
   tariffCurrency?: string | null | undefined;
@@ -63,6 +79,8 @@ export type AnalysisLine = {
   evidence: AnalysisEvidence[];
 };
 export type AnalysisDocument = {
+  billingPeriod?:
+    { from: string; to: string; evidence: AnalysisEvidence[] } | undefined;
   exchangeRates?:
     | Array<{
         from: string;
@@ -204,7 +222,36 @@ export type AnalysisFinding = {
   evidence: AnalysisEvidence[];
 };
 export type AnalysisResult = {
+  comparisonCandidates?: ComparisonCandidate[] | undefined;
   agreementDecisions?: AgreementDecision[] | undefined;
   ruleVersion: string;
   findings: AnalysisFinding[];
+};
+
+/** Source-price observations remain separate from claimable findings. */
+export type ComparisonCandidate = {
+  invoiceDocumentId: string;
+  lineId: string;
+  referenceDocumentId: string | null;
+  referenceLineId: string | null;
+  concept: string | null;
+  invoiceConcept: string;
+  referenceConcept: string | null;
+  status: 'correct' | 'difference' | 'pending';
+  priceStatus: 'equal' | 'different' | 'unknown';
+  claimable: false;
+  aliasVersion: string;
+  quantity: string | null;
+  currency: string | null;
+  expectedCurrency: string | null;
+  actualCurrency: string | null;
+  expectedUnitPrice: string | null;
+  actualUnitPrice: string | null;
+  expectedAmount: string | null;
+  actualAmount: string | null;
+  difference: string | null;
+  conditions: AgreementDecision['conditions'];
+  reasons: string[];
+  calculation: string | null;
+  evidence: AnalysisEvidence[];
 };

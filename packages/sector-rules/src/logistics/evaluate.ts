@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { compareReferenceLines } from './comparisons.js';
 import {
   decideAgreement,
   sameCharge,
@@ -15,7 +16,7 @@ import type {
   AnalysisResult,
   AnalysisSnapshot,
 } from '@reconcile/domain';
-export const LOGISTICS_RULE_VERSION = 'logistics-v5';
+export const LOGISTICS_RULE_VERSION = 'logistics-v6';
 const Arithmetic = Decimal.clone({ precision: 128 });
 const decimal = (value: string | null | undefined): value is string =>
   value != null && /^-?\d{1,30}(?:\.\d{1,12})?$/.test(value);
@@ -411,6 +412,7 @@ function evaluateBinding(
 /** Pure deterministic comparison; never mutates financial/accounting state. */
 export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
   const findings: AnalysisFinding[] = [];
+  const comparisonCandidates = compareReferenceLines(snapshot);
   const agreementDecisions: NonNullable<AnalysisResult['agreementDecisions']> =
     [];
   const documents = snapshot.documents.filter(
@@ -507,6 +509,47 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
         );
     }
     for (const line of invoice.lines) {
+      const observations = comparisonCandidates.filter(
+        (item) =>
+          item.invoiceDocumentId === invoice.documentId &&
+          item.lineId === line.id,
+      );
+      const hasPricingTerms =
+        Boolean(line.pricingTerms) ||
+        agreements.some((agreement) =>
+          agreement.lines.some(
+            (rate) =>
+              Boolean(rate.pricingTerms) &&
+              sameCharge(rate, line) &&
+              rate.service === line.service &&
+              same(rate.route, line.route),
+          ),
+        ) ||
+        (snapshot.agreementBindings ?? []).some(
+          (binding) =>
+            binding.invoiceDocumentId === invoice.documentId &&
+            binding.agreement.terms.lines?.some(
+              (rate) => Boolean(rate.pricingTerms) && sameCharge(rate, line),
+            ),
+        );
+      if (
+        hasPricingTerms &&
+        (observations.length === 0 ||
+          observations.some((item) => item.status === 'pending'))
+      ) {
+        findings.push(
+          finding(
+            invoice,
+            line,
+            'COMMERCIAL_CONDITIONS_PENDING',
+            'Las condiciones comerciales requieren revisión antes de confirmar una diferencia: ' +
+              [...new Set(observations.flatMap((item) => item.reasons))].join(
+                ' ',
+              ),
+          ),
+        );
+        continue;
+      }
       if (
         line.tariffCurrency &&
         !same(line.tariffCurrency, line.currency ?? invoice.currency)
@@ -884,5 +927,10 @@ export function evaluateLogistics(snapshot: AnalysisSnapshot): AnalysisResult {
       explanation: 'No hay facturas asociadas a esta operación.',
       evidence: [],
     });
-  return { ruleVersion: LOGISTICS_RULE_VERSION, findings, agreementDecisions };
+  return {
+    ruleVersion: LOGISTICS_RULE_VERSION,
+    findings,
+    agreementDecisions,
+    comparisonCandidates,
+  };
 }

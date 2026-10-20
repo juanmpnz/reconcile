@@ -1,7 +1,8 @@
 import { Label } from '../../design-system/controls';
 import { documentQueries } from '../documents/hooks';
 import { operationQueries } from './hooks';
-import { useRequestAnalysisMutation } from './hooks';
+import { useRequestAnalysisMutation, useAttachDocumentMutation } from './hooks';
+import { UploadDialog } from '../documents/upload-dialog';
 import {
   Accordion,
   AccordionTrigger,
@@ -36,8 +37,13 @@ import {
   applicabilityEmptyMessage,
 } from './presentation';
 import { WarningsList } from './warnings';
-import { useState } from 'react';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import {
+  queryOptions,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { AnalysisRun, OperationDetail } from '@reconcile/contracts';
 import {
   Badge,
@@ -84,6 +90,7 @@ export function OperationDetailView({
   operationId: string;
   authorizationPending: boolean;
 }) {
+  const attachDocumentMutation = useAttachDocumentMutation(userId);
   const requestAnalysisMutation = useRequestAnalysisMutation(userId);
 
   const client = useQueryClient();
@@ -123,11 +130,41 @@ export function OperationDetailView({
       !query.data?.analyses.some((run) => run.id === selectedRun),
   });
   const documentResults = useQueries({
-    queries: (query.data?.documentIds ?? []).map((documentId) => ({
-      ...documentQueries.detail(userId, organizationId, documentId),
-      enabled: !authorizationPending && query.isSuccess && !query.isError,
-    })),
+    queries: (query.data?.documentIds ?? []).map((documentId) =>
+      queryOptions({
+        ...documentQueries.detail(userId, organizationId, documentId),
+        enabled: !authorizationPending && query.isSuccess && !query.isError,
+        refetchInterval: (state) =>
+          state.state.data?.status === 'queued' ||
+          state.state.data?.status === 'processing'
+            ? 2000
+            : false,
+      }),
+    ),
   });
+  const extractionStates = documentResults
+    .map((item) => `${item.data?.id}:${item.data?.status}`)
+    .join('|');
+  useEffect(() => {
+    if (extractionStates)
+      void client.invalidateQueries({
+        queryKey: operationsKey(userId, organizationId),
+      });
+  }, [extractionStates, client, userId, organizationId]);
+  async function attach(documentId: string) {
+    const current = await client.fetchQuery(
+      operationQueries.detail(userId, organizationId, operationId),
+    );
+    if (!current.documentIds.includes(documentId)) {
+      await attachDocumentMutation.mutateAsync([
+        organizationId,
+        operationId,
+        documentId,
+        current.fingerprint,
+      ]);
+    }
+    await refresh();
+  }
   async function refresh() {
     await client.invalidateQueries({
       queryKey: operationsKey(userId, organizationId),
@@ -188,8 +225,17 @@ export function OperationDetailView({
       : data.analyses.some(active)
         ? 'Hay un análisis en curso. Esperá a que termine.'
         : data.documentIds.length === 0
-          ? 'Vinculá al menos un documento para analizar.'
-          : undefined;
+          ? 'Subí o asigná una factura y su documento de referencia.'
+          : documentResults.some(
+                (item) =>
+                  item.isPending ||
+                  item.data?.status === 'queued' ||
+                  item.data?.status === 'processing',
+              )
+            ? 'Esperá a que termine la extracción de los documentos vinculados.'
+            : !documentResults.some((item) => item.data?.kind === 'invoice')
+              ? 'Subí o asigná al menos una factura para comparar.'
+              : undefined;
   const filenames = new Map(
     documentResults.flatMap((item) =>
       item.data ? [[item.data.id, item.data.filename] as const] : [],
@@ -264,7 +310,7 @@ export function OperationDetailView({
                     ? 'Solicitando análisis…'
                     : data.analyses.length > 0
                       ? 'Volver a analizar'
-                      : 'Analizar operación'}
+                      : 'Comparar factura'}
                 </Button>
               </span>
             )}
@@ -289,13 +335,6 @@ export function OperationDetailView({
           cuando termine.
         </p>
       )}
-      <OperationAgreements
-        userId={userId}
-        organizationId={organizationId}
-        operation={data}
-        filenames={filenames}
-        disabled={disabled || busy || query.isFetching}
-      />
       <WarningsList warnings={data.warnings} filenames={filenames} />
       <p className="permission-note">
         Referencia interna del expediente: {data.reference}. No necesita
@@ -310,11 +349,270 @@ export function OperationDetailView({
       {query.isFetching && !data.analyses.some(active) && (
         <Loading inline label="Actualizando operación…" />
       )}
+      <section className="operation-panel">
+        <section
+          className="operation-section"
+          aria-labelledby="operation-documents"
+        >
+          <PageHeader className="page-header">
+            <h3 id="operation-documents">1. Preparar documentos</h3>
+          </PageHeader>
+          <>
+            <p className="metadata">
+              Los contratos, cotizaciones y tarifas aportan condiciones. Solo
+              las facturas se verifican económicamente.
+            </p>
+            {(['reference', 'invoice', 'support'] as const)
+              .filter(
+                (role) =>
+                  role !== 'support' ||
+                  documentResults.some(
+                    (item) =>
+                      item.data &&
+                      item.data.kind !== 'invoice' &&
+                      item.data.kind !== 'tariff' &&
+                      item.data.kind !== 'quotation',
+                  ),
+              )
+              .map((role) => (
+                <section
+                  key={role}
+                  aria-label={
+                    role === 'reference'
+                      ? 'Documentos de referencia'
+                      : role === 'invoice'
+                        ? 'Facturas a verificar'
+                        : 'Documentos de apoyo'
+                  }
+                >
+                  <h4>
+                    {role === 'reference'
+                      ? 'Documentos de referencia'
+                      : role === 'invoice'
+                        ? 'Facturas a verificar'
+                        : 'Documentos de apoyo'}
+                  </h4>
+                  {role !== 'support' && (
+                    <>
+                      <p className="metadata">
+                        {role === 'reference'
+                          ? 'Proponé el contrato, cotización o tarifa que contiene los precios. Vincularlo no confirma que sus condiciones apliquen.'
+                          : 'Subí la factura cuyos cargos querés comprobar contra la fuente de referencia.'}
+                      </p>
+                      {data.capabilities.canWrite && (
+                        <div className="operation-actions">
+                          <UploadDialog
+                            userId={userId}
+                            organizationId={organizationId}
+                            disabled={
+                              !canWrite ||
+                              busy ||
+                              data.analyses.some(active) ||
+                              data.documentIds.length >= 20
+                            }
+                            defaultKind={
+                              role === 'reference' ? 'tariff' : 'invoice'
+                            }
+                            allowedKinds={
+                              role === 'reference'
+                                ? ['tariff', 'quotation']
+                                : ['invoice']
+                            }
+                            label={
+                              role === 'reference'
+                                ? 'Subir contrato o tarifa'
+                                : 'Subir factura'
+                            }
+                            onUploaded={attach}
+                          />
+                          <LinkDialog
+                            userId={userId}
+                            organizationId={organizationId}
+                            operationId={operationId}
+                            documentIds={data.documentIds}
+                            fingerprint={data.fingerprint}
+                            activeRun={data.analyses.some(active)}
+                            disabled={!canWrite || busy}
+                            onSaved={refresh}
+                            allowedKinds={
+                              role === 'reference'
+                                ? ['tariff', 'quotation']
+                                : ['invoice']
+                            }
+                            label={
+                              role === 'reference'
+                                ? 'Asignar referencia existente'
+                                : 'Asignar factura existente'
+                            }
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <DataTable
+                    label={
+                      role === 'reference'
+                        ? 'Documentos de referencia'
+                        : role === 'invoice'
+                          ? 'Facturas a verificar'
+                          : 'Documentos de apoyo'
+                    }
+                    searchLabel="Buscar documentos vinculados"
+                    emptyMessage={
+                      role === 'reference'
+                        ? 'Todavía no hay una fuente de referencia vinculada. Subí o asigná un contrato, cotización o tarifa.'
+                        : role === 'invoice'
+                          ? 'Todavía no hay una factura vinculada. Subí o asigná la factura que querés comprobar.'
+                          : 'No hay documentos de apoyo vinculados.'
+                    }
+                    data={data.documentIds
+                      .map((id, index) => ({
+                        id,
+                        query: documentResults[index],
+                      }))
+                      .filter((item) => {
+                        const kind = item.query?.data?.kind;
+                        return role === 'reference'
+                          ? kind === 'quotation' || kind === 'tariff'
+                          : role === 'invoice'
+                            ? kind === 'invoice'
+                            : kind !== 'quotation' &&
+                              kind !== 'tariff' &&
+                              kind !== 'invoice';
+                      })}
+                    getRowId={(item) => item.id}
+                    columns={[
+                      {
+                        id: 'document',
+                        label: 'Documento',
+                        accessor: (item) =>
+                          item.query?.data?.filename ?? 'Documento vinculado',
+                        render: (item) => (
+                          <>
+                            {renderLink(
+                              item.query?.data?.filename ??
+                                'Documento vinculado',
+                              documentPath(organizationId, item.id),
+                              navigate,
+                            )}
+                            {item.query?.isError && (
+                              <p className="metadata">
+                                No se pudo cargar el nombre. Abrí el documento
+                                para reintentar.
+                              </p>
+                            )}
+                          </>
+                        ),
+                      },
+                      {
+                        id: 'kind',
+                        label: 'Tipo',
+                        accessor: (item) =>
+                          item.query?.data
+                            ? kindLabels[item.query.data.kind]
+                            : 'Consultando…',
+                      },
+                      {
+                        id: 'status',
+                        label: 'Extracción',
+                        accessor: (item) =>
+                          item.query?.data
+                            ? statusLabels[item.query.data.status]
+                            : 'Consultando…',
+                      },
+                    ]}
+                  />
+                </section>
+              ))}
+          </>
+        </section>
+      </section>
+      <Accordion className="operation-panel" open>
+        <AccordionTrigger>
+          2. Revisar datos para comparar ({data.facts.length} documentos ·{' '}
+          {data.factRevisions.length} revisiones)
+        </AccordionTrigger>{' '}
+        <section
+          className="operation-section"
+          aria-labelledby="comparison-facts"
+        >
+          <h3 id="comparison-facts" tabIndex={-1}>
+            Revisar datos para comparar
+          </h3>
+          <p className="metadata">
+            Revisá los candidatos extraídos antes de analizar. Corregir una
+            lectura conserva el original y no modifica el contrato. Los formatos
+            no reconocidos y los campos ausentes no se completan con
+            suposiciones.
+          </p>
+
+          {!data.facts.length ? (
+            <p>
+              No hay datos de comparación disponibles. Esperá a que finalice la
+              extracción y actualizá la operación.
+            </p>
+          ) : (
+            data.facts.map((fact) => (
+              <article key={fact.documentId} className="comparison-fact">
+                <PageHeader className="page-header">
+                  <div>
+                    <h4>
+                      {filenames.get(fact.documentId) ?? 'Documento vinculado'}
+                    </h4>
+                    <p>
+                      {fact.provider ?? 'Proveedor sin dato'} ·{' '}
+                      {fact.operationReference ?? 'Referencia sin dato'} ·{' '}
+                      {fact.kind === 'invoice'
+                        ? `${fact.total ?? 'Total sin dato'} ${fact.currency ?? ''}`
+                        : fact.kind === 'agreement'
+                          ? 'Fuente de precios y condiciones'
+                          : 'Evidencia operativa'}
+                    </p>
+                  </div>
+                  {data.capabilities.canWrite && (
+                    <FactsEditor
+                      userId={userId}
+                      key={fact.documentId}
+                      organizationId={organizationId}
+                      operationId={operationId}
+                      document={fact}
+                      filename={
+                        filenames.get(fact.documentId) ?? 'Documento vinculado'
+                      }
+                      fingerprint={data.fingerprint}
+                      disabled={disabled}
+                      onSaved={refresh}
+                    />
+                  )}
+                </PageHeader>
+                <p className="back-link">
+                  <a href={documentPath(organizationId, fact.documentId)}>
+                    Ver extracción original
+                  </a>
+                </p>
+                <p className="metadata">
+                  {fact.revisionId
+                    ? 'Revisión humana registrada · original conservado'
+                    : 'Candidato extraído · pendiente de revisión'}{' '}
+                  · {fact.lines.length} partidas ·{' '}
+                  {fact.excludedServices.length} exclusiones
+                </p>
+                <Accordion>
+                  <AccordionTrigger>Ver datos y evidencia</AccordionTrigger>
+                  <FactSummary fact={fact} />
+                </Accordion>
+              </article>
+            ))
+          )}
+        </section>
+      </Accordion>
       <section
         className="operation-section"
         aria-labelledby="operation-analysis"
       >
-        <h3 id="operation-analysis">Análisis</h3>
+        <h3 id="operation-analysis">
+          3. Comparar factura y revisar resultados
+        </h3>
         {selectedRun &&
           historicalRun.isFetching &&
           !data.analyses.some((run) => run.id === selectedRun) && (
@@ -401,6 +699,13 @@ export function OperationDetailView({
                   documentos antes de iniciar uno nuevo. Los resultados
                   anteriores siguen en el historial.
                 </p>
+                <p>
+                  Motivo registrado:{' '}
+                  {selected.errorCode ?? 'Sin detalle disponible'}.
+                </p>
+                <a href="#operation-documents">
+                  Revisar documentos y estados de extracción
+                </a>
               </div>
             )}
             {selected.result && <ResultSummary run={selected} />}
@@ -424,212 +729,13 @@ export function OperationDetailView({
           </>
         )}
       </section>
-      <Accordion className="operation-panel">
-        <AccordionTrigger>
-          Documentos ({data.documentIds.length} vinculados)
-        </AccordionTrigger>{' '}
-        <section
-          className="operation-section"
-          aria-labelledby="operation-documents"
-        >
-          <PageHeader className="page-header">
-            <h3 id="operation-documents">Vinculación documental</h3>
-            {data.capabilities.canWrite && (
-              <LinkDialog
-                userId={userId}
-                organizationId={organizationId}
-                operationId={operationId}
-                documentIds={data.documentIds}
-                fingerprint={data.fingerprint}
-                activeRun={data.analyses.some(active)}
-                disabled={disabled}
-                onSaved={refresh}
-              />
-            )}
-          </PageHeader>
-          {!data.documentIds.length ? (
-            <EmptyState title="No hay documentos vinculados">
-              <p>
-                Vinculá una factura y un contrato, cotización o tarifa de
-                referencia. También podés seleccionar acuerdos reutilizables en
-                «Acuerdos por factura».
-              </p>
-            </EmptyState>
-          ) : (
-            <>
-              <p className="metadata">
-                Los contratos, cotizaciones y tarifas aportan condiciones. Solo
-                las facturas se verifican económicamente.
-              </p>
-              {(['reference', 'invoice', 'support'] as const).map((role) => (
-                <section
-                  key={role}
-                  aria-label={
-                    role === 'reference'
-                      ? 'Documentos de referencia'
-                      : role === 'invoice'
-                        ? 'Facturas a verificar'
-                        : 'Documentos de apoyo'
-                  }
-                >
-                  <h4>
-                    {role === 'reference'
-                      ? 'Documentos de referencia'
-                      : role === 'invoice'
-                        ? 'Facturas a verificar'
-                        : 'Documentos de apoyo'}
-                  </h4>
-                  <DataTable
-                    label={
-                      role === 'reference'
-                        ? 'Documentos de referencia'
-                        : role === 'invoice'
-                          ? 'Facturas a verificar'
-                          : 'Documentos de apoyo'
-                    }
-                    searchLabel="Buscar documentos vinculados"
-                    data={data.documentIds
-                      .map((id, index) => ({
-                        id,
-                        query: documentResults[index],
-                      }))
-                      .filter((item) => {
-                        const kind = item.query?.data?.kind;
-                        return role === 'reference'
-                          ? kind === 'quotation' || kind === 'tariff'
-                          : role === 'invoice'
-                            ? kind === 'invoice'
-                            : kind !== 'quotation' &&
-                              kind !== 'tariff' &&
-                              kind !== 'invoice';
-                      })}
-                    getRowId={(item) => item.id}
-                    columns={[
-                      {
-                        id: 'document',
-                        label: 'Documento',
-                        accessor: (item) =>
-                          item.query?.data?.filename ?? 'Documento vinculado',
-                        render: (item) => (
-                          <>
-                            {renderLink(
-                              item.query?.data?.filename ??
-                                'Documento vinculado',
-                              documentPath(organizationId, item.id),
-                              navigate,
-                            )}
-                            {item.query?.isError && (
-                              <p className="metadata">
-                                No se pudo cargar el nombre. Abrí el documento
-                                para reintentar.
-                              </p>
-                            )}
-                          </>
-                        ),
-                      },
-                      {
-                        id: 'kind',
-                        label: 'Tipo',
-                        accessor: (item) =>
-                          item.query?.data
-                            ? kindLabels[item.query.data.kind]
-                            : 'Consultando…',
-                      },
-                      {
-                        id: 'status',
-                        label: 'Extracción',
-                        accessor: (item) =>
-                          item.query?.data
-                            ? statusLabels[item.query.data.status]
-                            : 'Consultando…',
-                      },
-                    ]}
-                  />
-                </section>
-              ))}
-            </>
-          )}
-        </section>
-      </Accordion>
-      <Accordion className="operation-panel">
-        <AccordionTrigger>
-          Datos para comparar ({data.facts.length} documentos ·{' '}
-          {data.factRevisions.length} revisiones)
-        </AccordionTrigger>{' '}
-        <section
-          className="operation-section"
-          aria-labelledby="comparison-facts"
-        >
-          <h3 id="comparison-facts" tabIndex={-1}>
-            Datos para comparar
-          </h3>
-          <p className="metadata">
-            Revisá los candidatos extraídos antes de analizar. Corregir una
-            lectura conserva el original y no modifica el contrato. Los formatos
-            no reconocidos y los campos ausentes no se completan con
-            suposiciones.
-          </p>
-
-          {!data.facts.length ? (
-            <p>
-              No hay datos de comparación disponibles. Esperá a que finalice la
-              extracción y actualizá la operación.
-            </p>
-          ) : (
-            data.facts.map((fact) => (
-              <article key={fact.documentId} className="comparison-fact">
-                <PageHeader className="page-header">
-                  <div>
-                    <h4>
-                      {filenames.get(fact.documentId) ?? 'Documento vinculado'}
-                    </h4>
-                    <p>
-                      {fact.provider ?? 'Proveedor sin dato'} ·{' '}
-                      {fact.operationReference ?? 'Referencia sin dato'} ·{' '}
-                      {fact.kind === 'invoice'
-                        ? `${fact.total ?? 'Total sin dato'} ${fact.currency ?? ''}`
-                        : fact.kind === 'agreement'
-                          ? 'Fuente de precios y condiciones'
-                          : 'Evidencia operativa'}
-                    </p>
-                  </div>
-                  {data.capabilities.canWrite && (
-                    <FactsEditor
-                      userId={userId}
-                      key={fact.documentId}
-                      organizationId={organizationId}
-                      operationId={operationId}
-                      document={fact}
-                      filename={
-                        filenames.get(fact.documentId) ?? 'Documento vinculado'
-                      }
-                      fingerprint={data.fingerprint}
-                      disabled={disabled}
-                      onSaved={refresh}
-                    />
-                  )}
-                </PageHeader>
-                <p className="back-link">
-                  <a href={documentPath(organizationId, fact.documentId)}>
-                    Ver extracción original
-                  </a>
-                </p>
-                <p className="metadata">
-                  {fact.revisionId
-                    ? 'Revisión humana registrada · original conservado'
-                    : 'Candidato extraído · pendiente de revisión'}{' '}
-                  · {fact.lines.length} partidas ·{' '}
-                  {fact.excludedServices.length} exclusiones
-                </p>
-                <Accordion>
-                  <AccordionTrigger>Ver datos y evidencia</AccordionTrigger>
-                  <FactSummary fact={fact} />
-                </Accordion>
-              </article>
-            ))
-          )}
-        </section>
-      </Accordion>
+      <OperationAgreements
+        userId={userId}
+        organizationId={organizationId}
+        operation={data}
+        filenames={filenames}
+        disabled={disabled || busy || query.isFetching}
+      />
       <Accordion className="operation-panel">
         <AccordionTrigger>
           Historial de análisis y correcciones
@@ -800,6 +906,29 @@ function FactSummary({ fact }: { fact: OperationDetail['facts'][number] }) {
             )}
             <dt>Ruta o tramo</dt>
             <dd>{line.route ?? 'Sin dato'}</dd>
+            {line.pricingTerms && (
+              <>
+                <dt>Condiciones de precio documentadas</dt>
+                <dd>
+                  {line.pricingTerms.behavior === 'fixed'
+                    ? 'Precio fijo'
+                    : line.pricingTerms.behavior === 'variable'
+                      ? 'Precio variable'
+                      : 'Variación sin determinar'}{' '}
+                  ·{' '}
+                  {line.pricingTerms.cadence === 'monthly'
+                    ? 'Mensual'
+                    : line.pricingTerms.cadence === 'annual'
+                      ? 'Anual'
+                      : line.pricingTerms.cadence === 'per-unit'
+                        ? 'Por unidad'
+                        : 'Periodicidad sin determinar'}
+                  {' · '}
+                  {line.pricingTerms.validFrom ?? 'Inicio sin dato'} —{' '}
+                  {line.pricingTerms.validUntil ?? 'Fin sin dato'}
+                </dd>
+              </>
+            )}
           </dl>
         </div>
       ))}
@@ -868,6 +997,198 @@ function ResultSummary({ run }: { run: AnalysisRun }) {
     </div>
   );
 }
+function CandidateComparison({
+  run,
+  filenames,
+  organizationId,
+}: {
+  run: AnalysisRun;
+  filenames: Map<string, string>;
+  organizationId: string;
+}) {
+  const candidates = run.result?.comparisonCandidates;
+  if (!candidates?.length) return null;
+  return (
+    <section
+      className="result-group"
+      aria-label="Comparación de factura contra referencia"
+    >
+      <h4>Comparación de factura contra referencia</h4>
+      <p className="metadata">
+        La coincidencia de precio se muestra por separado de las condiciones
+        pendientes. Estos resultados proponen una comparación; no confirman un
+        reclamo ni un ahorro.
+      </p>
+      <DataTable
+        label="Partidas de factura y referencia propuesta"
+        searchLabel="Buscar concepto de factura o referencia"
+        data={candidates}
+        getRowId={(item) =>
+          `${item.invoiceDocumentId}:${item.lineId}:${item.referenceDocumentId ?? 'none'}:${item.referenceLineId ?? 'none'}`
+        }
+        columns={[
+          {
+            id: 'invoice',
+            label: 'Factura / concepto',
+            accessor: (item) =>
+              `${filenames.get(item.invoiceDocumentId) ?? 'Factura'} ${item.invoiceConcept}`,
+            render: (item) => (
+              <>
+                <strong>{item.invoiceConcept}</strong>
+                <p>
+                  {filenames.get(item.invoiceDocumentId) ?? 'Factura vinculada'}
+                </p>
+              </>
+            ),
+          },
+          {
+            id: 'reference',
+            label: 'Referencia propuesta',
+            accessor: (item) => item.referenceConcept,
+            render: (item) => (
+              <>
+                {item.referenceConcept ?? 'Sin concepto compatible'}
+                <p>
+                  {item.referenceDocumentId
+                    ? (filenames.get(item.referenceDocumentId) ??
+                      'Documento de referencia')
+                    : 'Sin fuente identificada'}
+                </p>
+              </>
+            ),
+          },
+          {
+            id: 'prices',
+            label: 'Precios unitarios comparados',
+            render: (item) => (
+              <>
+                <p>
+                  Referencia: {item.expectedUnitPrice ?? 'Sin dato'}{' '}
+                  {item.expectedCurrency ?? 'Moneda sin dato'}
+                </p>
+                <p>
+                  Factura: {item.actualUnitPrice ?? 'Sin dato'}{' '}
+                  {item.actualCurrency ?? 'Moneda sin dato'}
+                </p>
+                <p>
+                  {item.priceStatus === 'equal'
+                    ? 'Precio coincidente'
+                    : item.priceStatus === 'different'
+                      ? 'Precio diferente'
+                      : 'Precio no verificable'}
+                </p>
+              </>
+            ),
+          },
+          {
+            id: 'amounts',
+            label: 'Importes comparables',
+            render: (item) => (
+              <>
+                <p>
+                  Esperado: {item.expectedAmount ?? 'Sin dato'}{' '}
+                  {item.currency ?? ''}
+                </p>
+                <p>
+                  Factura: {item.actualAmount ?? 'Sin dato'}{' '}
+                  {item.currency ?? ''}
+                </p>
+                <p>
+                  Diferencia: {item.difference ?? 'Sin dato'}{' '}
+                  {item.currency ?? ''}
+                </p>
+              </>
+            ),
+          },
+          {
+            id: 'status',
+            label: 'Resultado y pendientes',
+            accessor: (item) => item.status,
+            render: (item) => (
+              <>
+                <Badge>
+                  {item.status === 'correct'
+                    ? 'Correcto según condiciones verificadas'
+                    : item.status === 'difference'
+                      ? 'Diferencia detectada'
+                      : 'Pendiente de verificar'}
+                </Badge>
+                <ul>
+                  {item.reasons.map((reason, index) => (
+                    <li key={index}>{reason}</li>
+                  ))}
+                </ul>
+                <a href="#comparison-facts">
+                  Revisar datos y condiciones extraídas
+                </a>
+              </>
+            ),
+          },
+        ]}
+        expandedContent={(item) => {
+          const invoiceLine = run.snapshot.documents
+            .find((doc) => doc.documentId === item.invoiceDocumentId)
+            ?.lines.find((line) => line.id === item.lineId);
+          return (
+            <>
+              <h5>Cálculo y evidencia de {item.invoiceConcept}</h5>
+              <p>
+                {item.calculation ??
+                  'No hay un cálculo verificable con los datos disponibles.'}
+              </p>
+              <p>
+                Cantidad registrada en la factura: {item.quantity ?? 'Sin dato'}
+                . No acredita por sí sola el servicio realizado.
+              </p>
+              {invoiceLine && (
+                <p>
+                  Importe registrado en la factura:{' '}
+                  {invoiceLine.amount ?? 'Sin dato'}{' '}
+                  {invoiceLine.currency ??
+                    run.snapshot.documents.find(
+                      (doc) => doc.documentId === item.invoiceDocumentId,
+                    )?.currency ??
+                    'Moneda sin dato'}
+                  .
+                </p>
+              )}
+              {invoiceLine?.tariffUnitPrice != null && (
+                <p>
+                  Precio unitario original de la factura:{' '}
+                  {invoiceLine.tariffUnitPrice}{' '}
+                  {invoiceLine.tariffCurrency ?? 'Moneda sin dato'}.
+                </p>
+              )}
+              <ul>
+                {item.conditions.map((condition, index) => (
+                  <li key={index}>
+                    <strong>{conditionLabel(condition.name)}</strong>:{' '}
+                    {condition.state === 'verified'
+                      ? 'Verificada'
+                      : condition.state === 'contradictory'
+                        ? 'Contradicción'
+                        : condition.state === 'unrestricted'
+                          ? 'Sin restricción'
+                          : 'Pendiente'}{' '}
+                    · {condition.reason}
+                  </li>
+                ))}
+              </ul>
+              <EvidenceList
+                evidence={item.evidence}
+                filenames={filenames}
+                organizationId={organizationId}
+              />
+              <p className="permission-note">
+                Esta propuesta no habilita acciones de reclamo.
+              </p>
+            </>
+          );
+        }}
+      />
+    </section>
+  );
+}
 function ResultTable({
   run,
   operation,
@@ -882,190 +1203,209 @@ function ResultTable({
   if (!run.result) return null;
   return (
     <>
-      <section
-        className="operation-section"
-        aria-label="Aplicabilidad de acuerdos"
-      >
-        <h4>Aplicabilidad de acuerdos</h4>
-        <p>
-          La vinculación documental identifica el origen. La selección humana no
-          elimina condiciones pendientes o contradictorias.
-        </p>
-        {(run.result.agreementDecisions ?? []).map((decision, index) => (
-          <article className="comparison-fact" key={index}>
-            <h5>
-              {filenames.get(decision.agreementDocumentId) ??
-                'Acuerdo candidato'}{' '}
-              ·{' '}
-              {decision.state === 'applicable'
-                ? 'Aplicable'
-                : decision.state === 'pending'
-                  ? 'Pendiente de confirmar'
-                  : 'No aplicable'}
-            </h5>
-            <p>
-              Versión:{' '}
-              {decision.agreementVersionId ?? 'Datos documentales del análisis'}{' '}
-              · Partida: {decision.lineId}
-            </p>
-            <p>{decision.reason}</p>
-            <ul>
-              {decision.conditions.map((condition, position) => (
-                <li key={position}>
-                  <strong>{conditionLabel(condition.name)}</strong>:{' '}
-                  {condition.state === 'verified'
-                    ? 'Verificada'
-                    : condition.state === 'unknown'
-                      ? 'Dato pendiente'
-                      : condition.state === 'contradictory'
-                        ? 'Contradicción'
-                        : 'Sin restricción'}{' '}
-                  · {condition.reason}
-                </li>
-              ))}
-            </ul>
-            <EvidenceList
-              evidence={decision.evidence}
-              filenames={filenames}
-              organizationId={organizationId}
-            />
-          </article>
-        ))}
-        {!run.result.agreementDecisions?.length && (
-          <p>{applicabilityEmptyMessage(run.result.agreementDecisions)}</p>
-        )}
-      </section>
-      <h4>Resultados económicos de facturas</h4>
-      {invoiceFindings(run).length !== run.result.findings.length && (
-        <Accordion>
-          <AccordionTrigger>
-            Controles de documentos de referencia y apoyo del resultado original
-          </AccordionTrigger>
-          <p className="permission-note">
-            Se conserva la evidencia original, sin presentarla como cargos
-            facturados ni habilitar reclamos sobre estos documentos.
+      <CandidateComparison
+        run={run}
+        filenames={filenames}
+        organizationId={organizationId}
+      />
+      <Accordion open={!run.result.comparisonCandidates?.length}>
+        <AccordionTrigger>
+          Controles detallados y aplicabilidad del análisis
+        </AccordionTrigger>
+
+        <section
+          className="operation-section"
+          aria-label="Aplicabilidad de acuerdos"
+        >
+          <h4>Aplicabilidad de acuerdos</h4>
+          <p>
+            La vinculación documental identifica el origen. La selección humana
+            no elimina condiciones pendientes o contradictorias.
           </p>
-          {run.result.findings
-            .filter((finding) => !invoiceFindings(run).includes(finding))
-            .map((finding, index) => (
-              <article key={index}>
-                <h5>
-                  {finding.documentId
-                    ? (filenames.get(finding.documentId) ??
-                      'Documento de referencia o apoyo')
-                    : 'Control general'}
-                </h5>
-                <p>{finding.explanation}</p>
-                <EvidenceList
-                  evidence={finding.evidence}
-                  filenames={filenames}
-                  organizationId={organizationId}
-                />
-              </article>
-            ))}
-        </Accordion>
-      )}
-      {!invoiceFindings(run).length && (
-        <p>
-          No hay partidas analizables. Revisá los datos y la evidencia
-          disponible.
-        </p>
-      )}
-      {(['arithmetic', 'service'] as const).map((group) => {
-        const findings = invoiceFindings(run).filter(
-          (finding) => findingGroup(finding.code) === group,
-        );
-        if (!findings.length) return null;
-        return (
-          <section className="result-group" key={group}>
-            <h4>
-              {group === 'arithmetic'
-                ? 'Control aritmético de partidas'
-                : 'Comparación de servicios y acuerdos'}
-            </h4>
-            <TableRegion
-              label={
-                group === 'arithmetic'
+          {(run.result.agreementDecisions ?? []).map((decision, index) => (
+            <article className="comparison-fact" key={index}>
+              <h5>
+                {filenames.get(decision.agreementDocumentId) ??
+                  'Acuerdo candidato'}{' '}
+                ·{' '}
+                {decision.state === 'applicable'
+                  ? 'Aplicable'
+                  : decision.state === 'pending'
+                    ? 'Pendiente de confirmar'
+                    : 'No aplicable'}
+              </h5>
+              <p>
+                Versión:{' '}
+                {decision.agreementVersionId ??
+                  'Datos documentales del análisis'}{' '}
+                · Partida: {decision.lineId}
+              </p>
+              <p>{decision.reason}</p>
+              <ul>
+                {decision.conditions.map((condition, position) => (
+                  <li key={position}>
+                    <strong>{conditionLabel(condition.name)}</strong>:{' '}
+                    {condition.state === 'verified'
+                      ? 'Verificada'
+                      : condition.state === 'unknown'
+                        ? 'Dato pendiente'
+                        : condition.state === 'contradictory'
+                          ? 'Contradicción'
+                          : 'Sin restricción'}{' '}
+                    · {condition.reason}
+                  </li>
+                ))}
+              </ul>
+              <EvidenceList
+                evidence={decision.evidence}
+                filenames={filenames}
+                organizationId={organizationId}
+              />
+            </article>
+          ))}
+          {!run.result.agreementDecisions?.length && (
+            <p>{applicabilityEmptyMessage(run.result.agreementDecisions)}</p>
+          )}
+        </section>
+        <h4>Resultados económicos de facturas</h4>
+        {invoiceFindings(run).length !== run.result.findings.length && (
+          <Accordion>
+            <AccordionTrigger>
+              Controles de documentos de referencia y apoyo del resultado
+              original
+            </AccordionTrigger>
+            <p className="permission-note">
+              Se conserva la evidencia original, sin presentarla como cargos
+              facturados ni habilitar reclamos sobre estos documentos.
+            </p>
+            {run.result.findings
+              .filter((finding) => !invoiceFindings(run).includes(finding))
+              .map((finding, index) => (
+                <article key={index}>
+                  <h5>
+                    {finding.documentId
+                      ? (filenames.get(finding.documentId) ??
+                        'Documento de referencia o apoyo')
+                      : 'Control general'}
+                  </h5>
+                  <p>{finding.explanation}</p>
+                  <EvidenceList
+                    evidence={finding.evidence}
+                    filenames={filenames}
+                    organizationId={organizationId}
+                  />
+                </article>
+              ))}
+          </Accordion>
+        )}
+        {!invoiceFindings(run).length && (
+          <p>
+            No hay partidas analizables. Revisá los datos y la evidencia
+            disponible.
+          </p>
+        )}
+        {(['arithmetic', 'service'] as const).map((group) => {
+          const findings = invoiceFindings(run).filter(
+            (finding) => findingGroup(finding.code) === group,
+          );
+          if (!findings.length) return null;
+          return (
+            <section className="result-group" key={group}>
+              <h4>
+                {group === 'arithmetic'
                   ? 'Control aritmético de partidas'
-                  : 'Comparación de partidas'
-              }
-            >
-              <Table>
-                <TableCaption className="sr-only">
-                  Importes esperados, facturados y diferencias con sus motivos ·{' '}
-                  {operation.reference}
-                </TableCaption>
-                <TableHead>
-                  <TableRow>
-                    <TableHeader scope="col">Proveedor / servicio</TableHeader>
-                    <TableHeader scope="col">Esperado</TableHeader>
-                    <TableHeader scope="col">Facturado</TableHeader>
-                    <TableHeader scope="col">Diferencia</TableHeader>
-                    <TableHeader scope="col">Moneda</TableHeader>
-                    <TableHeader scope="col">Resultado y motivo</TableHeader>
-                    <TableHeader scope="col">Evidencia</TableHeader>
-                    <TableHeader scope="col">Revisión humana</TableHeader>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {findings.map((finding, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <strong>
-                          {(finding.documentId &&
-                            filenames.get(finding.documentId)) ||
-                            'Factura'}
-                        </strong>
-                        {run.snapshot.documents.find(
-                          (document) =>
-                            document.documentId === finding.documentId,
-                        )?.provider ?? 'Proveedor sin dato'}
-                        <small className="file-size">
-                          {serviceLabels[finding.service] ?? finding.service}
-                        </small>
-                      </TableCell>
-                      <TableCell>{finding.expected ?? 'Sin dato'}</TableCell>
-                      <TableCell>{finding.invoiced ?? 'Sin dato'}</TableCell>
-                      <TableCell>{finding.difference ?? 'Sin dato'}</TableCell>
-                      <TableCell>{finding.currency ?? 'Sin dato'}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`result-status result-${finding.status}`}
-                        >
-                          <span aria-hidden="true">
-                            {outcomeIcons[finding.status]}
-                          </span>
-                          {outcomeLabels[finding.status]}
-                        </span>
-                        <p className="finding-reason">{finding.explanation}</p>
-                        {observedMissingFacts(finding, run).map((note) => (
-                          <p className="finding-reason" key={note}>
-                            <strong>Dato ausente:</strong> {note}
-                          </p>
-                        ))}
-                      </TableCell>
-                      <TableCell>
-                        <EvidenceList
-                          evidence={finding.evidence}
-                          filenames={filenames}
-                          organizationId={organizationId}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FindingReviewCell
-                          findingIndex={
-                            run.result?.findings.indexOf(finding) ?? -1
-                          }
-                        />
-                      </TableCell>
+                  : 'Comparación de servicios y acuerdos'}
+              </h4>
+              <TableRegion
+                label={
+                  group === 'arithmetic'
+                    ? 'Control aritmético de partidas'
+                    : 'Comparación de partidas'
+                }
+              >
+                <Table>
+                  <TableCaption className="sr-only">
+                    Importes esperados, facturados y diferencias con sus motivos
+                    · {operation.reference}
+                  </TableCaption>
+                  <TableHead>
+                    <TableRow>
+                      <TableHeader scope="col">
+                        Proveedor / servicio
+                      </TableHeader>
+                      <TableHeader scope="col">Esperado</TableHeader>
+                      <TableHeader scope="col">Facturado</TableHeader>
+                      <TableHeader scope="col">Diferencia</TableHeader>
+                      <TableHeader scope="col">Moneda</TableHeader>
+                      <TableHeader scope="col">Resultado y motivo</TableHeader>
+                      <TableHeader scope="col">Evidencia</TableHeader>
+                      <TableHeader scope="col">Revisión humana</TableHeader>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableRegion>
-          </section>
-        );
-      })}
+                  </TableHead>
+                  <TableBody>
+                    {findings.map((finding, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <strong>
+                            {(finding.documentId &&
+                              filenames.get(finding.documentId)) ||
+                              'Factura'}
+                          </strong>
+                          {run.snapshot.documents.find(
+                            (document) =>
+                              document.documentId === finding.documentId,
+                          )?.provider ?? 'Proveedor sin dato'}
+                          <small className="file-size">
+                            {serviceLabels[finding.service] ?? finding.service}
+                          </small>
+                        </TableCell>
+                        <TableCell>{finding.expected ?? 'Sin dato'}</TableCell>
+                        <TableCell>{finding.invoiced ?? 'Sin dato'}</TableCell>
+                        <TableCell>
+                          {finding.difference ?? 'Sin dato'}
+                        </TableCell>
+                        <TableCell>{finding.currency ?? 'Sin dato'}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`result-status result-${finding.status}`}
+                          >
+                            <span aria-hidden="true">
+                              {outcomeIcons[finding.status]}
+                            </span>
+                            {outcomeLabels[finding.status]}
+                          </span>
+                          <p className="finding-reason">
+                            {finding.explanation}
+                          </p>
+                          {observedMissingFacts(finding, run).map((note) => (
+                            <p className="finding-reason" key={note}>
+                              <strong>Dato ausente:</strong> {note}
+                            </p>
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          <EvidenceList
+                            evidence={finding.evidence}
+                            filenames={filenames}
+                            organizationId={organizationId}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FindingReviewCell
+                            findingIndex={
+                              run.result?.findings.indexOf(finding) ?? -1
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableRegion>
+            </section>
+          );
+        })}
+      </Accordion>
     </>
   );
 }
