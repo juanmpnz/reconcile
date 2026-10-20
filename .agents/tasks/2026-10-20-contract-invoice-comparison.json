@@ -1,7 +1,7 @@
 {
   "id": "2026-10-20-contract-invoice-comparison",
   "summary": "Compare linked contract and invoice concepts across languages with explicit price observations and applicability, and simplify operation document intake.",
-  "state": "reviewed",
+  "state": "verified",
   "owner": "principal-engineer",
   "implementer": "/root, /root/commercial_engine, /root/commercial_parser, /root/commercial_ui, /root/api_tests",
   "scope": [
@@ -169,6 +169,18 @@
       "status": "passed",
       "examined": "Final source and targeted QA reinspection; 132 independent targeted tests passed. Real service/boundary and browser execution remain CI acceptance, not claimed here.",
       "evidence": [".agents/reviews/2026-10-20-comparison-review.md"]
+    },
+    {
+      "role": "qa-engineer",
+      "reviewer": "/root",
+      "mode": "sequential",
+      "status": "passed",
+      "examined": "Inspected actual published-sha CI job logs: all75HTTP/service integration cases, all231unit cases, browser and production jobs passed; final harness task state is now closed. Independent domain/security/source QA review remains separately attributed.",
+      "evidence": [
+        ".agents/reviews/2026-10-20-comparison-review.md",
+        "https://github.com/juanmpnz/reconcile/actions/runs/39385632393",
+        "https://github.com/juanmpnz/reconcile/actions/runs/39385632395"
+      ]
     }
   ],
   "checks": [
@@ -186,6 +198,11 @@
       "command": "pnpm check",
       "status": "passed",
       "result": "Full local harness/format/lint/types, 231 unit tests and all builds passed. Later bounded-budget edits passed API/application types; final unified CI required."
+    },
+    {
+      "command": "GitHub Quality39385632393 and Production39385632395 on d59cafff4d9f61b563b735a75af8b72ccc2a683f",
+      "status": "passed",
+      "result": "231 unit tests/full check, 75 real-service integration tests, worker/storage smoke, browser acceptance and production recreation/persistence passed. Initial overall Quality failed only because this task intentionally remained reviewed pending runtime evidence. This documentation closure must pass final unified CI before merge."
     }
   ],
   "findings": [],
